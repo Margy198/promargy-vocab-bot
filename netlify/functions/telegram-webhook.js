@@ -27,12 +27,44 @@ const API = `https://api.telegram.org/bot${TOKEN}`;
 const pendingStore = () => getStore("vocab-bot-pending", { consistency: "strong" });
 const statsStore = () => getStore("vocab-bot-stats", { consistency: "strong" });
 const wordsStore = () => getStore("vocab-bot-words", { consistency: "strong" });
+const debugStore = () => getStore("vocab-bot-debug", { consistency: "strong" });
+
+// Собственный маленький журнал отладки в Blobs — не зависит от того, работает
+// ли сейчас просмотр логов в самой панели Netlify. Хранит последние 150
+// записей. Читается через GET-запрос к этой же функции с ?debug=<секрет>.
+async function dbg(msg) {
+  try {
+    const key = "log";
+    const existing = await debugStore().getWithMetadata(key, { type: "json" });
+    const arr = existing && Array.isArray(existing.data) ? existing.data : [];
+    arr.push(`${new Date().toISOString()} ${msg}`);
+    while (arr.length > 150) arr.shift();
+    try {
+      if (existing) {
+        await debugStore().setJSON(key, arr, { onlyIfMatch: existing.etag });
+      } else {
+        await debugStore().setJSON(key, arr, { onlyIfNew: true });
+      }
+    } catch (err) {
+      // Конфликт записи — не критично для отладочного журнала, просто пишем как есть.
+      await debugStore().setJSON(key, arr);
+    }
+  } catch (err) {
+    // Отладочное логирование никогда не должно ронять бота.
+    console.error("dbg() failed:", err);
+  }
+}
 
 const CYR = /[а-яёА-ЯЁ]/;
 const LAT = /[A-Za-z]/;
 
 function emptyStats() {
   return { answered: 0, correct: 0, streak: 0, bestStreak: 0, wrong: {} };
+}
+
+async function log(...args) {
+  console.log(...args);
+  await dbg(args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" "));
 }
 
 // Безопасное к гонкам обновление: читаем текущее значение вместе с ETag,
@@ -183,9 +215,9 @@ async function tg(method, payload) {
   });
   const data = await res.json();
   if (!data.ok) {
-    console.error(`[tg:${method}] FAILED status=${res.status}`, JSON.stringify(data), "payload:", JSON.stringify(payload));
+    await log(`[tg:${method}] FAILED status=${res.status}`, JSON.stringify(data), "payload:", JSON.stringify(payload));
   } else {
-    console.log(`[tg:${method}] ok`);
+    await log(`[tg:${method}] ok`);
   }
   return data;
 }
@@ -271,7 +303,7 @@ async function sendQuestion(chatId, stats) {
   // историю и ткнул в прошлый вопрос), мы это заметим и не засчитаем его
   // как ответ на текущий вопрос.
   const messageId = result && result.result ? result.result.message_id : undefined;
-  console.log(`[sendQuestion] new question="${correct.en}" messageId=${messageId} sendMessage.ok=${result && result.ok}`);
+  await log(`[sendQuestion] new question="${correct.en}" messageId=${messageId} sendMessage.ok=${result && result.ok}`);
 
   await pendingStore().setJSON(String(chatId), {
     correctEn: correct.en,
@@ -419,12 +451,12 @@ async function handleCallback(callbackQuery) {
   // функция была уже "прогрета"). Информативный текст (✅/❌ и перевод) всё
   // равно приходит в отредактированном сообщении ниже, поэтому в самом тосте
   // текст не дублируем.
-  console.log("[callback] received", JSON.stringify({ id: callbackQuery.id, data: callbackQuery.data, hasMessage: !!callbackQuery.message }));
+  await log("[callback] received", JSON.stringify({ id: callbackQuery.id, data: callbackQuery.data, hasMessage: !!callbackQuery.message }));
   await tg("answerCallbackQuery", { callback_query_id: callbackQuery.id });
-  console.log("[callback] step1: answerCallbackQuery done");
+  await log("[callback] step1: answerCallbackQuery done");
 
   if (!callbackQuery.message) {
-    console.log("[callback] no message on callback_query — stopping (old/inline message)");
+    await log("[callback] no message on callback_query — stopping (old/inline message)");
     return;
   }
 
@@ -439,20 +471,20 @@ async function handleCallback(callbackQuery) {
   }
 
   if (!data || !data.startsWith("a:")) {
-    console.log("[callback] unrecognized data, stopping:", data);
+    await log("[callback] unrecognized data, stopping:", data);
     return;
   }
   const chosenIdx = parseInt(data.slice(2), 10);
 
   const pending = await claimPending(chatId, messageId);
-  console.log("[callback] step2: claimPending result:", JSON.stringify(pending));
+  await log("[callback] step2: claimPending result:", JSON.stringify(pending));
   if (!pending) {
-    console.log("[callback] could not claim pending (stale/duplicate) — stopping here");
+    await log("[callback] could not claim pending (stale/duplicate) — stopping here");
     return;
   }
 
   const isCorrect = chosenIdx === pending.correctPos;
-  console.log(`[callback] step3: chosenIdx=${chosenIdx} correctPos=${pending.correctPos} isCorrect=${isCorrect}`);
+  await log(`[callback] step3: chosenIdx=${chosenIdx} correctPos=${pending.correctPos} isCorrect=${isCorrect}`);
 
   const stats = await withOptimisticUpdate(statsStore(), String(chatId), emptyStats, (current) => {
     const s = { ...current, wrong: { ...current.wrong } };
@@ -468,7 +500,7 @@ async function handleCallback(callbackQuery) {
     }
     return s;
   });
-  console.log("[callback] step4: stats updated:", JSON.stringify(stats));
+  await log("[callback] step4: stats updated:", JSON.stringify(stats));
 
   await tg("editMessageText", {
     chat_id: chatId,
@@ -477,10 +509,10 @@ async function handleCallback(callbackQuery) {
     parse_mode: "Markdown",
     reply_markup: { inline_keyboard: [] },
   });
-  console.log("[callback] step5: editMessageText attempted");
+  await log("[callback] step5: editMessageText attempted");
 
   await sendQuestion(chatId, stats);
-  console.log("[callback] step6: sendQuestion done — handling complete");
+  await log("[callback] step6: sendQuestion done — handling complete");
 }
 
 async function handleMessage(message) {
@@ -528,6 +560,19 @@ async function claimUpdateOnce(updateId) {
 
 export default async (req) => {
   if (req.method !== "POST") {
+    // GET ?debug=<секрет> — отдаёт последние записи собственного журнала
+    // отладки, независимо от того, работает ли сейчас просмотр логов в
+    // самой панели Netlify.
+    if (req.method === "GET" && WEBHOOK_SECRET) {
+      const url = new URL(req.url);
+      if (url.searchParams.get("debug") === WEBHOOK_SECRET) {
+        const entries = await debugStore().get("log", { type: "json" });
+        return new Response(JSON.stringify(entries || [], null, 2), {
+          status: 200,
+          headers: { "content-type": "application/json; charset=utf-8" },
+        });
+      }
+    }
     return new Response("ok", { status: 200 });
   }
 
@@ -558,7 +603,7 @@ export default async (req) => {
       await handleMessage(body.message);
     }
   } catch (err) {
-    console.error("Handler error:", err);
+    await log("[handler] UNCAUGHT ERROR:", String(err), err && err.stack);
   }
 
   // Telegram ждёт быстрый ответ 200 — иначе будет слать вебхук повторно
