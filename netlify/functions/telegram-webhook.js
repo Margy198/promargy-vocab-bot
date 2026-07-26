@@ -405,10 +405,9 @@ async function handleCallback(callbackQuery) {
   if (!callbackQuery.message) {
     // Сообщение слишком старое, и Telegram больше не прикладывает его к
     // callback_query — без message_id некуда писать ответ и не с чем сверяться.
-    await tg("answerCallbackQuery", {
-      callback_query_id: callbackQuery.id,
-      text: "Это сообщение слишком старое — жми /play",
-    });
+    // Тихо гасим "часики" на кнопке, без текста — свежий вопрос и так уже
+    // где-то в чате.
+    await tg("answerCallbackQuery", { callback_query_id: callbackQuery.id });
     return;
   }
 
@@ -428,10 +427,9 @@ async function handleCallback(callbackQuery) {
 
   const pending = await claimPending(chatId, messageId);
   if (!pending) {
-    await tg("answerCallbackQuery", {
-      callback_query_id: callbackQuery.id,
-      text: "Этот вопрос устарел — жми /play",
-    });
+    // Тот же принцип: ни ошибки, ни "устарел" — просто снимаем "часики" с
+    // кнопки молча. Актуальный вопрос уже отправлен отдельным сообщением.
+    await tg("answerCallbackQuery", { callback_query_id: callbackQuery.id });
     return;
   }
 
