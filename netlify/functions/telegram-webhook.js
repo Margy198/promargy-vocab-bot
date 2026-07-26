@@ -182,7 +182,11 @@ async function tg(method, payload) {
     body: JSON.stringify(payload),
   });
   const data = await res.json();
-  if (!data.ok) console.error("Telegram API error:", method, data);
+  if (!data.ok) {
+    console.error(`[tg:${method}] FAILED status=${res.status}`, JSON.stringify(data), "payload:", JSON.stringify(payload));
+  } else {
+    console.log(`[tg:${method}] ok`);
+  }
   return data;
 }
 
@@ -267,6 +271,7 @@ async function sendQuestion(chatId, stats) {
   // историю и ткнул в прошлый вопрос), мы это заметим и не засчитаем его
   // как ответ на текущий вопрос.
   const messageId = result && result.result ? result.result.message_id : undefined;
+  console.log(`[sendQuestion] new question="${correct.en}" messageId=${messageId} sendMessage.ok=${result && result.ok}`);
 
   await pendingStore().setJSON(String(chatId), {
     correctEn: correct.en,
@@ -414,9 +419,14 @@ async function handleCallback(callbackQuery) {
   // функция была уже "прогрета"). Информативный текст (✅/❌ и перевод) всё
   // равно приходит в отредактированном сообщении ниже, поэтому в самом тосте
   // текст не дублируем.
+  console.log("[callback] received", JSON.stringify({ id: callbackQuery.id, data: callbackQuery.data, hasMessage: !!callbackQuery.message }));
   await tg("answerCallbackQuery", { callback_query_id: callbackQuery.id });
+  console.log("[callback] step1: answerCallbackQuery done");
 
-  if (!callbackQuery.message) return;
+  if (!callbackQuery.message) {
+    console.log("[callback] no message on callback_query — stopping (old/inline message)");
+    return;
+  }
 
   const chatId = callbackQuery.message.chat.id;
   const messageId = callbackQuery.message.message_id;
@@ -428,13 +438,21 @@ async function handleCallback(callbackQuery) {
     return;
   }
 
-  if (!data || !data.startsWith("a:")) return;
+  if (!data || !data.startsWith("a:")) {
+    console.log("[callback] unrecognized data, stopping:", data);
+    return;
+  }
   const chosenIdx = parseInt(data.slice(2), 10);
 
   const pending = await claimPending(chatId, messageId);
-  if (!pending) return;
+  console.log("[callback] step2: claimPending result:", JSON.stringify(pending));
+  if (!pending) {
+    console.log("[callback] could not claim pending (stale/duplicate) — stopping here");
+    return;
+  }
 
   const isCorrect = chosenIdx === pending.correctPos;
+  console.log(`[callback] step3: chosenIdx=${chosenIdx} correctPos=${pending.correctPos} isCorrect=${isCorrect}`);
 
   const stats = await withOptimisticUpdate(statsStore(), String(chatId), emptyStats, (current) => {
     const s = { ...current, wrong: { ...current.wrong } };
@@ -450,16 +468,19 @@ async function handleCallback(callbackQuery) {
     }
     return s;
   });
+  console.log("[callback] step4: stats updated:", JSON.stringify(stats));
 
   await tg("editMessageText", {
     chat_id: chatId,
     message_id: messageId,
-    text: `${isCorrect ? "✅" : "❌"} *${mdEscape(pending.correctEn)}* — ${pending.correctRu}\n\n${statsLine(stats)}`,
+    text: `${isCorrect ? "✅" : "❌"} *${mdEscape(pending.correctEn)}* — ${mdEscape(pending.correctRu)}\n\n${statsLine(stats)}`,
     parse_mode: "Markdown",
     reply_markup: { inline_keyboard: [] },
   });
+  console.log("[callback] step5: editMessageText attempted");
 
   await sendQuestion(chatId, stats);
+  console.log("[callback] step6: sendQuestion done — handling complete");
 }
 
 async function handleMessage(message) {
