@@ -20,9 +20,13 @@ const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET; // опционально, но рекомендуется
 const API = `https://api.telegram.org/bot${TOKEN}`;
 
-const pendingStore = () => getStore("vocab-bot-pending");
-const statsStore = () => getStore("vocab-bot-stats");
-const wordsStore = () => getStore("vocab-bot-words");
+// consistency: "strong" — по умолчанию Netlify Blobs "eventually consistent"
+// (запись может долетать до чтения до 60 секунд), из-за чего самое первое
+// нажатие кнопки иногда "не находило" только что записанный вопрос. Строгая
+// консистентность чуть медленнее, но гарантирует, что запись видна сразу же.
+const pendingStore = () => getStore("vocab-bot-pending", { consistency: "strong" });
+const statsStore = () => getStore("vocab-bot-stats", { consistency: "strong" });
+const wordsStore = () => getStore("vocab-bot-words", { consistency: "strong" });
 
 const CYR = /[а-яёА-ЯЁ]/;
 const LAT = /[A-Za-z]/;
@@ -498,7 +502,7 @@ async function handleMessage(message) {
   return handleBulkAdd(chatId, text);
 }
 
-const seenUpdatesStore = () => getStore("vocab-bot-seen-updates");
+const seenUpdatesStore = () => getStore("vocab-bot-seen-updates", { consistency: "strong" });
 
 // Telegram может доставить один и тот же update дважды (например, если наш
 // ответ пришёл чуть медленнее обычного). Помечаем update_id как обработанный
