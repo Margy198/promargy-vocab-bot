@@ -422,7 +422,13 @@ async function handleCallback(callbackQuery) {
     return;
   }
 
-  if (!data.startsWith("a:")) return;
+  if (!data || !data.startsWith("a:")) {
+    // Неизвестный или отсутствующий формат данных кнопки — снимаем "часики"
+    // молча, не роняя обработку (сюда мы никогда сами такое не отправляем,
+    // но лучше перестраховаться).
+    await tg("answerCallbackQuery", { callback_query_id: callbackQuery.id });
+    return;
+  }
   const chosenIdx = parseInt(data.slice(2), 10);
 
   const pending = await claimPending(chatId, messageId);
