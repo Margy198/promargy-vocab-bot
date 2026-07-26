@@ -1,0 +1,13 @@
+{
+  "name": "promargy-vocab-bot",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Telegram-бот для отработки словарной лексики (квиз с кнопками) для promargy.com",
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
