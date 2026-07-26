@@ -1,0 +1,18 @@
+name: Keep bot warm
+
+# Пингует функцию бота каждые 5 минут, чтобы Netlify не "усыпляла" её —
+# без этого первый запрос после паузы ждёт холодного старта (2-3+ секунды),
+# из-за чего кнопка в Telegram могла "зависать" на первом нажатии.
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping the bot function
+        run: |
+          curl -s -o /dev/null -w "status: %{http_code}\n" https://magical-nougat-d42dea.netlify.app/telegram-webhook
