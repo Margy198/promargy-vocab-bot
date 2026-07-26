@@ -406,42 +406,33 @@ async function claimPending(chatId, messageId) {
 }
 
 async function handleCallback(callbackQuery) {
-  if (!callbackQuery.message) {
-    // Сообщение слишком старое, и Telegram больше не прикладывает его к
-    // callback_query — без message_id некуда писать ответ и не с чем сверяться.
-    // Тихо гасим "часики" на кнопке, без текста — свежий вопрос и так уже
-    // где-то в чате.
-    await tg("answerCallbackQuery", { callback_query_id: callbackQuery.id });
-    return;
-  }
+  // Отвечаем на нажатие СРАЗУ, первым делом — до любых обращений к Blobs и
+  // Telegram API. Раньше это делалось в конце, и на холодном старте функции
+  // вся цепочка (чтение/запись состояния, отправка сообщений) иногда не
+  // укладывалась в то время, что Telegram ждёт ответ по кнопке — отсюда
+  // бесконечные "часики" на первом нажатии (второе срабатывало, потому что
+  // функция была уже "прогрета"). Информативный текст (✅/❌ и перевод) всё
+  // равно приходит в отредактированном сообщении ниже, поэтому в самом тосте
+  // текст не дублируем.
+  await tg("answerCallbackQuery", { callback_query_id: callbackQuery.id });
+
+  if (!callbackQuery.message) return;
 
   const chatId = callbackQuery.message.chat.id;
   const messageId = callbackQuery.message.message_id;
   const data = callbackQuery.data;
 
   if (data === "start") {
-    await tg("answerCallbackQuery", { callback_query_id: callbackQuery.id });
     const stats = await getStats(chatId);
     await sendQuestion(chatId, stats);
     return;
   }
 
-  if (!data || !data.startsWith("a:")) {
-    // Неизвестный или отсутствующий формат данных кнопки — снимаем "часики"
-    // молча, не роняя обработку (сюда мы никогда сами такое не отправляем,
-    // но лучше перестраховаться).
-    await tg("answerCallbackQuery", { callback_query_id: callbackQuery.id });
-    return;
-  }
+  if (!data || !data.startsWith("a:")) return;
   const chosenIdx = parseInt(data.slice(2), 10);
 
   const pending = await claimPending(chatId, messageId);
-  if (!pending) {
-    // Тот же принцип: ни ошибки, ни "устарел" — просто снимаем "часики" с
-    // кнопки молча. Актуальный вопрос уже отправлен отдельным сообщением.
-    await tg("answerCallbackQuery", { callback_query_id: callbackQuery.id });
-    return;
-  }
+  if (!pending) return;
 
   const isCorrect = chosenIdx === pending.correctPos;
 
@@ -458,11 +449,6 @@ async function handleCallback(callbackQuery) {
       s.wrong[pending.correctEn] = (s.wrong[pending.correctEn] || 0) + 1;
     }
     return s;
-  });
-
-  await tg("answerCallbackQuery", {
-    callback_query_id: callbackQuery.id,
-    text: isCorrect ? "✅ Верно!" : `❌ Правильный ответ: ${pending.correctRu}`,
   });
 
   await tg("editMessageText", {
