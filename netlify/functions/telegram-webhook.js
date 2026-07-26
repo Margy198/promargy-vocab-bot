@@ -272,7 +272,7 @@ function pickQuestionWord(vocab, stats, excludeEn) {
   return candidates[Math.floor(Math.random() * candidates.length)];
 }
 
-async function sendQuestion(chatId, stats) {
+async function sendQuestion(chatId, stats, prefix) {
   const vocab = await getVocab();
   if (!vocab.length) {
     await tg("sendMessage", {
@@ -291,9 +291,12 @@ async function sendQuestion(chatId, stats) {
   const correctPos = options.indexOf(correct);
   const keyboard = options.map((o, i) => [{ text: o.ru, callback_data: `a:${i}` }]);
 
+  const questionText = `🎯 Как переводится: *${mdEscape(correct.en)}*?`;
+  const text = prefix ? `${prefix}\n\n${questionText}` : questionText;
+
   const result = await tg("sendMessage", {
     chat_id: chatId,
-    text: `🎯 Как переводится: *${mdEscape(correct.en)}*?`,
+    text,
     parse_mode: "Markdown",
     reply_markup: { inline_keyboard: keyboard },
   });
@@ -502,17 +505,10 @@ async function handleCallback(callbackQuery) {
   });
   await log("[callback] step4: stats updated:", JSON.stringify(stats));
 
-  await tg("editMessageText", {
-    chat_id: chatId,
-    message_id: messageId,
-    text: `${isCorrect ? "✅" : "❌"} *${mdEscape(pending.correctEn)}* — ${mdEscape(pending.correctRu)}\n\n${statsLine(stats)}`,
-    parse_mode: "Markdown",
-    reply_markup: { inline_keyboard: [] },
-  });
-  await log("[callback] step5: editMessageText attempted");
+  const resultText = `${isCorrect ? "✅" : "❌"} *${mdEscape(pending.correctEn)}* — ${mdEscape(pending.correctRu)}\n\n${statsLine(stats)}`;
 
-  await sendQuestion(chatId, stats);
-  await log("[callback] step6: sendQuestion done — handling complete");
+  await sendQuestion(chatId, stats, resultText);
+  await log("[callback] step5: sendQuestion (with result prefix) done — handling complete");
 }
 
 async function handleMessage(message) {
