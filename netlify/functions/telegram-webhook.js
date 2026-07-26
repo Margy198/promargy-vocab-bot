@@ -456,6 +456,7 @@ async function handleCallback(callbackQuery) {
     message_id: messageId,
     text: `${isCorrect ? "✅" : "❌"} *${mdEscape(pending.correctEn)}* — ${pending.correctRu}\n\n${statsLine(stats)}`,
     parse_mode: "Markdown",
+    reply_markup: { inline_keyboard: [] },
   });
 
   await sendQuestion(chatId, stats);
