@@ -90,7 +90,7 @@ const CYR = /[а-яёА-ЯЁ]/;
 const LAT = /[A-Za-z]/;
 
 function emptyStats() {
-  return { answered: 0, correct: 0, streak: 0, bestStreak: 0, wrong: {}, recentEn: [] };
+  return { answered: 0, correct: 0, streak: 0, bestStreak: 0, wrong: {}, recentEn: [], seenEn: [] };
 }
 
 async function log(...args) {
@@ -300,7 +300,9 @@ function pickDistractors(vocab, correctWord, count) {
 // Слова, в которых человек недавно ошибался, чаще попадаются повторно —
 // но не среди последних 50 показанных слов (excludeSet), чтобы одно и то же
 // слово не всплывало слишком часто, а разнообразие ощущалось на большом окне.
-function pickQuestionWord(vocab, stats, excludeSet) {
+// Используется только на "случайном" этапе (когда новых непройденных слов
+// больше нет) — см. pickQuestionWord ниже.
+function pickRandomQuestionWord(vocab, stats, excludeSet) {
   const pool = excludeSet && excludeSet.size ? vocab.filter((v) => !excludeSet.has(v.en)) : vocab;
   const candidates = pool.length ? pool : vocab;
 
@@ -311,6 +313,30 @@ function pickQuestionWord(vocab, stats, excludeSet) {
     if (w) return w;
   }
   return candidates[Math.floor(Math.random() * candidates.length)];
+}
+
+// Выбор слова для вопроса, в два этапа:
+//  1) Пока есть слова, которые этот пользователь ЕЩЁ НИ РАЗУ не видел —
+//     показываем их первыми, начиная с добавленных САМЫМИ ПОСЛЕДНИМИ
+//     (новые слова из словаря идут в конец массива, так что берём с конца).
+//  2) Когда пользователь прошёл весь словарь хотя бы по разу — начинается
+//     "перемешанный" круг: случайный выбор, но каждое слово в пределах
+//     круга не повторяется, пока не пройдут все остальные. По завершении
+//     круга (seenEn сбрасывается) начинается заново.
+// Возвращает { word, resetCycle } — resetCycle=true значит, что нужно
+// начать новый круг (список "уже показанных в этом круге" стоит очистить).
+function pickQuestionWord(vocab, stats, excludeSet) {
+  const seenEn = new Set(Array.isArray(stats.seenEn) ? stats.seenEn : []);
+  const unseen = vocab.filter((v) => !seenEn.has(v.en));
+
+  if (unseen.length) {
+    // Последний элемент unseen — самое недавно добавленное непройденное слово
+    // (порядок вставки в vocab сохраняется при filter).
+    return { word: unseen[unseen.length - 1], resetCycle: false };
+  }
+
+  // Все слова уже проходили в этом круге — начинаем новый круг.
+  return { word: pickRandomQuestionWord(vocab, stats, excludeSet), resetCycle: true };
 }
 
 const RECENT_HISTORY_SIZE = 50;
@@ -326,8 +352,13 @@ async function sendQuestion(chatId, stats, prefix) {
     return;
   }
 
-  const excludeSet = new Set(Array.isArray(stats.recentEn) ? stats.recentEn : []);
-  const correct = pickQuestionWord(vocab, stats, excludeSet);
+  const recentEn = Array.isArray(stats.recentEn) ? stats.recentEn : [];
+  // Ограничиваем окно исключения так, чтобы оно не могло охватить ВЕСЬ
+  // словарь (иначе, при маленьком словаре, единственным вариантом снова
+  // стало бы то же самое только что показанное слово).
+  const maxExclude = Math.max(0, vocab.length - 1);
+  const excludeSet = new Set(recentEn.slice(-maxExclude));
+  const { word: correct, resetCycle } = pickQuestionWord(vocab, stats, excludeSet);
   const distractors = pickDistractors(vocab, correct, Math.min(OPTIONS_COUNT - 1, vocab.length - 1));
   const options = shuffle([correct, ...distractors]);
   const correctPos = options.indexOf(correct);
@@ -358,13 +389,23 @@ async function sendQuestion(chatId, stats, prefix) {
     messageId,
   });
 
-  // Пополняем историю последних 50 показанных слов — устойчиво к гонкам.
+  // Пополняем историю последних 50 показанных слов (для разнообразия) и
+  // список пройденных в текущем круге слов (для приоритета новых и
+  // отсутствия повторов до конца круга) — устойчиво к гонкам.
   await withOptimisticUpdate(statsStore(), String(chatId), emptyStats, (current) => {
     const s = { ...current };
     const hist = Array.isArray(s.recentEn) ? [...s.recentEn] : [];
     hist.push(correct.en);
     while (hist.length > RECENT_HISTORY_SIZE) hist.shift();
     s.recentEn = hist;
+
+    if (resetCycle) {
+      s.seenEn = [correct.en];
+    } else {
+      const seen = Array.isArray(s.seenEn) ? [...s.seenEn] : [];
+      if (!seen.includes(correct.en)) seen.push(correct.en);
+      s.seenEn = seen;
+    }
     return s;
   });
 }
