@@ -59,7 +59,7 @@ const CYR = /[а-яёА-ЯЁ]/;
 const LAT = /[A-Za-z]/;
 
 function emptyStats() {
-  return { answered: 0, correct: 0, streak: 0, bestStreak: 0, wrong: {} };
+  return { answered: 0, correct: 0, streak: 0, bestStreak: 0, wrong: {}, recentEn: [] };
 }
 
 async function log(...args) {
@@ -257,13 +257,13 @@ function pickDistractors(vocab, correctWord, count) {
 }
 
 // Слова, в которых человек недавно ошибался, чаще попадаются повторно —
-// но не СРАЗУ следующим вопросом (excludeEn — слово, которое только что
-// спрашивали), чтобы не было ощущения "залипания" на одном слове подряд.
-function pickQuestionWord(vocab, stats, excludeEn) {
-  const pool = excludeEn ? vocab.filter((v) => v.en !== excludeEn) : vocab;
+// но не среди последних 50 показанных слов (excludeSet), чтобы одно и то же
+// слово не всплывало слишком часто, а разнообразие ощущалось на большом окне.
+function pickQuestionWord(vocab, stats, excludeSet) {
+  const pool = excludeSet && excludeSet.size ? vocab.filter((v) => !excludeSet.has(v.en)) : vocab;
   const candidates = pool.length ? pool : vocab;
 
-  const wrongWords = Object.keys(stats.wrong || {}).filter((w) => w !== excludeEn);
+  const wrongWords = Object.keys(stats.wrong || {}).filter((w) => !excludeSet || !excludeSet.has(w));
   if (wrongWords.length && Math.random() < 0.35) {
     const enKey = wrongWords[Math.floor(Math.random() * wrongWords.length)];
     const w = candidates.find((v) => v.en === enKey);
@@ -271,6 +271,9 @@ function pickQuestionWord(vocab, stats, excludeEn) {
   }
   return candidates[Math.floor(Math.random() * candidates.length)];
 }
+
+const RECENT_HISTORY_SIZE = 50;
+const OPTIONS_COUNT = 6; // 1 правильный + 5 неверных вариантов
 
 async function sendQuestion(chatId, stats, prefix) {
   const vocab = await getVocab();
@@ -282,11 +285,9 @@ async function sendQuestion(chatId, stats, prefix) {
     return;
   }
 
-  const prevPending = await pendingStore().get(String(chatId), { type: "json" });
-  const excludeEn = prevPending ? prevPending.correctEn : null;
-
-  const correct = pickQuestionWord(vocab, stats, excludeEn);
-  const distractors = pickDistractors(vocab, correct, Math.min(3, vocab.length - 1));
+  const excludeSet = new Set(Array.isArray(stats.recentEn) ? stats.recentEn : []);
+  const correct = pickQuestionWord(vocab, stats, excludeSet);
+  const distractors = pickDistractors(vocab, correct, Math.min(OPTIONS_COUNT - 1, vocab.length - 1));
   const options = shuffle([correct, ...distractors]);
   const correctPos = options.indexOf(correct);
   const keyboard = options.map((o, i) => [{ text: o.ru, callback_data: `a:${i}` }]);
@@ -314,6 +315,16 @@ async function sendQuestion(chatId, stats, prefix) {
     correctPos,
     consumed: false,
     messageId,
+  });
+
+  // Пополняем историю последних 50 показанных слов — устойчиво к гонкам.
+  await withOptimisticUpdate(statsStore(), String(chatId), emptyStats, (current) => {
+    const s = { ...current };
+    const hist = Array.isArray(s.recentEn) ? [...s.recentEn] : [];
+    hist.push(correct.en);
+    while (hist.length > RECENT_HISTORY_SIZE) hist.shift();
+    s.recentEn = hist;
+    return s;
   });
 }
 
