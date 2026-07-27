@@ -28,6 +28,37 @@ const pendingStore = () => getStore("vocab-bot-pending", { consistency: "strong"
 const statsStore = () => getStore("vocab-bot-stats", { consistency: "strong" });
 const wordsStore = () => getStore("vocab-bot-words", { consistency: "strong" });
 const debugStore = () => getStore("vocab-bot-debug", { consistency: "strong" });
+const rateLimitStore = () => getStore("vocab-bot-ratelimit", { consistency: "strong" });
+
+// Telegram официально рекомендует не больше ~1 сообщения в секунду в один и
+// тот же чат — при превышении сообщение не отклоняется (наш вызов API
+// получает "ok"), а тихо откладывается на стороне Telegram и доставляется
+// клиенту позже. Это может объяснять "второй вопрос не приходит сразу":
+// если отвечать быстрее раза в секунду, каждое следующее сообщение рискует
+// попасть в такую отложенную доставку. Выдерживаем паузу перед отправкой,
+// если предыдущее сообщение в этот чат ушло меньше секунды назад.
+const MIN_MS_BETWEEN_MESSAGES = process.env.RATE_LIMIT_MS != null ? parseInt(process.env.RATE_LIMIT_MS, 10) : 1100;
+
+async function waitForRateLimit(chatId) {
+  const key = String(chatId);
+  const last = await rateLimitStore().get(key, { type: "json" });
+  const now = Date.now();
+  if (last && typeof last.at === "number") {
+    const elapsed = now - last.at;
+    if (elapsed < MIN_MS_BETWEEN_MESSAGES) {
+      await new Promise((resolve) => setTimeout(resolve, MIN_MS_BETWEEN_MESSAGES - elapsed));
+    }
+  }
+}
+
+async function markMessageSent(chatId) {
+  try {
+    await rateLimitStore().setJSON(String(chatId), { at: Date.now() });
+  } catch (err) {
+    // Не критично, если запись не удалась — просто следующий вызов
+    // подождёт чуть дольше, чем нужно.
+  }
+}
 
 // Собственный маленький журнал отладки в Blobs — не зависит от того, работает
 // ли сейчас просмотр логов в самой панели Netlify. Хранит последние 150
@@ -208,6 +239,13 @@ async function deleteWord(term) {
 }
 
 async function tg(method, payload) {
+  // Пауза, чтобы не слать больше ~1 сообщения в секунду в один и тот же чат
+  // (см. комментарий у MIN_MS_BETWEEN_MESSAGES) — применяется ко всем
+  // sendMessage-вызовам автоматически, не только к вопросам.
+  if (method === "sendMessage" && payload && payload.chat_id != null) {
+    await waitForRateLimit(payload.chat_id);
+  }
+
   const res = await fetch(`${API}/${method}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -218,6 +256,9 @@ async function tg(method, payload) {
     await log(`[tg:${method}] FAILED status=${res.status}`, JSON.stringify(data), "payload:", JSON.stringify(payload));
   } else {
     await log(`[tg:${method}] ok`);
+    if (method === "sendMessage" && payload && payload.chat_id != null) {
+      await markMessageSent(payload.chat_id);
+    }
   }
   return data;
 }
