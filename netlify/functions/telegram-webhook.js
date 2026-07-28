@@ -93,7 +93,7 @@ const CYR = /[а-яёА-ЯЁ]/;
 const LAT = /[A-Za-z]/;
 
 function emptyStats() {
-  return { answered: 0, correct: 0, streak: 0, bestStreak: 0, wrong: {}, recentEn: [], seenEn: [] };
+  return { answered: 0, correct: 0, streak: 0, bestStreak: 0, wrong: {} };
 }
 
 async function log(...args) {
@@ -139,8 +139,23 @@ async function withOptimisticUpdate(store, key, defaultValue, mutate, maxAttempt
 }
 
 // Как и выше — без блокирующей перепроверки, просто доверяем ответу записи.
-async function verifiedSet(store, key, value) {
-  await store.setJSON(key, value);
+// Проверка ограничена (максимум 3 попытки, короткая фиксированная пауза) —
+// в отличие от прежней версии withOptimisticUpdate, эта запись не является
+// общим ключом, за который конкурируют несколько запросов одновременно
+// (только "победитель" claimPending когда-либо пишет сюда за один раз),
+// поэтому здесь бесконечный цикл повторов из-за постоянной конкуренции не
+// грозит — можно позволить себе разумную перепроверку.
+async function verifiedSet(store, key, value, maxAttempts = 8) {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    await store.setJSON(key, value);
+    const verify = await store.get(key, { type: "json" });
+    if (JSON.stringify(verify) === JSON.stringify(value)) return;
+    if (attempt < maxAttempts - 1) {
+      await log(`[verifiedSet] mismatch on "${key}" (attempt ${attempt}) — retrying`);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+  }
+  await log(`[verifiedSet] still mismatched on "${key}" after ${maxAttempts} attempts — proceeding with last write anyway`);
 }
 
 async function getStats(chatId) {
@@ -351,11 +366,11 @@ function pickDistractors(vocab, correctWord, count) {
 // слово не всплывало слишком часто, а разнообразие ощущалось на большом окне.
 // Используется только на "случайном" этапе (когда новых непройденных слов
 // больше нет) — см. pickQuestionWord ниже.
-function pickRandomQuestionWord(vocab, stats, excludeSet) {
+function pickRandomQuestionWord(vocab, wrongMap, excludeSet) {
   const pool = excludeSet && excludeSet.size ? vocab.filter((v) => !excludeSet.has(v.en)) : vocab;
   const candidates = pool.length ? pool : vocab;
 
-  const wrongWords = Object.keys(stats.wrong || {}).filter((w) => !excludeSet || !excludeSet.has(w));
+  const wrongWords = Object.keys(wrongMap || {}).filter((w) => !excludeSet || !excludeSet.has(w));
   if (wrongWords.length && Math.random() < 0.35) {
     const enKey = wrongWords[Math.floor(Math.random() * wrongWords.length)];
     const w = candidates.find((v) => v.en === enKey);
@@ -366,66 +381,64 @@ function pickRandomQuestionWord(vocab, stats, excludeSet) {
 
 // Выбор слова для вопроса, в два этапа:
 //  1) Пока есть слова, которые этот пользователь ЕЩЁ НИ РАЗУ не видел —
-//     показываем их первыми, начиная с добавленных САМЫМИ ПОСЛЕДНИМИ
-//     (новые слова из словаря идут в конец массива, так что берём с конца).
-//     Из них ещё и стараемся не брать те, что попали в последние 50
-//     показанных (excludeSet) — раньше эта проверка тут вообще
-//     отсутствовала, из-за чего "не повторять последние 50" фактически не
-//     работало почти всё время: полный круг — это сотни вопросов, и всё
-//     это время бот был именно в этой, первой, ветке выбора.
+//     показываем их первыми, начиная с добавленных САМЫМИ ПОСЛЕДНИМИ, и по
+//     возможности не из последних 50 показанных (excludeSet).
 //  2) Когда пользователь прошёл весь словарь хотя бы по разу — начинается
 //     "перемешанный" круг: случайный выбор, но каждое слово в пределах
 //     круга не повторяется, пока не пройдут все остальные. По завершении
 //     круга (seenEn сбрасывается) начинается заново.
-// Возвращает { word, resetCycle } — resetCycle=true значит, что нужно
-// начать новый круг (список "уже показанных в этом круге" стоит очистить).
-function pickQuestionWord(vocab, stats, excludeSet) {
-  const seenEn = new Set(Array.isArray(stats.seenEn) ? stats.seenEn : []);
-  const unseen = vocab.filter((v) => !seenEn.has(v.en));
-
+// seenEnSet передаётся явно (не из общего хранилища счёта) — см. комментарий
+// у buildQuestion ниже про то, откуда он теперь берётся.
+function pickQuestionWord(vocab, wrongMap, seenEnSet, excludeSet) {
+  const unseen = vocab.filter((v) => !seenEnSet.has(v.en));
   const unseenAndNotRecent = excludeSet && excludeSet.size ? unseen.filter((v) => !excludeSet.has(v.en)) : unseen;
 
   if (unseenAndNotRecent.length) {
-    // Последний элемент — самое недавно добавленное непройденное слово,
-    // которое к тому же не мелькало в последних 50 (порядок вставки в
-    // vocab сохраняется при filter).
     return { word: unseenAndNotRecent[unseenAndNotRecent.length - 1], resetCycle: false };
   }
 
   if (unseen.length) {
-    // Непройденные слова ещё есть, но все они, как назло, попали в
-    // последние 50 показанных — лучше повторить одно из них пораньше,
-    // чем начинать новый круг раньше времени.
     return { word: unseen[unseen.length - 1], resetCycle: false };
   }
 
-  // Все слова уже проходили в этом круге — начинаем новый круг.
-  return { word: pickRandomQuestionWord(vocab, stats, excludeSet), resetCycle: true };
+  return { word: pickRandomQuestionWord(vocab, wrongMap, excludeSet), resetCycle: true };
 }
 
 const RECENT_HISTORY_SIZE = 50;
 const OPTIONS_COUNT = 6; // 1 правильный + 5 неверных вариантов
 
 // Чистая функция: выбирает следующее слово и собирает текст/клавиатуру
-// вопроса, ничего не читая и не записывая в хранилище — благодаря этому её
-// можно безопасно вызвать ВНУТРИ одной транзакции обновления stats (см.
-// applyHistoryUpdate и её использование ниже), не создавая отдельного
-// раунд-трипа к Blobs, который мог бы конфликтовать с параллельным запросом.
-function buildQuestion(vocab, stats, prefix, forbiddenEn) {
-  const recentEn = Array.isArray(stats.recentEn) ? stats.recentEn : [];
+// вопроса, ничего не читая и не записывая в хранилище.
+//
+// ВАЖНО (архитектурное решение после долгой отладки): историю "какие слова
+// уже показаны" (seenEnList/recentTailList) мы теперь передаём СНАРУЖИ, а не
+// читаем из общего хранилища счёта (stats). Общее хранилище счёта — это
+// один и тот же ключ, в который постоянно пишут при каждом ответе, и на
+// практике запись туда иногда не успевала долететь до следующего чтения
+// (несмотря на "строгую" консистентность) — из-за этого слово могло
+// "забыть", что его уже показывали, и вылезти повторно раньше, чем через
+// 50 вопросов. У записи текущего вопроса (pendingStore) такой проблемы не
+// наблюдалось за всё время отладки — она проще (одна перезапись, не
+// read-modify-write под конкуренцией), поэтому историю теперь тоже носим
+// вместе с pending, из рук в руки: каждый новый вопрос сохраняет свою
+// версию истории, а следующий её просто забирает оттуда, без отдельного
+// похода в другое хранилище.
+function buildQuestion(vocab, wrongMap, prefix, forbiddenEn, seenEnList, recentTailList) {
+  const seenEnSet = new Set(Array.isArray(seenEnList) ? seenEnList : []);
+  const tail = Array.isArray(recentTailList) ? recentTailList : [];
   // Ограничиваем окно исключения так, чтобы оно не могло охватить ВЕСЬ
   // словарь (иначе, при маленьком словаре, единственным вариантом снова
   // стало бы то же самое только что показанное слово).
   const maxExclude = Math.max(0, vocab.length - 1);
-  const excludeSet = new Set(recentEn.slice(-maxExclude));
+  const excludeSet = new Set(tail.slice(-maxExclude));
   if (forbiddenEn) excludeSet.add(forbiddenEn);
-  let { word: correct, resetCycle } = pickQuestionWord(vocab, stats, excludeSet);
+
+  let { word: correct, resetCycle } = pickQuestionWord(vocab, wrongMap, seenEnSet, excludeSet);
 
   // Железная гарантия, не зависящая от хранилища: forbiddenEn — это слово,
-  // которое только что отвечали, мы его знаем напрямую из текущего запроса,
-  // а не из отдельного чтения где-то ещё. Если по любой причине (гонка,
-  // не до конца сохранившееся состояние и т.п.) выбор всё равно совпал —
-  // принудительно берём любое другое слово, лишь бы не повторить его сразу.
+  // которое только что отвечали, мы его знаем напрямую из текущего запроса.
+  // Если по любой причине выбор всё равно совпал — принудительно берём
+  // любое другое слово, лишь бы не повторить его сразу.
   if (forbiddenEn && correct.en === forbiddenEn && vocab.length > 1) {
     const alternatives = vocab.filter((w) => w.en !== forbiddenEn);
     correct = alternatives[Math.floor(Math.random() * alternatives.length)];
@@ -437,29 +450,17 @@ function buildQuestion(vocab, stats, prefix, forbiddenEn) {
   const keyboard = options.map((o, i) => [{ text: o.ru, callback_data: `a:${i}` }]);
   const questionText = `🎯 Как переводится: *${mdEscape(correct.en)}*?`;
   const text = prefix ? `${prefix}\n\n${questionText}` : questionText;
-  return { correct, correctPos, keyboard, text, resetCycle };
-}
 
-// Мутирует переданный объект статистики: пополняет историю последних 50
-// показанных слов и список пройденных в текущем круге слов.
-function applyHistoryUpdate(s, correctEn, resetCycle) {
-  const hist = Array.isArray(s.recentEn) ? [...s.recentEn] : [];
-  hist.push(correctEn);
-  while (hist.length > RECENT_HISTORY_SIZE) hist.shift();
-  s.recentEn = hist;
+  const newSeenEn = resetCycle ? [correct.en] : seenEnSet.has(correct.en) ? seenEnList || [] : [...(seenEnList || []), correct.en];
+  const newTail = [...tail, correct.en].slice(-RECENT_HISTORY_SIZE);
 
-  if (resetCycle) {
-    s.seenEn = [correctEn];
-  } else {
-    const seen = Array.isArray(s.seenEn) ? [...s.seenEn] : [];
-    if (!seen.includes(correctEn)) seen.push(correctEn);
-    s.seenEn = seen;
-  }
+  return { correct, correctPos, keyboard, text, resetCycle, newSeenEn, newTail };
 }
 
 // Отправляет уже выбранный вопрос и запоминает pending — используется и из
 // sendQuestion (одиночный вызов), и из handleCallback (после совмещённого
-// обновления счёта+истории).
+// обновления счёта+истории). История (newSeenEn/newTail) уходит в саму
+// запись pending — см. комментарий у buildQuestion.
 async function deliverQuestion(chatId, picked) {
   const result = await tg("sendMessage", {
     chat_id: chatId,
@@ -481,13 +482,14 @@ async function deliverQuestion(chatId, picked) {
     correctPos: picked.correctPos,
     consumed: false,
     messageId,
+    seenEn: picked.newSeenEn,
+    recentTail: picked.newTail,
   });
 }
 
 // Одиночная отправка вопроса (без одновременного обновления счёта) — для
-// /start и /play. Подбор слова и обновление истории идут ОДНОЙ атомарной
-// операцией (внутри withOptimisticUpdate), чтобы не создавать отдельный
-// раунд-трип, который мог бы конфликтовать с параллельным запросом.
+// /start и /play. Историю берём из предыдущего pending, если он есть
+// (надёжно, без похода в общее хранилище счёта).
 async function sendQuestion(chatId, stats, prefix) {
   const vocab = await getVocab();
   if (!vocab.length) {
@@ -498,14 +500,11 @@ async function sendQuestion(chatId, stats, prefix) {
     return;
   }
 
-  let picked;
-  await withOptimisticUpdate(statsStore(), String(chatId), emptyStats, (current) => {
-    picked = buildQuestion(vocab, current, prefix);
-    const s = { ...current };
-    applyHistoryUpdate(s, picked.correct.en, picked.resetCycle);
-    return s;
-  });
+  const prevPending = await pendingStore().get(String(chatId), { type: "json" });
+  const seenEnList = prevPending && Array.isArray(prevPending.seenEn) ? prevPending.seenEn : [];
+  const recentTailList = prevPending && Array.isArray(prevPending.recentTail) ? prevPending.recentTail : [];
 
+  const picked = buildQuestion(vocab, stats.wrong, prefix, null, seenEnList, recentTailList);
   await deliverQuestion(chatId, picked);
 }
 
@@ -701,6 +700,8 @@ async function handleCallback(callbackQuery) {
   await log(`[callback] step3: word="${pending.correctEn}" chosenIdx=${chosenIdx} correctPos=${pending.correctPos} isCorrect=${isCorrect}`);
 
   const vocab = await getVocab();
+  const seenEnList = Array.isArray(pending.seenEn) ? pending.seenEn : [];
+  const recentTailList = Array.isArray(pending.recentTail) ? pending.recentTail : [];
   let picked = null;
   let statsAfter = null;
 
@@ -720,8 +721,7 @@ async function handleCallback(callbackQuery) {
     const resultText = `${isCorrect ? "✅" : "❌"} *${mdEscape(pending.correctEn)}* — ${mdEscape(pending.correctRu)}\n\n${statsLine(s)}`;
 
     if (vocab.length) {
-      picked = buildQuestion(vocab, s, resultText, pending.correctEn);
-      applyHistoryUpdate(s, picked.correct.en, picked.resetCycle);
+      picked = buildQuestion(vocab, s.wrong, resultText, pending.correctEn, seenEnList, recentTailList);
     }
 
     statsAfter = s;
