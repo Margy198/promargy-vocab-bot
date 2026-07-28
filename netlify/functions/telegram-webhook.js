@@ -508,9 +508,8 @@ async function sendQuestion(chatId, stats, prefix) {
   await deliverQuestion(chatId, picked);
 }
 
-function statsLine(stats) {
-  const acc = stats.answered ? Math.round((100 * stats.correct) / stats.answered) : 0;
-  return `Счёт: ${stats.correct}/${stats.answered} (${acc}%) · 🔥 серия: ${stats.streak} · рекорд: ${stats.bestStreak}`;
+function statsLine(streak, practicedCount, totalCount) {
+  return `📚 ${practicedCount}/${totalCount} слов отработано · 🔥 серия: ${streak}`;
 }
 
 async function handleStart(chatId) {
@@ -544,6 +543,9 @@ async function handleHelp(chatId) {
 
 async function handleScore(chatId) {
   const stats = await getStats(chatId);
+  const vocab = await getVocab();
+  const pending = await pendingStore().get(String(chatId), { type: "json" });
+  const practicedCount = pending && Array.isArray(pending.seenEn) ? pending.seenEn.length : 0;
   const missed = Object.entries(stats.wrong || {})
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
@@ -551,7 +553,7 @@ async function handleScore(chatId) {
     .join("\n");
   await tg("sendMessage", {
     chat_id: chatId,
-    text: `📊 ${statsLine(stats)}` + (missed ? `\n\nЧаще всего путаешь:\n${missed}` : ""),
+    text: `📊 ${statsLine(stats.streak, practicedCount, vocab.length)}` + (missed ? `\n\nЧаще всего путаешь:\n${missed}` : ""),
   });
 }
 
@@ -718,7 +720,7 @@ async function handleCallback(callbackQuery) {
       s.wrong[pending.correctEn] = (s.wrong[pending.correctEn] || 0) + 1;
     }
 
-    const resultText = `${isCorrect ? "✅" : "❌"} *${mdEscape(pending.correctEn)}* — ${mdEscape(pending.correctRu)}\n\n${statsLine(s)}`;
+    const resultText = `${isCorrect ? "✅" : "❌"} *${mdEscape(pending.correctEn)}* — ${mdEscape(pending.correctRu)}\n\n${statsLine(s.streak, seenEnList.length, vocab.length)}`;
 
     if (vocab.length) {
       picked = buildQuestion(vocab, s.wrong, resultText, pending.correctEn, seenEnList, recentTailList);
