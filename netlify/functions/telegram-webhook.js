@@ -109,15 +109,14 @@ async function log(...args) {
 //
 // Важно: раньше после исчерпания попыток был "аварийный" безусловный
 // force-write — он мог тихо затереть более свежие данные, записанные кем-то
-// параллельно. Теперь при исчерпании попыток бросаем ошибку.
+// параллельно. Теперь при исчерпании попыток бросаем ошибку — это безопаснее:
+// лучше один раз не обработать нажатие, чем незаметно испортить прогресс.
 //
-// Дополнительно: после "успешной" записи ПЕРЕЧИТЫВАЕМ и сверяем, что
-// сохранилось именно то, что мы записали. На практике оказалось, что
-// хранилище иногда подтверждает запись, а по факту следующее чтение
-// показывает старые данные (несмотря на consistency: "strong") — это
-// проявлялось как "слово застряло", хотя лог показывал, что всё прошло
-// без ошибок. Если проверка не совпала — считаем попытку неудачной и
-// повторяем, а не доверяем ответу "ok" на слово.
+// (Была ещё попытка добавить перечитывание-и-сверку после каждой записи —
+// откатила: сама проверка могла попадать в ту же задержку консистентности,
+// из-за чего вместо редкого "слово застряло" бот иногда переставал отвечать
+// вовсе, натыкаясь на таймаут функции. Пока просто доверяем ответу "ok" от
+// самой записи.)
 async function withOptimisticUpdate(store, key, defaultValue, mutate, maxAttempts = 30) {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const existing = await store.getWithMetadata(key, { type: "json" });
@@ -129,17 +128,6 @@ async function withOptimisticUpdate(store, key, defaultValue, mutate, maxAttempt
       } else {
         await store.setJSON(key, updated, { onlyIfNew: true });
       }
-      const verify = await store.get(key, { type: "json" });
-      if (JSON.stringify(verify) !== JSON.stringify(updated)) {
-        await log(
-          `[withOptimisticUpdate] VERIFY MISMATCH on "${key}" (attempt ${attempt}) — write reported ok but re-read differs; retrying`
-        );
-        if (attempt === maxAttempts - 1) {
-          throw new Error(`withOptimisticUpdate: verification failed on "${key}" after ${maxAttempts} attempts`);
-        }
-        await new Promise((resolve) => setTimeout(resolve, 10 + Math.random() * 90));
-        continue;
-      }
       return updated;
     } catch (err) {
       if (attempt === maxAttempts - 1) {
@@ -150,18 +138,9 @@ async function withOptimisticUpdate(store, key, defaultValue, mutate, maxAttempt
   }
 }
 
-// Для безусловных записей (не через withOptimisticUpdate) — тоже перечитываем
-// и сверяем после записи, по той же причине: иногда хранилище подтверждает
-// запись, а по факту она не применяется.
-async function verifiedSet(store, key, value, maxAttempts = 15) {
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    await store.setJSON(key, value);
-    const verify = await store.get(key, { type: "json" });
-    if (JSON.stringify(verify) === JSON.stringify(value)) return;
-    await log(`[verifiedSet] mismatch on "${key}" (attempt ${attempt}) — retrying`);
-    await new Promise((resolve) => setTimeout(resolve, 10 + Math.random() * 90));
-  }
-  throw new Error(`verifiedSet: giving up on "${key}" after ${maxAttempts} attempts`);
+// Как и выше — без блокирующей перепроверки, просто доверяем ответу записи.
+async function verifiedSet(store, key, value) {
+  await store.setJSON(key, value);
 }
 
 async function getStats(chatId) {
