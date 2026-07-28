@@ -274,6 +274,40 @@ async function deleteWord(term) {
   return { removed, total };
 }
 
+// Из строки вида "English. перевод" / "English . перевод" / просто "English"
+// достаёт именно английскую часть — для удаления не важен точный формат
+// разделителя, только по какому слову искать.
+function extractEnForDelete(line) {
+  const trimmed = line.trim();
+  if (!trimmed) return null;
+  const idxSpaceDot = trimmed.indexOf(" . ");
+  if (idxSpaceDot > 0) return trimmed.slice(0, idxSpaceDot).trim();
+  const idxDot = trimmed.indexOf(". ");
+  if (idxDot > 0) return trimmed.slice(0, idxDot).trim();
+  return trimmed;
+}
+
+// Удаляет сразу несколько слов (по одному на строку, в любом из форматов
+// выше) одной атомарной операцией.
+async function deleteWords(terms) {
+  const termSet = new Set(terms.map((t) => t.toLowerCase()));
+  let removedCount = 0;
+  let total = 0;
+  await withOptimisticUpdate(
+    wordsStore(),
+    "words",
+    () => DEFAULT_VOCAB,
+    (vocab) => {
+      const before = vocab.length;
+      const next = vocab.filter((w) => !termSet.has(w.en.toLowerCase()));
+      removedCount = before - next.length;
+      total = next.length;
+      return next;
+    }
+  );
+  return { removedCount, total };
+}
+
 async function tg(method, payload) {
   // Пауза, чтобы не слать больше ~1 сообщения в секунду в один и тот же чат
   // (см. комментарий у MIN_MS_BETWEEN_MESSAGES) — применяется ко всем
@@ -496,7 +530,7 @@ async function handleHelp(chatId) {
       "/play — новый вопрос\n" +
       "/score — статистика\n" +
       "/count — сколько слов в словаре\n" +
-      "/delete <English> — удалить слово\n" +
+      "/delete <English> — удалить слово (можно сразу список, по одному на строку)\n" +
       "/reset — сбросить прогресс (счёт/серию)\n\n" +
       "Чтобы добавить слова — просто пришли строки вида «English . перевод», " +
       "хоть одну, хоть весь список с урока сразу.",
@@ -527,17 +561,36 @@ async function handleCount(chatId) {
 }
 
 async function handleDelete(chatId, argText) {
-  const term = argText.trim().toLowerCase();
-  if (!term) {
-    await tg("sendMessage", { chat_id: chatId, text: "Формат: /delete English word" });
+  const lines = argText
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+
+  if (!lines.length) {
+    await tg("sendMessage", {
+      chat_id: chatId,
+      text: "Формат: /delete English word (или вставь сразу несколько строк, каждую с новой строки).",
+    });
     return;
   }
-  const { removed, total } = await deleteWord(term);
-  if (!removed) {
-    await tg("sendMessage", { chat_id: chatId, text: `Не нашла «${argText.trim()}» в словаре.` });
+
+  if (lines.length === 1) {
+    const term = extractEnForDelete(lines[0]).toLowerCase();
+    const { removed, total } = await deleteWord(term);
+    if (!removed) {
+      await tg("sendMessage", { chat_id: chatId, text: `Не нашла «${lines[0]}» в словаре.` });
+      return;
+    }
+    await tg("sendMessage", { chat_id: chatId, text: `Удалила «${lines[0]}». Осталось ${total} слов.` });
     return;
   }
-  await tg("sendMessage", { chat_id: chatId, text: `Удалила «${argText.trim()}». Осталось ${total} слов.` });
+
+  const terms = lines.map(extractEnForDelete).filter(Boolean);
+  const { removedCount, total } = await deleteWords(terms);
+  const notFound = terms.length - removedCount;
+  let msg = `🗑 Удалено слов: ${removedCount}. Осталось в словаре: ${total}.`;
+  if (notFound > 0) msg += `\nНе нашла: ${notFound}.`;
+  await tg("sendMessage", { chat_id: chatId, text: msg });
 }
 
 // Любой не-командный текст (или явный /add) пытаемся распарсить как одну
