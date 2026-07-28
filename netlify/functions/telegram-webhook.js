@@ -65,24 +65,27 @@ async function markMessageSent(chatId) {
 // записей. Читается через GET-запрос к этой же функции с ?debug=<секрет>.
 async function dbg(msg) {
   try {
-    const key = "log";
-    const existing = await debugStore().getWithMetadata(key, { type: "json" });
-    const arr = existing && Array.isArray(existing.data) ? existing.data : [];
-    arr.push(`${new Date().toISOString()} ${msg}`);
-    while (arr.length > 150) arr.shift();
-    try {
-      if (existing) {
-        await debugStore().setJSON(key, arr, { onlyIfMatch: existing.etag });
-      } else {
-        await debugStore().setJSON(key, arr, { onlyIfNew: true });
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const existing = await debugStore().getWithMetadata("log", { type: "json" });
+      const arr = existing && Array.isArray(existing.data) ? existing.data : [];
+      arr.push(`${new Date().toISOString()} ${msg}`);
+      while (arr.length > 150) arr.shift();
+      try {
+        if (existing) {
+          await debugStore().setJSON("log", arr, { onlyIfMatch: existing.etag });
+        } else {
+          await debugStore().setJSON("log", arr, { onlyIfNew: true });
+        }
+        return;
+      } catch (err) {
+        if (attempt === 9) throw err;
+        await new Promise((resolve) => setTimeout(resolve, 5 + Math.random() * 30));
       }
-    } catch (err) {
-      // Конфликт записи — не критично для отладочного журнала, просто пишем как есть.
-      await debugStore().setJSON(key, arr);
     }
   } catch (err) {
-    // Отладочное логирование никогда не должно ронять бота.
-    console.error("dbg() failed:", err);
+    // Отладочное логирование никогда не должно ронять бота — но теперь хотя
+    // бы не теряет записи молча при конфликте, а честно повторяет попытку.
+    console.error("dbg() failed after retries:", err);
   }
 }
 
@@ -607,7 +610,7 @@ async function handleCallback(callbackQuery) {
   }
 
   const isCorrect = chosenIdx === pending.correctPos;
-  await log(`[callback] step3: chosenIdx=${chosenIdx} correctPos=${pending.correctPos} isCorrect=${isCorrect}`);
+  await log(`[callback] step3: word="${pending.correctEn}" chosenIdx=${chosenIdx} correctPos=${pending.correctPos} isCorrect=${isCorrect}`);
 
   const vocab = await getVocab();
   let picked = null;
