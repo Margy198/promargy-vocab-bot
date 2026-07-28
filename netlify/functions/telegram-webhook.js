@@ -101,14 +101,21 @@ async function log(...args) {
 // Безопасное к гонкам обновление: читаем текущее значение вместе с ETag,
 // применяем mutate(), и пишем обратно только "если ничего не изменилось
 // с момента чтения" (onlyIfMatch). Если кто-то другой успел записать
-// раньше нас — перечитываем и пробуем снова.
-async function withOptimisticUpdate(store, key, defaultValue, mutate, maxAttempts = 6) {
-  let lastComputed;
+// раньше нас — перечитываем и пробуем снова, с небольшой случайной паузой,
+// чтобы конкурирующие попытки не сталкивались раз за разом синхронно.
+//
+// Важно: раньше после исчерпания попыток был "аварийный" безусловный
+// force-write — он мог тихо затереть более свежие данные, записанные кем-то
+// параллельно (например, при быстрых ответах подряд одно обновление могло
+// откатить только что помеченное "показанное" слово обратно в непоказанные,
+// из-за чего оно застревало и повторялось на каждом вопросе). Теперь при
+// исчерпании попыток бросаем ошибку — это безопаснее: лучше один раз не
+// обработать нажатие, чем незаметно испортить прогресс.
+async function withOptimisticUpdate(store, key, defaultValue, mutate, maxAttempts = 30) {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const existing = await store.getWithMetadata(key, { type: "json" });
     const current = existing ? existing.data : defaultValue();
     const updated = mutate(current);
-    lastComputed = updated;
     try {
       if (existing) {
         await store.setJSON(key, updated, { onlyIfMatch: existing.etag });
@@ -117,15 +124,12 @@ async function withOptimisticUpdate(store, key, defaultValue, mutate, maxAttempt
       }
       return updated;
     } catch (err) {
-      // Конфликт (кто-то записал раньше нас) — перечитываем и пробуем снова.
       if (attempt === maxAttempts - 1) {
-        console.error("withOptimisticUpdate: giving up after retries, forcing write", key, err);
-        await store.setJSON(key, updated);
-        return updated;
+        throw new Error(`withOptimisticUpdate: giving up on "${key}" after ${maxAttempts} attempts: ${err}`);
       }
+      await new Promise((resolve) => setTimeout(resolve, 10 + Math.random() * 90));
     }
   }
-  return lastComputed;
 }
 
 async function getStats(chatId) {
@@ -342,16 +346,12 @@ function pickQuestionWord(vocab, stats, excludeSet) {
 const RECENT_HISTORY_SIZE = 50;
 const OPTIONS_COUNT = 6; // 1 правильный + 5 неверных вариантов
 
-async function sendQuestion(chatId, stats, prefix) {
-  const vocab = await getVocab();
-  if (!vocab.length) {
-    await tg("sendMessage", {
-      chat_id: chatId,
-      text: "Словарь сейчас пуст. Вставь сюда слова в формате «English . перевод», и я начну спрашивать.",
-    });
-    return;
-  }
-
+// Чистая функция: выбирает следующее слово и собирает текст/клавиатуру
+// вопроса, ничего не читая и не записывая в хранилище — благодаря этому её
+// можно безопасно вызвать ВНУТРИ одной транзакции обновления stats (см.
+// applyHistoryUpdate и её использование ниже), не создавая отдельного
+// раунд-трипа к Blobs, который мог бы конфликтовать с параллельным запросом.
+function buildQuestion(vocab, stats, prefix) {
   const recentEn = Array.isArray(stats.recentEn) ? stats.recentEn : [];
   // Ограничиваем окно исключения так, чтобы оно не могло охватить ВЕСЬ
   // словарь (иначе, при маленьком словаре, единственным вариантом снова
@@ -363,15 +363,37 @@ async function sendQuestion(chatId, stats, prefix) {
   const options = shuffle([correct, ...distractors]);
   const correctPos = options.indexOf(correct);
   const keyboard = options.map((o, i) => [{ text: o.ru, callback_data: `a:${i}` }]);
-
   const questionText = `🎯 Как переводится: *${mdEscape(correct.en)}*?`;
   const text = prefix ? `${prefix}\n\n${questionText}` : questionText;
+  return { correct, correctPos, keyboard, text, resetCycle };
+}
 
+// Мутирует переданный объект статистики: пополняет историю последних 50
+// показанных слов и список пройденных в текущем круге слов.
+function applyHistoryUpdate(s, correctEn, resetCycle) {
+  const hist = Array.isArray(s.recentEn) ? [...s.recentEn] : [];
+  hist.push(correctEn);
+  while (hist.length > RECENT_HISTORY_SIZE) hist.shift();
+  s.recentEn = hist;
+
+  if (resetCycle) {
+    s.seenEn = [correctEn];
+  } else {
+    const seen = Array.isArray(s.seenEn) ? [...s.seenEn] : [];
+    if (!seen.includes(correctEn)) seen.push(correctEn);
+    s.seenEn = seen;
+  }
+}
+
+// Отправляет уже выбранный вопрос и запоминает pending — используется и из
+// sendQuestion (одиночный вызов), и из handleCallback (после совмещённого
+// обновления счёта+истории).
+async function deliverQuestion(chatId, picked) {
   const result = await tg("sendMessage", {
     chat_id: chatId,
-    text,
+    text: picked.text,
     parse_mode: "Markdown",
-    reply_markup: { inline_keyboard: keyboard },
+    reply_markup: { inline_keyboard: picked.keyboard },
   });
 
   // Запоминаем, к какому конкретно сообщению относится вопрос — если позже
@@ -379,35 +401,40 @@ async function sendQuestion(chatId, stats, prefix) {
   // историю и ткнул в прошлый вопрос), мы это заметим и не засчитаем его
   // как ответ на текущий вопрос.
   const messageId = result && result.result ? result.result.message_id : undefined;
-  await log(`[sendQuestion] new question="${correct.en}" messageId=${messageId} sendMessage.ok=${result && result.ok}`);
+  await log(`[deliverQuestion] new question="${picked.correct.en}" messageId=${messageId} sendMessage.ok=${result && result.ok}`);
 
   await pendingStore().setJSON(String(chatId), {
-    correctEn: correct.en,
-    correctRu: correct.ru,
-    correctPos,
+    correctEn: picked.correct.en,
+    correctRu: picked.correct.ru,
+    correctPos: picked.correctPos,
     consumed: false,
     messageId,
   });
+}
 
-  // Пополняем историю последних 50 показанных слов (для разнообразия) и
-  // список пройденных в текущем круге слов (для приоритета новых и
-  // отсутствия повторов до конца круга) — устойчиво к гонкам.
+// Одиночная отправка вопроса (без одновременного обновления счёта) — для
+// /start и /play. Подбор слова и обновление истории идут ОДНОЙ атомарной
+// операцией (внутри withOptimisticUpdate), чтобы не создавать отдельный
+// раунд-трип, который мог бы конфликтовать с параллельным запросом.
+async function sendQuestion(chatId, stats, prefix) {
+  const vocab = await getVocab();
+  if (!vocab.length) {
+    await tg("sendMessage", {
+      chat_id: chatId,
+      text: "Словарь сейчас пуст. Вставь сюда слова в формате «English . перевод», и я начну спрашивать.",
+    });
+    return;
+  }
+
+  let picked;
   await withOptimisticUpdate(statsStore(), String(chatId), emptyStats, (current) => {
+    picked = buildQuestion(vocab, current, prefix);
     const s = { ...current };
-    const hist = Array.isArray(s.recentEn) ? [...s.recentEn] : [];
-    hist.push(correct.en);
-    while (hist.length > RECENT_HISTORY_SIZE) hist.shift();
-    s.recentEn = hist;
-
-    if (resetCycle) {
-      s.seenEn = [correct.en];
-    } else {
-      const seen = Array.isArray(s.seenEn) ? [...s.seenEn] : [];
-      if (!seen.includes(correct.en)) seen.push(correct.en);
-      s.seenEn = seen;
-    }
+    applyHistoryUpdate(s, picked.correct.en, picked.resetCycle);
     return s;
   });
+
+  await deliverQuestion(chatId, picked);
 }
 
 function statsLine(stats) {
@@ -582,7 +609,11 @@ async function handleCallback(callbackQuery) {
   const isCorrect = chosenIdx === pending.correctPos;
   await log(`[callback] step3: chosenIdx=${chosenIdx} correctPos=${pending.correctPos} isCorrect=${isCorrect}`);
 
-  const stats = await withOptimisticUpdate(statsStore(), String(chatId), emptyStats, (current) => {
+  const vocab = await getVocab();
+  let picked = null;
+  let statsAfter = null;
+
+  await withOptimisticUpdate(statsStore(), String(chatId), emptyStats, (current) => {
     const s = { ...current, wrong: { ...current.wrong } };
     s.answered += 1;
     if (isCorrect) {
@@ -594,14 +625,28 @@ async function handleCallback(callbackQuery) {
       s.streak = 0;
       s.wrong[pending.correctEn] = (s.wrong[pending.correctEn] || 0) + 1;
     }
+
+    const resultText = `${isCorrect ? "✅" : "❌"} *${mdEscape(pending.correctEn)}* — ${mdEscape(pending.correctRu)}\n\n${statsLine(s)}`;
+
+    if (vocab.length) {
+      picked = buildQuestion(vocab, s, resultText);
+      applyHistoryUpdate(s, picked.correct.en, picked.resetCycle);
+    }
+
+    statsAfter = s;
     return s;
   });
-  await log("[callback] step4: stats updated:", JSON.stringify(stats));
+  await log("[callback] step4: stats+next-question picked in one transaction:", JSON.stringify(statsAfter));
 
-  const resultText = `${isCorrect ? "✅" : "❌"} *${mdEscape(pending.correctEn)}* — ${mdEscape(pending.correctRu)}\n\n${statsLine(stats)}`;
-
-  await sendQuestion(chatId, stats, resultText);
-  await log("[callback] step5: sendQuestion (with result prefix) done — handling complete");
+  if (picked) {
+    await deliverQuestion(chatId, picked);
+  } else {
+    await tg("sendMessage", {
+      chat_id: chatId,
+      text: "Словарь сейчас пуст. Вставь сюда слова в формате «English . перевод», и я начну спрашивать.",
+    });
+  }
+  await log("[callback] step5: question delivered — handling complete");
 }
 
 async function handleMessage(message) {
