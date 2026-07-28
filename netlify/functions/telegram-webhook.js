@@ -396,14 +396,26 @@ const OPTIONS_COUNT = 6; // 1 правильный + 5 неверных вари
 // можно безопасно вызвать ВНУТРИ одной транзакции обновления stats (см.
 // applyHistoryUpdate и её использование ниже), не создавая отдельного
 // раунд-трипа к Blobs, который мог бы конфликтовать с параллельным запросом.
-function buildQuestion(vocab, stats, prefix) {
+function buildQuestion(vocab, stats, prefix, forbiddenEn) {
   const recentEn = Array.isArray(stats.recentEn) ? stats.recentEn : [];
   // Ограничиваем окно исключения так, чтобы оно не могло охватить ВЕСЬ
   // словарь (иначе, при маленьком словаре, единственным вариантом снова
   // стало бы то же самое только что показанное слово).
   const maxExclude = Math.max(0, vocab.length - 1);
   const excludeSet = new Set(recentEn.slice(-maxExclude));
-  const { word: correct, resetCycle } = pickQuestionWord(vocab, stats, excludeSet);
+  if (forbiddenEn) excludeSet.add(forbiddenEn);
+  let { word: correct, resetCycle } = pickQuestionWord(vocab, stats, excludeSet);
+
+  // Железная гарантия, не зависящая от хранилища: forbiddenEn — это слово,
+  // которое только что отвечали, мы его знаем напрямую из текущего запроса,
+  // а не из отдельного чтения где-то ещё. Если по любой причине (гонка,
+  // не до конца сохранившееся состояние и т.п.) выбор всё равно совпал —
+  // принудительно берём любое другое слово, лишь бы не повторить его сразу.
+  if (forbiddenEn && correct.en === forbiddenEn && vocab.length > 1) {
+    const alternatives = vocab.filter((w) => w.en !== forbiddenEn);
+    correct = alternatives[Math.floor(Math.random() * alternatives.length)];
+  }
+
   const distractors = pickDistractors(vocab, correct, Math.min(OPTIONS_COUNT - 1, vocab.length - 1));
   const options = shuffle([correct, ...distractors]);
   const correctPos = options.indexOf(correct);
@@ -693,7 +705,7 @@ async function handleCallback(callbackQuery) {
     const resultText = `${isCorrect ? "✅" : "❌"} *${mdEscape(pending.correctEn)}* — ${mdEscape(pending.correctRu)}\n\n${statsLine(s)}`;
 
     if (vocab.length) {
-      picked = buildQuestion(vocab, s, resultText);
+      picked = buildQuestion(vocab, s, resultText, pending.correctEn);
       applyHistoryUpdate(s, picked.correct.en, picked.resetCycle);
     }
 
