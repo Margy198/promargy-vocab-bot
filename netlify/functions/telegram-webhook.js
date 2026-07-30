@@ -204,8 +204,14 @@ function parseVocabLine(raw) {
   for (let i = 0; i < parts.length; i += 2) {
     const text = parts[i].trim();
     if (!text) continue;
-    const isRu = CYR.test(text);
-    const isEn = LAT.test(text) && !isRu;
+    // Кусок в /слэшах/ обычно фонетическая транскрипция ("Signature
+    // /сигначэ/", "Now /naʊ/") — она может быть написана кириллицей и
+    // сбивать определение языка (весь кусок выглядел бы "русским" из-за
+    // неё). Для определения языка её не учитываем, но сохраняем как есть.
+    const withoutPhonetic = text.replace(/\/[^/]*\//g, " ").trim();
+    const langCheckText = withoutPhonetic || text;
+    const isRu = CYR.test(langCheckText);
+    const isEn = LAT.test(langCheckText) && !isRu;
     const lang = isRu ? "ru" : isEn ? "en" : null;
     const sepBefore = i > 0 ? parts[i - 1].trim() : "";
     const last = runs[runs.length - 1];
