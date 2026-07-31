@@ -163,22 +163,25 @@ async function getStats(chatId) {
   return s || emptyStats();
 }
 
-// --- Словарь: хранится в Blobs, при первом запуске сеется из data/vocab.mjs ---
+// --- Словарь: хранится в Blobs ОТДЕЛЬНО ДЛЯ КАЖДОГО ЧАТА (каждый ученик
+// видит и редактирует только свой собственный список слов), при первом
+// обращении сеется из data/vocab.mjs. ---
 
-async function getVocab() {
-  const v = await wordsStore().get("words", { type: "json" });
+async function getVocab(chatId) {
+  const key = `words:${chatId}`;
+  const v = await wordsStore().get(key, { type: "json" });
   if (Array.isArray(v) && v.length) return v;
   try {
-    await wordsStore().setJSON("words", DEFAULT_VOCAB, { onlyIfNew: true });
+    await wordsStore().setJSON(key, DEFAULT_VOCAB, { onlyIfNew: true });
   } catch (err) {
     // Кто-то другой уже засеял словарь параллельно с нами — не страшно,
     // просто читаем то, что получилось, ниже.
   }
-  return getVocab_retryOnce();
+  return getVocab_retryOnce(chatId);
 }
 
-async function getVocab_retryOnce() {
-  const v = await wordsStore().get("words", { type: "json" });
+async function getVocab_retryOnce(chatId) {
+  const v = await wordsStore().get(`words:${chatId}`, { type: "json" });
   return Array.isArray(v) && v.length ? v : DEFAULT_VOCAB;
 }
 
@@ -231,12 +234,12 @@ function parseVocabLine(raw) {
 // Добавляет распарсенные пары в словарь, пропуская дубли (по english, без учёта регистра).
 // Устойчиво к гонкам: если словарь параллельно поменяли (например, ты добавляешь
 // слова, а кто-то в этот же момент отвечает на вопрос и т.п.), просто повторяем попытку.
-async function addWords(pairs) {
+async function addWords(chatId, pairs) {
   let added = 0;
   let total = 0;
   await withOptimisticUpdate(
     wordsStore(),
-    "words",
+    `words:${chatId}`,
     () => DEFAULT_VOCAB,
     (vocab) => {
       const next = [...vocab];
@@ -256,12 +259,12 @@ async function addWords(pairs) {
   return { added, total };
 }
 
-async function deleteWord(term) {
+async function deleteWord(chatId, term) {
   let removed = false;
   let total = 0;
   await withOptimisticUpdate(
     wordsStore(),
-    "words",
+    `words:${chatId}`,
     () => DEFAULT_VOCAB,
     (vocab) => {
       const before = vocab.length;
@@ -289,13 +292,13 @@ function extractEnForDelete(line) {
 
 // Удаляет сразу несколько слов (по одному на строку, в любом из форматов
 // выше) одной атомарной операцией.
-async function deleteWords(terms) {
+async function deleteWords(chatId, terms) {
   const termSet = new Set(terms.map((t) => t.toLowerCase()));
   let removedCount = 0;
   let total = 0;
   await withOptimisticUpdate(
     wordsStore(),
-    "words",
+    `words:${chatId}`,
     () => DEFAULT_VOCAB,
     (vocab) => {
       const before = vocab.length;
@@ -497,7 +500,7 @@ async function deliverQuestion(chatId, picked) {
 // /start и /play. Историю берём из предыдущего pending, если он есть
 // (надёжно, без похода в общее хранилище счёта).
 async function sendQuestion(chatId, stats, prefix) {
-  const vocab = await getVocab();
+  const vocab = await getVocab(chatId);
   if (!vocab.length) {
     await tg("sendMessage", {
       chat_id: chatId,
@@ -541,7 +544,7 @@ async function handleHelp(chatId) {
       "/score — статистика\n" +
       "/count — сколько слов в словаре\n" +
       "/delete <English> — удалить слово (можно сразу список, по одному на строку)\n" +
-      "/reset — сбросить прогресс (счёт/серию)\n\n" +
+      "/reset — сбросить прогресс\n\n" +
       "Чтобы добавить слова — просто пришли строки вида «English . перевод», " +
       "хоть одну, хоть весь список с урока сразу.",
   });
@@ -549,7 +552,7 @@ async function handleHelp(chatId) {
 
 async function handleScore(chatId) {
   const stats = await getStats(chatId);
-  const vocab = await getVocab();
+  const vocab = await getVocab(chatId);
   const pending = await pendingStore().get(String(chatId), { type: "json" });
   const practicedCount = pending && Array.isArray(pending.seenEn) ? pending.seenEn.length : 0;
   const missed = Object.entries(stats.wrong || {})
@@ -569,8 +572,34 @@ async function handleReset(chatId) {
 }
 
 async function handleCount(chatId) {
-  const vocab = await getVocab();
+  const vocab = await getVocab(chatId);
   await tg("sendMessage", { chat_id: chatId, text: `В словаре сейчас ${vocab.length} слов.` });
+}
+
+// Разовая команда для перехода на приватные (по чату) словари: раньше был
+// один общий словарь на всех, кто писал боту. Тот, кто хочет унаследовать
+// прежний общий список как свой личный (обычно нужно только один раз, в
+// одном конкретном чате), может явно об этом попросить командой /migrate.
+// Ничего не делает, если старого общего словаря уже нет или у этого чата
+// уже есть свой список.
+async function handleMigrate(chatId) {
+  const existing = await wordsStore().get(`words:${chatId}`, { type: "json" });
+  if (Array.isArray(existing) && existing.length) {
+    await tg("sendMessage", {
+      chat_id: chatId,
+      text: `У этого чата уже есть свой словарь (${existing.length} слов) — переносить нечего.`,
+    });
+    return;
+  }
+
+  const legacy = await wordsStore().get("words", { type: "json" });
+  if (!Array.isArray(legacy) || !legacy.length) {
+    await tg("sendMessage", { chat_id: chatId, text: "Старого общего словаря не нашла — переносить нечего." });
+    return;
+  }
+
+  await verifiedSet(wordsStore(), `words:${chatId}`, legacy);
+  await tg("sendMessage", { chat_id: chatId, text: `Готово — перенесла ${legacy.length} слов из старого общего словаря в этот чат.` });
 }
 
 async function handleDelete(chatId, argText) {
@@ -589,7 +618,7 @@ async function handleDelete(chatId, argText) {
 
   if (lines.length === 1) {
     const term = extractEnForDelete(lines[0]).toLowerCase();
-    const { removed, total } = await deleteWord(term);
+    const { removed, total } = await deleteWord(chatId, term);
     if (!removed) {
       await tg("sendMessage", { chat_id: chatId, text: `Не нашла «${lines[0]}» в словаре.` });
       return;
@@ -599,7 +628,7 @@ async function handleDelete(chatId, argText) {
   }
 
   const terms = lines.map(extractEnForDelete).filter(Boolean);
-  const { removedCount, total } = await deleteWords(terms);
+  const { removedCount, total } = await deleteWords(chatId, terms);
   const notFound = terms.length - removedCount;
   let msg = `🗑 Удалено слов: ${removedCount}. Осталось в словаре: ${total}.`;
   if (notFound > 0) msg += `\nНе нашла: ${notFound}.`;
@@ -629,7 +658,7 @@ async function handleBulkAdd(chatId, text) {
     return;
   }
 
-  const { added, total } = await addWords(pairs);
+  const { added, total } = await addWords(chatId, pairs);
   const skippedDupes = pairs.length - added;
   let msg = `✅ Добавлено новых слов: ${added}. Всего в словаре: ${total}.`;
   if (skippedDupes) msg += `\nПропущено как дубли: ${skippedDupes}.`;
@@ -707,7 +736,7 @@ async function handleCallback(callbackQuery) {
   const isCorrect = chosenIdx === pending.correctPos;
   await log(`[callback] step3: word="${pending.correctEn}" chosenIdx=${chosenIdx} correctPos=${pending.correctPos} isCorrect=${isCorrect}`);
 
-  const vocab = await getVocab();
+  const vocab = await getVocab(chatId);
   const seenEnList = Array.isArray(pending.seenEn) ? pending.seenEn : [];
   const recentTailList = Array.isArray(pending.recentTail) ? pending.recentTail : [];
   let picked = null;
@@ -760,6 +789,7 @@ async function handleMessage(message) {
   if (text === "/score" || text === "/stats") return handleScore(chatId);
   if (text === "/reset") return handleReset(chatId);
   if (text === "/count") return handleCount(chatId);
+  if (text === "/migrate") return handleMigrate(chatId);
   if (text === "/help") return handleHelp(chatId);
   if (/^\/delete(@\w+)?\s*/i.test(text)) {
     return handleDelete(chatId, text.replace(/^\/delete(@\w+)?\s*/i, ""));
