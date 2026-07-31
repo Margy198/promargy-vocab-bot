@@ -391,35 +391,35 @@ function shuffle(arr) {
 // отрицание), так что осмысленно "закончить" этот режим невозможно.
 
 const GRAMMAR_VERBS = [
-  { base: "go", past: "went", ru: "идти / ходить" },
-  { base: "play", past: "played", ru: "играть" },
-  { base: "watch", past: "watched", ru: "смотреть" },
-  { base: "work", past: "worked", ru: "работать" },
-  { base: "study", past: "studied", ru: "учиться" },
-  { base: "live", past: "lived", ru: "жить" },
-  { base: "like", past: "liked", ru: "нравиться" },
-  { base: "want", past: "wanted", ru: "хотеть" },
-  { base: "eat", past: "ate", ru: "есть (кушать)" },
-  { base: "drink", past: "drank", ru: "пить" },
-  { base: "write", past: "wrote", ru: "писать" },
-  { base: "speak", past: "spoke", ru: "говорить" },
-  { base: "come", past: "came", ru: "приходить" },
-  { base: "see", past: "saw", ru: "видеть" },
-  { base: "make", past: "made", ru: "делать (создавать)" },
-  { base: "take", past: "took", ru: "брать" },
-  { base: "have", past: "had", ru: "иметь", irregular3rd: "has" },
-  { base: "do", past: "did", ru: "делать", irregular3rd: "does" },
-  { base: "help", past: "helped", ru: "помогать" },
-  { base: "call", past: "called", ru: "звонить" },
+  { base: "go", past: "went", ru: "идти / ходить", contextEn: "to school", contextRu: "в школу" },
+  { base: "go", past: "went", ru: "идти / ходить", contextEn: "to the cinema", contextRu: "в кино" },
+  { base: "play", past: "played", ru: "играть", contextEn: "football", contextRu: "в футбол" },
+  { base: "play", past: "played", ru: "играть", contextEn: "the guitar", contextRu: "на гитаре" },
+  { base: "watch", past: "watched", ru: "смотреть", contextEn: "a film", contextRu: "фильм" },
+  { base: "work", past: "worked", ru: "работать", contextEn: "at home", contextRu: "дома" },
+  { base: "study", past: "studied", ru: "учить", contextEn: "English", contextRu: "английский" },
+  { base: "eat", past: "ate", ru: "есть (кушать)", contextEn: "breakfast", contextRu: "завтрак" },
+  { base: "drink", past: "drank", ru: "пить", contextEn: "coffee", contextRu: "кофе" },
+  { base: "read", past: "read", ru: "читать", contextEn: "a book", contextRu: "книгу" },
+  { base: "write", past: "wrote", ru: "писать", contextEn: "a letter", contextRu: "письмо" },
+  { base: "speak", past: "spoke", ru: "говорить", contextEn: "English", contextRu: "по-английски" },
+  { base: "come", past: "came", ru: "приходить", contextEn: "home late", contextRu: "домой поздно" },
+  { base: "see", past: "saw", ru: "видеть", contextEn: "my friends", contextRu: "своих друзей" },
+  { base: "make", past: "made", ru: "делать (создавать)", contextEn: "dinner", contextRu: "ужин" },
+  { base: "take", past: "took", ru: "брать", contextEn: "a taxi", contextRu: "такси" },
+  { base: "do", past: "did", ru: "делать", irregular3rd: "does", contextEn: "my homework", contextRu: "домашнюю работу" },
+  { base: "help", past: "helped", ru: "помогать", contextEn: "my mother", contextRu: "маме" },
+  { base: "call", past: "called", ru: "звонить", contextEn: "my friend", contextRu: "другу" },
+  { base: "clean", past: "cleaned", ru: "убирать", contextEn: "the house", contextRu: "дом" },
 ];
 
 const GRAMMAR_SUBJECTS = [
-  { pron: "I", ru: "я", is3rd: false },
-  { pron: "You", ru: "ты", is3rd: false },
-  { pron: "He", ru: "он", is3rd: true },
-  { pron: "She", ru: "она", is3rd: true },
-  { pron: "We", ru: "мы", is3rd: false },
-  { pron: "They", ru: "они", is3rd: false },
+  { pron: "I", ru: "я", is3rd: false, poss: "my" },
+  { pron: "You", ru: "ты", is3rd: false, poss: "your" },
+  { pron: "He", ru: "он", is3rd: true, poss: "his" },
+  { pron: "She", ru: "она", is3rd: true, poss: "her" },
+  { pron: "We", ru: "мы", is3rd: false, poss: "our" },
+  { pron: "They", ru: "они", is3rd: false, poss: "their" },
 ];
 
 const TENSE_POLARITY_COMBOS = [
@@ -465,20 +465,26 @@ function buildGrammarQuestion(forbiddenText) {
     const targetIdx = Math.floor(Math.random() * TENSE_POLARITY_COMBOS.length);
     const target = TENSE_POLARITY_COMBOS[targetIdx];
 
-    const forms = TENSE_POLARITY_COMBOS.map((c) => conjugate(subject, verb, c.tense, c.polarity));
-    const uniqueForms = new Set(forms.map((f) => f.toLowerCase()));
-    if (uniqueForms.size !== forms.length) continue; // редкое совпадение форм — пробуем другую комбинацию
+    // Полное предложение — подлежащее + форма глагола + контекст (например,
+    // "He doesn't play football") вместо голой формы глагола, чтобы
+    // варианты ответа звучали как настоящие предложения. Притяжательное
+    // "my" в контексте (например, "my mother") согласуем с подлежащим —
+    // "his mother", "their mother" и т.д.
+    const context = verb.contextEn.replace(/\bmy\b/, subject.poss);
+    const sentences = TENSE_POLARITY_COMBOS.map((c) => `${subject.pron} ${conjugate(subject, verb, c.tense, c.polarity)} ${context}`);
+    const uniqueSentences = new Set(sentences.map((s) => s.toLowerCase()));
+    if (uniqueSentences.size !== sentences.length) continue; // редкое совпадение форм — пробуем другую комбинацию
 
-    const correctText = forms[targetIdx];
+    const correctText = sentences[targetIdx];
     if (forbiddenText && correctText.toLowerCase() === forbiddenText.toLowerCase()) continue;
 
     const order = shuffle(TENSE_POLARITY_COMBOS.map((_, i) => i));
     const correctPos = order.indexOf(targetIdx);
-    const options = order.map((i) => forms[i]);
+    const options = order.map((i) => sentences[i]);
 
     return {
       correctText,
-      questionLabel: `${subject.pron} (${subject.ru}) + ${verb.ru} — ${target.label}`,
+      questionLabel: `${subject.pron} (${subject.ru}) + ${verb.ru} ${verb.contextRu} — ${target.label}`,
       options,
       correctPos,
     };
