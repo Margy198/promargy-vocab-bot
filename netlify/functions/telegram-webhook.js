@@ -51,7 +51,9 @@ async function isAdmin(chatId) {
 async function rememberIdentity(chatId, from) {
   if (!from) return;
   try {
+    const existing = await identityStore().get(String(chatId), { type: "json" });
     await identityStore().setJSON(String(chatId), {
+      ...(existing || {}),
       firstName: from.first_name || "",
       lastName: from.last_name || "",
       username: from.username || "",
@@ -829,6 +831,17 @@ async function handleMessage(message) {
     await tg("sendMessage", { chat_id: chatId, text: "Готово — теперь тебе доступна команда /students." });
     return;
   }
+  if (/^\/register(@\w+)?\s*/i.test(text)) {
+    const label = text.replace(/^\/register(@\w+)?\s*/i, "").trim();
+    if (!label) {
+      await tg("sendMessage", { chat_id: chatId, text: "Формат: /register <имя ученика или метка>" });
+      return;
+    }
+    const existing = await identityStore().get(String(chatId), { type: "json" });
+    await identityStore().setJSON(String(chatId), { ...(existing || {}), registeredName: label });
+    await tg("sendMessage", { chat_id: chatId, text: `Готово, записала: ${label}` });
+    return;
+  }
   if (text === "/students") {
     if (!(await isAdmin(chatId))) {
       await tg("sendMessage", { chat_id: chatId, text: "Эта команда недоступна." });
@@ -845,7 +858,7 @@ async function handleMessage(message) {
       const info = await identityStore().get(entry.key, { type: "json" });
       const studentChatId = entry.key;
       const vocab = await getVocab(studentChatId);
-      const name = info ? [info.firstName, info.lastName].filter(Boolean).join(" ") : "";
+      const name = (info && info.registeredName) || (info ? [info.firstName, info.lastName].filter(Boolean).join(" ") : "");
       const uname = info && info.username ? ` (@${info.username})` : "";
       lines.push(`• ${name || "без имени"}${uname} — ${vocab.length} слов, chat_id ${studentChatId}`);
     }
