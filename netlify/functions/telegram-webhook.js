@@ -816,6 +816,20 @@ async function handleMessage(message) {
   const text = (message.text || "").trim();
   await rememberIdentity(chatId, message.from);
 
+  // Если человек только что написал /register без текста — бот ждёт от
+  // него имя следующим сообщением. Перехватываем это здесь, раньше любых
+  // других команд/разбора слов.
+  const identity = await identityStore().get(String(chatId), { type: "json" });
+  if (identity && identity.awaitingRegisterName) {
+    if (!text) {
+      await tg("sendMessage", { chat_id: chatId, text: "Напиши, пожалуйста, своё имя текстом." });
+      return;
+    }
+    await identityStore().setJSON(String(chatId), { ...identity, registeredName: text, awaitingRegisterName: false });
+    await tg("sendMessage", { chat_id: chatId, text: `Спасибо, ${text}! Записала.` });
+    return;
+  }
+
   if (text === "/start") return handleStart(chatId);
   if (text === "/whoami") {
     await tg("sendMessage", { chat_id: chatId, text: `Твой chat_id: ${chatId}` });
@@ -834,11 +848,11 @@ async function handleMessage(message) {
   if (/^\/register(@\w+)?\s*/i.test(text)) {
     const label = text.replace(/^\/register(@\w+)?\s*/i, "").trim();
     if (!label) {
-      await tg("sendMessage", { chat_id: chatId, text: "Формат: /register <имя ученика или метка>" });
+      await identityStore().setJSON(String(chatId), { ...(identity || {}), awaitingRegisterName: true });
+      await tg("sendMessage", { chat_id: chatId, text: "Как тебя записать? Напиши своё имя следующим сообщением." });
       return;
     }
-    const existing = await identityStore().get(String(chatId), { type: "json" });
-    await identityStore().setJSON(String(chatId), { ...(existing || {}), registeredName: label });
+    await identityStore().setJSON(String(chatId), { ...(identity || {}), registeredName: label, awaitingRegisterName: false });
     await tg("sendMessage", { chat_id: chatId, text: `Готово, записала: ${label}` });
     return;
   }
