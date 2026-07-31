@@ -636,6 +636,26 @@ async function handleMigrate(chatId) {
   await tg("sendMessage", { chat_id: chatId, text: `Готово — перенесла ${legacy.length} слов из старого общего словаря в этот чат.` });
 }
 
+// Только для админов (см. /claimadmin): полностью очищает словарь ДРУГОГО
+// чата по его chat_id (посмотреть можно в /students). После очистки у того
+// человека при следующем вопросе словарь пересеется заново стандартным
+// стартовым набором — это ожидаемо, не баг.
+async function handleClearVocab(chatId, argText) {
+  if (!(await isAdmin(chatId))) {
+    await tg("sendMessage", { chat_id: chatId, text: "Эта команда недоступна." });
+    return;
+  }
+  const targetId = argText.trim();
+  if (!targetId) {
+    await tg("sendMessage", { chat_id: chatId, text: "Формат: /clearvocab <chat_id> (посмотреть chat_id — в /students)" });
+    return;
+  }
+  const before = await wordsStore().get(`words:${targetId}`, { type: "json" });
+  const count = Array.isArray(before) ? before.length : 0;
+  await verifiedSet(wordsStore(), `words:${targetId}`, []);
+  await tg("sendMessage", { chat_id: chatId, text: `Готово — очистила словарь чата ${targetId} (было ${count} слов).` });
+}
+
 async function handleDelete(chatId, argText) {
   const lines = argText
     .split(/\r?\n/)
@@ -910,6 +930,9 @@ async function handleMessage(message) {
   if (text === "/reset") return handleReset(chatId);
   if (text === "/count") return handleCount(chatId);
   if (text === "/migrate") return handleMigrate(chatId);
+  if (/^\/clearvocab(@\w+)?\s*/i.test(text)) {
+    return handleClearVocab(chatId, text.replace(/^\/clearvocab(@\w+)?\s*/i, ""));
+  }
   if (text === "/help") return handleHelp(chatId);
   if (/^\/delete(@\w+)?\s*/i.test(text)) {
     return handleDelete(chatId, text.replace(/^\/delete(@\w+)?\s*/i, ""));
