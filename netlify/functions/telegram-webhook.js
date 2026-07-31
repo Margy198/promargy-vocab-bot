@@ -30,11 +30,19 @@ const wordsStore = () => getStore("vocab-bot-words", { consistency: "strong" });
 const debugStore = () => getStore("vocab-bot-debug", { consistency: "strong" });
 const rateLimitStore = () => getStore("vocab-bot-ratelimit", { consistency: "strong" });
 const identityStore = () => getStore("vocab-bot-identities", { consistency: "strong" });
+const adminStore = () => getStore("vocab-bot-admins", { consistency: "strong" });
 
-// Настоящий Telegram chat_id владелицы бота — только этому чату доступна
-// команда /students. Пока стоит заведомо несуществующее значение (0), команда
-// никому не доступна, пока сюда не впишут реальный ID (его покажет /whoami).
-const ADMIN_CHAT_ID = 0;
+// Секретное слово для самостоятельного получения прав администратора —
+// команда /claimadmin <секрет>. Кто пришлёт верный секрет, тот сразу
+// становится админом (без переписки с разработчиком и без передеплоя).
+// Секрет можно передать и другому человеку (например, помощнику), если ему
+// тоже нужен доступ к /students.
+const CLAIM_ADMIN_SECRET = "GCfVjhtMz9-wJSgQ";
+
+async function isAdmin(chatId) {
+  const v = await adminStore().get(String(chatId), { type: "json" });
+  return !!v;
+}
 
 // Запоминаем, кто стоит за этим чатом (имя/username из Telegram), чтобы
 // потом можно было отличить одного ученика от другого в /students.
@@ -811,8 +819,18 @@ async function handleMessage(message) {
     await tg("sendMessage", { chat_id: chatId, text: `Твой chat_id: ${chatId}` });
     return;
   }
+  if (/^\/claimadmin(@\w+)?\s*/i.test(text)) {
+    const provided = text.replace(/^\/claimadmin(@\w+)?\s*/i, "").trim();
+    if (!provided || provided !== CLAIM_ADMIN_SECRET) {
+      await tg("sendMessage", { chat_id: chatId, text: "Неверный секрет." });
+      return;
+    }
+    await adminStore().setJSON(String(chatId), { grantedAt: new Date().toISOString() });
+    await tg("sendMessage", { chat_id: chatId, text: "Готово — теперь тебе доступна команда /students." });
+    return;
+  }
   if (text === "/students") {
-    if (chatId !== ADMIN_CHAT_ID) {
+    if (!(await isAdmin(chatId))) {
       await tg("sendMessage", { chat_id: chatId, text: "Эта команда недоступна." });
       return;
     }
