@@ -656,6 +656,66 @@ async function handleClearVocab(chatId, argText) {
   await tg("sendMessage", { chat_id: chatId, text: `Готово — очистила словарь чата ${targetId} (было ${count} слов).` });
 }
 
+// Находит chat_id по @username (ищет среди всех известных личностей) или,
+// если передали просто число, использует его как chat_id напрямую.
+async function resolveTarget(input) {
+  const trimmed = (input || "").trim();
+  if (!trimmed) return null;
+  if (/^\d+$/.test(trimmed)) return trimmed;
+  const username = trimmed.replace(/^@/, "").toLowerCase();
+  if (!username) return null;
+  const ids = await identityStore().list();
+  const entries = ids && ids.blobs ? ids.blobs : [];
+  for (const entry of entries) {
+    const info = await identityStore().get(entry.key, { type: "json" });
+    if (info && info.username && info.username.toLowerCase() === username) {
+      return entry.key;
+    }
+  }
+  return null;
+}
+
+// Только для админов: добавляет слова НЕ в свой словарь, а в словарь
+// конкретного другого ученика. Первая строка — @username или chat_id
+// получателя, дальше — слова в обычном формате «English . перевод», можно
+// сразу много строк.
+async function handleAddTo(chatId, argText) {
+  if (!(await isAdmin(chatId))) {
+    await tg("sendMessage", { chat_id: chatId, text: "Эта команда недоступна." });
+    return;
+  }
+  const lines = argText.split(/\r?\n/);
+  const targetRaw = (lines[0] || "").trim();
+  if (!targetRaw) {
+    await tg("sendMessage", {
+      chat_id: chatId,
+      text: "Формат:\n/addto @username (или chat_id)\nEnglish . перевод\n... (можно много строк)",
+    });
+    return;
+  }
+  const targetId = await resolveTarget(targetRaw);
+  if (!targetId) {
+    await tg("sendMessage", { chat_id: chatId, text: `Не нашла «${targetRaw}» — проверь @username или chat_id (см. /students).` });
+    return;
+  }
+
+  const pairs = [];
+  for (const line of lines.slice(1)) {
+    const parsed = parseVocabLine(line);
+    if (parsed) pairs.push(parsed);
+  }
+  if (!pairs.length) {
+    await tg("sendMessage", { chat_id: chatId, text: "Не нашла ни одной пары «слово - перевод» после первой строки." });
+    return;
+  }
+
+  const { added, total } = await addWords(targetId, pairs);
+  const skippedDupes = pairs.length - added;
+  let msg = `✅ Добавлено в словарь ${targetRaw}: ${added}. Всего у него в словаре: ${total}.`;
+  if (skippedDupes) msg += `\nПропущено как дубли: ${skippedDupes}.`;
+  await tg("sendMessage", { chat_id: chatId, text: msg });
+}
+
 async function handleDelete(chatId, argText) {
   const lines = argText
     .split(/\r?\n/)
@@ -932,6 +992,9 @@ async function handleMessage(message) {
   if (text === "/migrate") return handleMigrate(chatId);
   if (/^\/clearvocab(@\w+)?\s*/i.test(text)) {
     return handleClearVocab(chatId, text.replace(/^\/clearvocab(@\w+)?\s*/i, ""));
+  }
+  if (/^\/addto(@\w+)?\s*/i.test(text)) {
+    return handleAddTo(chatId, text.replace(/^\/addto(@\w+)?\s*/i, ""));
   }
   if (text === "/help") return handleHelp(chatId);
   if (/^\/delete(@\w+)?\s*/i.test(text)) {
