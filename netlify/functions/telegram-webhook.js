@@ -29,6 +29,30 @@ const statsStore = () => getStore("vocab-bot-stats", { consistency: "strong" });
 const wordsStore = () => getStore("vocab-bot-words", { consistency: "strong" });
 const debugStore = () => getStore("vocab-bot-debug", { consistency: "strong" });
 const rateLimitStore = () => getStore("vocab-bot-ratelimit", { consistency: "strong" });
+const identityStore = () => getStore("vocab-bot-identities", { consistency: "strong" });
+
+// Настоящий Telegram chat_id владелицы бота — только этому чату доступна
+// команда /students. Пока стоит заведомо несуществующее значение (0), команда
+// никому не доступна, пока сюда не впишут реальный ID (его покажет /whoami).
+const ADMIN_CHAT_ID = 0;
+
+// Запоминаем, кто стоит за этим чатом (имя/username из Telegram), чтобы
+// потом можно было отличить одного ученика от другого в /students.
+// Не критично для работы бота — если не получится записать, просто молча
+// продолжаем.
+async function rememberIdentity(chatId, from) {
+  if (!from) return;
+  try {
+    await identityStore().setJSON(String(chatId), {
+      firstName: from.first_name || "",
+      lastName: from.last_name || "",
+      username: from.username || "",
+      lastSeen: new Date().toISOString(),
+    });
+  } catch (err) {
+    // не критично
+  }
+}
 
 // Telegram официально рекомендует не больше ~1 сообщения в секунду в один и
 // тот же чат — при превышении сообщение не отклоняется (наш вызов API
@@ -780,8 +804,36 @@ async function handleCallback(callbackQuery) {
 async function handleMessage(message) {
   const chatId = message.chat.id;
   const text = (message.text || "").trim();
+  await rememberIdentity(chatId, message.from);
 
   if (text === "/start") return handleStart(chatId);
+  if (text === "/whoami") {
+    await tg("sendMessage", { chat_id: chatId, text: `Твой chat_id: ${chatId}` });
+    return;
+  }
+  if (text === "/students") {
+    if (chatId !== ADMIN_CHAT_ID) {
+      await tg("sendMessage", { chat_id: chatId, text: "Эта команда недоступна." });
+      return;
+    }
+    const ids = await identityStore().list();
+    const entries = ids && ids.blobs ? ids.blobs : [];
+    if (!entries.length) {
+      await tg("sendMessage", { chat_id: chatId, text: "Пока никто не писал боту." });
+      return;
+    }
+    const lines = [];
+    for (const entry of entries) {
+      const info = await identityStore().get(entry.key, { type: "json" });
+      const studentChatId = entry.key;
+      const vocab = await getVocab(studentChatId);
+      const name = info ? [info.firstName, info.lastName].filter(Boolean).join(" ") : "";
+      const uname = info && info.username ? ` (@${info.username})` : "";
+      lines.push(`• ${name || "без имени"}${uname} — ${vocab.length} слов, chat_id ${studentChatId}`);
+    }
+    await tg("sendMessage", { chat_id: chatId, text: `Ученики (${entries.length}):\n${lines.join("\n")}` });
+    return;
+  }
   if (text === "/play" || text === "/next") {
     const stats = await getStats(chatId);
     return sendQuestion(chatId, stats);
