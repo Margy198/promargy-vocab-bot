@@ -1027,6 +1027,45 @@ async function claimUpdateOnce(updateId) {
   }
 }
 
+// Обрабатывает запрос от /admin.html — тот же смысл, что у /addto в
+// Telegram, но по HTTP и в JSON, чтобы страница могла вызвать это через
+// fetch(). Проверка — тем же секретом, что и /claimadmin.
+async function handleAdminApi(body) {
+  const headers = { "content-type": "application/json; charset=utf-8" };
+  if (body.adminSecret !== CLAIM_ADMIN_SECRET) {
+    return new Response(JSON.stringify({ ok: false, error: "Неверный секрет." }), { status: 403, headers });
+  }
+
+  const targetRaw = (body.target || "").trim();
+  if (!targetRaw) {
+    return new Response(JSON.stringify({ ok: false, error: "Не указан получатель." }), { status: 400, headers });
+  }
+  const targetId = await resolveTarget(targetRaw);
+  if (!targetId) {
+    return new Response(JSON.stringify({ ok: false, error: `Не нашла «${targetRaw}» — проверь @username или chat_id.` }), {
+      status: 404,
+      headers,
+    });
+  }
+
+  const wordsText = body.words || "";
+  const lines = wordsText.split(/\r?\n/);
+  const pairs = [];
+  for (const line of lines) {
+    const parsed = parseVocabLine(line);
+    if (parsed) pairs.push(parsed);
+  }
+  if (!pairs.length) {
+    return new Response(JSON.stringify({ ok: false, error: "Не нашла ни одной пары «слово - перевод»." }), { status: 400, headers });
+  }
+
+  const { added, total } = await addWords(targetId, pairs);
+  return new Response(
+    JSON.stringify({ ok: true, added, total, skippedDupes: pairs.length - added, resolvedTarget: targetId }),
+    { status: 200, headers }
+  );
+}
+
 export default async (req) => {
   if (req.method !== "POST") {
     // GET ?debug=<секрет> — отдаёт последние записи собственного журнала
@@ -1045,18 +1084,26 @@ export default async (req) => {
     return new Response("ok", { status: 200 });
   }
 
-  if (WEBHOOK_SECRET) {
-    const incoming = req.headers.get("x-telegram-bot-api-secret-token");
-    if (incoming !== WEBHOOK_SECRET) {
-      return new Response("forbidden", { status: 403 });
-    }
-  }
-
   let body;
   try {
     body = await req.json();
   } catch {
     return new Response("bad request", { status: 400 });
+  }
+
+  // Отдельный "административный" HTTP API — НЕ от Telegram, а от статической
+  // страницы /admin.html: позволяет добавлять слова в чей-то словарь прямо
+  // с сайта, без переписки в Telegram. Отличается от настоящих апдейтов
+  // Telegram наличием поля adminSecret (у Telegram такого поля не бывает).
+  if (body && body.adminSecret !== undefined) {
+    return handleAdminApi(body);
+  }
+
+  if (WEBHOOK_SECRET) {
+    const incoming = req.headers.get("x-telegram-bot-api-secret-token");
+    if (incoming !== WEBHOOK_SECRET) {
+      return new Response("forbidden", { status: 403 });
+    }
   }
 
   const isFirstTimeSeeingThisUpdate = await claimUpdateOnce(body.update_id);
