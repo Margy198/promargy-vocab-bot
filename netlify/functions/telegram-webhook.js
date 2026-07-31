@@ -811,10 +811,33 @@ async function handleCallback(callbackQuery) {
   await log("[callback] step5: question delivered — handling complete");
 }
 
+// Шлёт сообщение всем, кто сейчас является админом (см. /claimadmin) — на
+// данный момент используется только для уведомлений о новых пользователях.
+async function notifyAdmins(text) {
+  try {
+    const ids = await adminStore().list();
+    const entries = ids && ids.blobs ? ids.blobs : [];
+    for (const entry of entries) {
+      await tg("sendMessage", { chat_id: entry.key, text });
+    }
+  } catch (err) {
+    // не критично — отсутствие уведомления не должно ронять бота
+  }
+}
+
 async function handleMessage(message) {
   const chatId = message.chat.id;
   const text = (message.text || "").trim();
+  const existingIdentity = await identityStore().get(String(chatId), { type: "json" });
+  const isBrandNewChat = !existingIdentity;
   await rememberIdentity(chatId, message.from);
+
+  if (isBrandNewChat) {
+    const from = message.from || {};
+    const name = [from.first_name, from.last_name].filter(Boolean).join(" ") || "без имени";
+    const uname = from.username ? ` (@${from.username})` : "";
+    await notifyAdmins(`👋 Новый пользователь бота: ${name}${uname}, chat_id ${chatId}`);
+  }
 
   // Если человек только что написал /register без текста — бот ждёт от
   // него имя следующим сообщением. Перехватываем это здесь, раньше любых
