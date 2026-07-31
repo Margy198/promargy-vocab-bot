@@ -384,6 +384,123 @@ function shuffle(arr) {
   return arr;
 }
 
+// ===================== Режим "Грамматика" =====================
+// В отличие от лексики (готовый список слов), упражнения на времена
+// генерируются на лету из набора подлежащих и глаголов — вариантов
+// получается очень много (подлежащие × глаголы × время × утверждение/
+// отрицание), так что осмысленно "закончить" этот режим невозможно.
+
+const GRAMMAR_VERBS = [
+  { base: "go", past: "went", ru: "идти / ходить" },
+  { base: "play", past: "played", ru: "играть" },
+  { base: "watch", past: "watched", ru: "смотреть" },
+  { base: "work", past: "worked", ru: "работать" },
+  { base: "study", past: "studied", ru: "учиться" },
+  { base: "live", past: "lived", ru: "жить" },
+  { base: "like", past: "liked", ru: "нравиться" },
+  { base: "want", past: "wanted", ru: "хотеть" },
+  { base: "eat", past: "ate", ru: "есть (кушать)" },
+  { base: "drink", past: "drank", ru: "пить" },
+  { base: "write", past: "wrote", ru: "писать" },
+  { base: "speak", past: "spoke", ru: "говорить" },
+  { base: "come", past: "came", ru: "приходить" },
+  { base: "see", past: "saw", ru: "видеть" },
+  { base: "make", past: "made", ru: "делать (создавать)" },
+  { base: "take", past: "took", ru: "брать" },
+  { base: "have", past: "had", ru: "иметь", irregular3rd: "has" },
+  { base: "do", past: "did", ru: "делать", irregular3rd: "does" },
+  { base: "help", past: "helped", ru: "помогать" },
+  { base: "call", past: "called", ru: "звонить" },
+];
+
+const GRAMMAR_SUBJECTS = [
+  { pron: "I", ru: "я", is3rd: false },
+  { pron: "You", ru: "ты", is3rd: false },
+  { pron: "He", ru: "он", is3rd: true },
+  { pron: "She", ru: "она", is3rd: true },
+  { pron: "We", ru: "мы", is3rd: false },
+  { pron: "They", ru: "они", is3rd: false },
+];
+
+const TENSE_POLARITY_COMBOS = [
+  { tense: "present", polarity: "affirmative", label: "Present Simple, утверждение" },
+  { tense: "present", polarity: "negative", label: "Present Simple, отрицание" },
+  { tense: "past", polarity: "affirmative", label: "Past Simple, утверждение" },
+  { tense: "past", polarity: "negative", label: "Past Simple, отрицание" },
+  { tense: "future", polarity: "affirmative", label: "Future Simple, утверждение" },
+  { tense: "future", polarity: "negative", label: "Future Simple, отрицание" },
+];
+
+function thirdPersonForm(verb) {
+  if (verb.irregular3rd) return verb.irregular3rd;
+  const b = verb.base;
+  if (/[sxz]$/.test(b) || /(ch|sh)$/.test(b) || /o$/.test(b)) return b + "es";
+  if (/[^aeiou]y$/.test(b)) return b.slice(0, -1) + "ies";
+  return b + "s";
+}
+
+function conjugate(subject, verb, tense, polarity) {
+  const is3rd = subject.is3rd;
+  if (tense === "present") {
+    if (polarity === "affirmative") return is3rd ? thirdPersonForm(verb) : verb.base;
+    return (is3rd ? "doesn't " : "don't ") + verb.base;
+  }
+  if (tense === "past") {
+    if (polarity === "affirmative") return verb.past;
+    return "didn't " + verb.base;
+  }
+  // future
+  if (polarity === "affirmative") return "will " + verb.base;
+  return "won't " + verb.base;
+}
+
+// Берёт случайное подлежащее+глагол+время+полярность. В качестве вариантов
+// ответа — формы для ВСЕХ 6 комбинаций время×полярность для того же
+// подлежащего и глагола: это как раз и тренирует различение времён и
+// утверждения/отрицания, а не угадывание случайных слов.
+function buildGrammarQuestion(forbiddenText) {
+  for (let attempt = 0; attempt < 25; attempt++) {
+    const subject = GRAMMAR_SUBJECTS[Math.floor(Math.random() * GRAMMAR_SUBJECTS.length)];
+    const verb = GRAMMAR_VERBS[Math.floor(Math.random() * GRAMMAR_VERBS.length)];
+    const targetIdx = Math.floor(Math.random() * TENSE_POLARITY_COMBOS.length);
+    const target = TENSE_POLARITY_COMBOS[targetIdx];
+
+    const forms = TENSE_POLARITY_COMBOS.map((c) => conjugate(subject, verb, c.tense, c.polarity));
+    const uniqueForms = new Set(forms.map((f) => f.toLowerCase()));
+    if (uniqueForms.size !== forms.length) continue; // редкое совпадение форм — пробуем другую комбинацию
+
+    const correctText = forms[targetIdx];
+    if (forbiddenText && correctText.toLowerCase() === forbiddenText.toLowerCase()) continue;
+
+    const order = shuffle(TENSE_POLARITY_COMBOS.map((_, i) => i));
+    const correctPos = order.indexOf(targetIdx);
+    const options = order.map((i) => forms[i]);
+
+    return {
+      correctText,
+      questionLabel: `${subject.pron} (${subject.ru}) + ${verb.ru} — ${target.label}`,
+      options,
+      correctPos,
+    };
+  }
+  return null; // практически недостижимо при таком наборе глаголов/подлежащих
+}
+
+function buildGrammarPicked(prefix, forbiddenText) {
+  const q = buildGrammarQuestion(forbiddenText);
+  const keyboard = q.options.map((textOpt, i) => [{ text: textOpt, callback_data: `a:${i}` }]);
+  const questionText = `🎯 ${mdEscape(q.questionLabel)}\nВыбери верную форму:`;
+  const text = prefix ? `${prefix}\n\n${questionText}` : questionText;
+  return {
+    correct: { en: q.correctText, ru: q.questionLabel },
+    correctPos: q.correctPos,
+    keyboard,
+    text,
+    mode: "grammar",
+  };
+}
+// =================== Конец режима "Грамматика" ===================
+
 // Подбирает несколько неверных вариантов, у которых и перевод, и слово
 // отличаются от правильного и друг от друга (чтобы не было двух одинаковых кнопок).
 function pickDistractors(vocab, correctWord, count) {
@@ -525,15 +642,25 @@ async function deliverQuestion(chatId, picked) {
     correctPos: picked.correctPos,
     consumed: false,
     messageId,
-    seenEn: picked.newSeenEn,
-    recentTail: picked.newTail,
+    seenEn: picked.newSeenEn || [],
+    recentTail: picked.newTail || [],
+    mode: picked.mode || "vocab",
   });
 }
 
 // Одиночная отправка вопроса (без одновременного обновления счёта) — для
 // /start и /play. Историю берём из предыдущего pending, если он есть
 // (надёжно, без похода в общее хранилище счёта).
-async function sendQuestion(chatId, stats, prefix) {
+async function sendQuestion(chatId, stats, prefix, modeOverride) {
+  const prevPending = await pendingStore().get(String(chatId), { type: "json" });
+  const mode = modeOverride || (prevPending && prevPending.mode === "grammar" ? "grammar" : "vocab");
+
+  if (mode === "grammar") {
+    const picked = buildGrammarPicked(prefix, null);
+    await deliverQuestion(chatId, picked);
+    return;
+  }
+
   const vocab = await getVocab(chatId);
   if (!vocab.length) {
     await tg("sendMessage", {
@@ -543,7 +670,6 @@ async function sendQuestion(chatId, stats, prefix) {
     return;
   }
 
-  const prevPending = await pendingStore().get(String(chatId), { type: "json" });
   const seenEnList = prevPending && Array.isArray(prevPending.seenEn) ? prevPending.seenEn : [];
   const recentTailList = prevPending && Array.isArray(prevPending.recentTail) ? prevPending.recentTail : [];
 
@@ -560,20 +686,37 @@ async function handleStart(chatId) {
   await tg("sendMessage", {
     chat_id: chatId,
     text:
-      "Привет! Это тренажёр лексики 🎓\n\n" +
-      "Показываю слово или фразу — выбираешь перевод из 4 вариантов. " +
-      "Слова, в которых ошибаешься, будут попадаться чаще.\n\n" +
+      "Привет! Это тренажёр 🎓\n\n" +
+      "Показываю слово, фразу или грамматическое упражнение — выбираешь верный вариант из вариантов. " +
+      "То, в чём ошибаешься, будет попадаться чаще.\n\n" +
       "Чтобы добавить новые слова — просто вставь сюда строки вида «English . перевод» " +
       "(можно сразу много строк за раз), я сама их разберу.\n\n" +
+      "/mode — переключить лексика / грамматика\n" +
       "Команды: /play, /score, /count, /delete <слово>, /reset, /help",
   });
   await sendQuestion(chatId, stats);
+}
+
+// Показывает выбор режима тренировки — кнопками, а не текстом, чтобы не
+// нужно было ничего печатать.
+async function handleMode(chatId) {
+  await tg("sendMessage", {
+    chat_id: chatId,
+    text: "Что тренируем?",
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "📚 Лексика", callback_data: "mode:vocab" }],
+        [{ text: "📝 Грамматика (времена)", callback_data: "mode:grammar" }],
+      ],
+    },
+  });
 }
 
 async function handleHelp(chatId) {
   await tg("sendMessage", {
     chat_id: chatId,
     text:
+      "/mode — переключить лексика / грамматика\n" +
       "/play — новый вопрос\n" +
       "/score — статистика\n" +
       "/count — сколько слов в словаре\n" +
@@ -834,6 +977,14 @@ async function handleCallback(callbackQuery) {
     return;
   }
 
+  if (data === "mode:vocab" || data === "mode:grammar") {
+    const chosenMode = data === "mode:grammar" ? "grammar" : "vocab";
+    const label = chosenMode === "grammar" ? "📝 Режим: Грамматика (времена)" : "📚 Режим: Лексика";
+    const stats = await getStats(chatId);
+    await sendQuestion(chatId, stats, label, chosenMode);
+    return;
+  }
+
   if (!data || !data.startsWith("a:")) {
     await log("[callback] unrecognized data, stopping:", data);
     return;
@@ -850,7 +1001,8 @@ async function handleCallback(callbackQuery) {
   const isCorrect = chosenIdx === pending.correctPos;
   await log(`[callback] step3: word="${pending.correctEn}" chosenIdx=${chosenIdx} correctPos=${pending.correctPos} isCorrect=${isCorrect}`);
 
-  const vocab = await getVocab(chatId);
+  const mode = pending.mode === "grammar" ? "grammar" : "vocab";
+  const vocab = mode === "vocab" ? await getVocab(chatId) : null;
   const seenEnList = Array.isArray(pending.seenEn) ? pending.seenEn : [];
   const recentTailList = Array.isArray(pending.recentTail) ? pending.recentTail : [];
   let picked = null;
@@ -869,9 +1021,12 @@ async function handleCallback(callbackQuery) {
       s.wrong[pending.correctEn] = (s.wrong[pending.correctEn] || 0) + 1;
     }
 
-    const resultText = `${isCorrect ? "✅" : "❌"} *${mdEscape(pending.correctEn)}* — ${mdEscape(pending.correctRu)}\n\n${statsLine(seenEnList.length, vocab.length)}`;
+    const statsSuffix = mode === "vocab" ? `\n\n${statsLine(seenEnList.length, vocab.length)}` : "";
+    const resultText = `${isCorrect ? "✅" : "❌"} *${mdEscape(pending.correctEn)}* — ${mdEscape(pending.correctRu)}${statsSuffix}`;
 
-    if (vocab.length) {
+    if (mode === "grammar") {
+      picked = buildGrammarPicked(resultText, pending.correctEn);
+    } else if (vocab.length) {
       picked = buildQuestion(vocab, s.wrong, resultText, pending.correctEn, seenEnList, recentTailList);
     }
 
@@ -934,6 +1089,7 @@ async function handleMessage(message) {
   }
 
   if (text === "/start") return handleStart(chatId);
+  if (text === "/mode") return handleMode(chatId);
   if (text === "/whoami") {
     await tg("sendMessage", { chat_id: chatId, text: `Твой chat_id: ${chatId}` });
     return;
