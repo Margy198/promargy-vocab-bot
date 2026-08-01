@@ -886,6 +886,23 @@ function statsLine(practicedCount, totalCount) {
   return `📚 ${practicedCount}/${totalCount} слов отработано`;
 }
 
+// Постоянное меню снизу экрана (не привязано к конкретному сообщению, как
+// inline-кнопки, а всегда под рукой). Кнопки просто отправляют свой текст
+// как обычное сообщение — дальше это обрабатывается как любая команда.
+async function mainReplyKeyboard(chatId) {
+  const admin = await isAdmin(chatId);
+  const rows = [
+    ["/mode", "/score"],
+    ["/count", "/help"],
+  ];
+  if (admin) rows.push(["/students"]);
+  return {
+    keyboard: rows.map((row) => row.map((text) => ({ text }))),
+    resize_keyboard: true,
+    is_persistent: true,
+  };
+}
+
 async function handleStart(chatId) {
   await tg("sendMessage", {
     chat_id: chatId,
@@ -896,6 +913,7 @@ async function handleStart(chatId) {
       "Чтобы добавить новые слова — просто вставь сюда строки вида «English . перевод» " +
       "(можно сразу много строк за раз), я сама их разберу.\n\n" +
       "Команды: /mode, /play, /score, /count, /delete <слово>, /reset, /help",
+    reply_markup: await mainReplyKeyboard(chatId),
   });
   await handleMode(chatId);
 }
@@ -1344,7 +1362,11 @@ async function handleMessage(message) {
       return;
     }
     await adminStore().setJSON(String(chatId), { grantedAt: new Date().toISOString() });
-    await tg("sendMessage", { chat_id: chatId, text: "Готово — теперь тебе доступна команда /students." });
+    await tg("sendMessage", {
+      chat_id: chatId,
+      text: "Готово — теперь тебе доступна команда /students.",
+      reply_markup: await mainReplyKeyboard(chatId),
+    });
     return;
   }
   if (/^\/register(@\w+)?\s*/i.test(text)) {
