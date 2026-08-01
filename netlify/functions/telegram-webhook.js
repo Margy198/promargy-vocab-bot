@@ -514,72 +514,78 @@ function buildGrammarPicked(prefix, forbiddenText) {
 // запоминание, какая форма к какому глаголу относится).
 
 const IRREGULAR_VERBS = [
-  { base: "go", past: "went", participle: "gone", ru: "идти / ходить" },
-  { base: "have", past: "had", participle: "had", ru: "иметь" },
-  { base: "do", past: "did", participle: "done", ru: "делать" },
-  { base: "see", past: "saw", participle: "seen", ru: "видеть" },
-  { base: "come", past: "came", participle: "come", ru: "приходить" },
-  { base: "take", past: "took", participle: "taken", ru: "брать" },
-  { base: "make", past: "made", participle: "made", ru: "делать (создавать)" },
-  { base: "know", past: "knew", participle: "known", ru: "знать" },
-  { base: "get", past: "got", participle: "gotten", ru: "получать" },
-  { base: "give", past: "gave", participle: "given", ru: "давать" },
-  { base: "find", past: "found", participle: "found", ru: "находить" },
-  { base: "think", past: "thought", participle: "thought", ru: "думать" },
-  { base: "tell", past: "told", participle: "told", ru: "говорить (рассказывать)" },
-  { base: "become", past: "became", participle: "become", ru: "становиться" },
-  { base: "leave", past: "left", participle: "left", ru: "уходить / оставлять" },
-  { base: "feel", past: "felt", participle: "felt", ru: "чувствовать" },
-  { base: "bring", past: "brought", participle: "brought", ru: "приносить" },
-  { base: "write", past: "wrote", participle: "written", ru: "писать" },
-  { base: "sing", past: "sang", participle: "sung", ru: "петь" },
-  { base: "eat", past: "ate", participle: "eaten", ru: "есть (кушать)" },
-  { base: "drink", past: "drank", participle: "drunk", ru: "пить" },
-  { base: "speak", past: "spoke", participle: "spoken", ru: "говорить" },
-  { base: "buy", past: "bought", participle: "bought", ru: "покупать" },
-  { base: "meet", past: "met", participle: "met", ru: "встречать" },
-  { base: "run", past: "ran", participle: "run", ru: "бегать" },
-  { base: "fly", past: "flew", participle: "flown", ru: "летать" },
-  { base: "break", past: "broke", participle: "broken", ru: "ломать" },
-  { base: "choose", past: "chose", participle: "chosen", ru: "выбирать" },
-  { base: "sell", past: "sold", participle: "sold", ru: "продавать" },
-  { base: "send", past: "sent", participle: "sent", ru: "отправлять" },
-  { base: "build", past: "built", participle: "built", ru: "строить" },
-  { base: "understand", past: "understood", participle: "understood", ru: "понимать" },
-  { base: "win", past: "won", participle: "won", ru: "выигрывать" },
-  { base: "lose", past: "lost", participle: "lost", ru: "терять" },
-  { base: "pay", past: "paid", participle: "paid", ru: "платить" },
-  { base: "sit", past: "sat", participle: "sat", ru: "сидеть" },
-  { base: "stand", past: "stood", participle: "stood", ru: "стоять" },
-  { base: "hold", past: "held", participle: "held", ru: "держать" },
-  { base: "grow", past: "grew", participle: "grown", ru: "расти" },
-  { base: "draw", past: "drew", participle: "drawn", ru: "рисовать" },
-  { base: "drive", past: "drove", participle: "driven", ru: "водить (машину)" },
-  { base: "ride", past: "rode", participle: "ridden", ru: "ездить верхом" },
-  { base: "wear", past: "wore", participle: "worn", ru: "носить (одежду)" },
-  { base: "throw", past: "threw", participle: "thrown", ru: "бросать" },
-  { base: "catch", past: "caught", participle: "caught", ru: "ловить" },
-  { base: "teach", past: "taught", participle: "taught", ru: "учить (преподавать)" },
-  { base: "fight", past: "fought", participle: "fought", ru: "драться / бороться" },
-  { base: "forget", past: "forgot", participle: "forgotten", ru: "забывать" },
-  { base: "begin", past: "began", participle: "begun", ru: "начинать" },
-  { base: "read", past: "read", participle: "read", ru: "читать" },
+  // A1-A2 — самые базовые, встречаются с первых уроков
+  { base: "go", past: "went", participle: "gone", ru: "идти / ходить", level: "a" },
+  { base: "have", past: "had", participle: "had", ru: "иметь", level: "a" },
+  { base: "do", past: "did", participle: "done", ru: "делать", level: "a" },
+  { base: "see", past: "saw", participle: "seen", ru: "видеть", level: "a" },
+  { base: "come", past: "came", participle: "come", ru: "приходить", level: "a" },
+  { base: "take", past: "took", participle: "taken", ru: "брать", level: "a" },
+  { base: "make", past: "made", participle: "made", ru: "делать (создавать)", level: "a" },
+  { base: "know", past: "knew", participle: "known", ru: "знать", level: "a" },
+  { base: "get", past: "got", participle: "gotten", ru: "получать", level: "a" },
+  { base: "give", past: "gave", participle: "given", ru: "давать", level: "a" },
+  { base: "eat", past: "ate", participle: "eaten", ru: "есть (кушать)", level: "a" },
+  { base: "drink", past: "drank", participle: "drunk", ru: "пить", level: "a" },
+  { base: "write", past: "wrote", participle: "written", ru: "писать", level: "a" },
+  { base: "read", past: "read", participle: "read", ru: "читать", level: "a" },
+  { base: "buy", past: "bought", participle: "bought", ru: "покупать", level: "a" },
+  { base: "run", past: "ran", participle: "run", ru: "бегать", level: "a" },
+  { base: "sit", past: "sat", participle: "sat", ru: "сидеть", level: "a" },
+  // B1-B2 — средний уровень
+  { base: "stand", past: "stood", participle: "stood", ru: "стоять", level: "b" },
+  { base: "find", past: "found", participle: "found", ru: "находить", level: "b" },
+  { base: "think", past: "thought", participle: "thought", ru: "думать", level: "b" },
+  { base: "tell", past: "told", participle: "told", ru: "говорить (рассказывать)", level: "b" },
+  { base: "feel", past: "felt", participle: "felt", ru: "чувствовать", level: "b" },
+  { base: "leave", past: "left", participle: "left", ru: "уходить / оставлять", level: "b" },
+  { base: "speak", past: "spoke", participle: "spoken", ru: "говорить", level: "b" },
+  { base: "meet", past: "met", participle: "met", ru: "встречать", level: "b" },
+  { base: "win", past: "won", participle: "won", ru: "выигрывать", level: "b" },
+  { base: "pay", past: "paid", participle: "paid", ru: "платить", level: "b" },
+  { base: "wear", past: "wore", participle: "worn", ru: "носить (одежду)", level: "b" },
+  { base: "hold", past: "held", participle: "held", ru: "держать", level: "b" },
+  { base: "sing", past: "sang", participle: "sung", ru: "петь", level: "b" },
+  { base: "become", past: "became", participle: "become", ru: "становиться", level: "b" },
+  { base: "understand", past: "understood", participle: "understood", ru: "понимать", level: "b" },
+  { base: "lose", past: "lost", participle: "lost", ru: "терять", level: "b" },
+  { base: "begin", past: "began", participle: "begun", ru: "начинать", level: "b" },
+  // B2+ — более редкие/продвинутые
+  { base: "forget", past: "forgot", participle: "forgotten", ru: "забывать", level: "c" },
+  { base: "bring", past: "brought", participle: "brought", ru: "приносить", level: "c" },
+  { base: "choose", past: "chose", participle: "chosen", ru: "выбирать", level: "c" },
+  { base: "sell", past: "sold", participle: "sold", ru: "продавать", level: "c" },
+  { base: "send", past: "sent", participle: "sent", ru: "отправлять", level: "c" },
+  { base: "build", past: "built", participle: "built", ru: "строить", level: "c" },
+  { base: "grow", past: "grew", participle: "grown", ru: "расти", level: "c" },
+  { base: "draw", past: "drew", participle: "drawn", ru: "рисовать", level: "c" },
+  { base: "drive", past: "drove", participle: "driven", ru: "водить (машину)", level: "c" },
+  { base: "ride", past: "rode", participle: "ridden", ru: "ездить верхом", level: "c" },
+  { base: "fly", past: "flew", participle: "flown", ru: "летать", level: "c" },
+  { base: "teach", past: "taught", participle: "taught", ru: "учить (преподавать)", level: "c" },
+  { base: "fight", past: "fought", participle: "fought", ru: "драться / бороться", level: "c" },
+  { base: "catch", past: "caught", participle: "caught", ru: "ловить", level: "c" },
+  { base: "throw", past: "threw", participle: "thrown", ru: "бросать", level: "c" },
+  { base: "break", past: "broke", participle: "broken", ru: "ломать", level: "c" },
 ];
 
-function buildIrregularQuestion(forbiddenText) {
+const IRREGULAR_LEVEL_LABELS = { a: "A1–A2", b: "B1–B2", c: "B2+" };
+
+function buildIrregularQuestion(forbiddenText, level) {
+  const pool = level ? IRREGULAR_VERBS.filter((v) => v.level === level) : IRREGULAR_VERBS;
   for (let attempt = 0; attempt < 25; attempt++) {
-    const idx = Math.floor(Math.random() * IRREGULAR_VERBS.length);
-    const verb = IRREGULAR_VERBS[idx];
+    const idx = Math.floor(Math.random() * pool.length);
+    const verb = pool[idx];
     const correctText = `${verb.past} — ${verb.participle}`;
     if (forbiddenText && correctText.toLowerCase() === forbiddenText.toLowerCase()) continue;
 
     const otherIndices = [];
     while (otherIndices.length < 5) {
-      const j = Math.floor(Math.random() * IRREGULAR_VERBS.length);
+      const j = Math.floor(Math.random() * pool.length);
       if (j === idx || otherIndices.includes(j)) continue;
       otherIndices.push(j);
     }
-    const distractorTexts = otherIndices.map((j) => `${IRREGULAR_VERBS[j].past} — ${IRREGULAR_VERBS[j].participle}`);
+    const distractorTexts = otherIndices.map((j) => `${pool[j].past} — ${pool[j].participle}`);
 
     const allOptions = [correctText, ...distractorTexts];
     const uniqueOptions = new Set(allOptions.map((o) => o.toLowerCase()));
@@ -599,10 +605,11 @@ function buildIrregularQuestion(forbiddenText) {
   return null; // практически недостижимо при таком размере списка
 }
 
-function buildIrregularPicked(prefix, forbiddenText) {
-  const q = buildIrregularQuestion(forbiddenText);
+function buildIrregularPicked(prefix, forbiddenText, level) {
+  const q = buildIrregularQuestion(forbiddenText, level);
   const keyboard = q.options.map((textOpt, i) => [{ text: textOpt, callback_data: `a:${i}` }]);
-  const questionText = `🎯 ${mdEscape(q.questionLabel)}?`;
+  const levelLabel = level ? ` [${IRREGULAR_LEVEL_LABELS[level] || level}]` : "";
+  const questionText = `🎯${levelLabel} ${mdEscape(q.questionLabel)}?`;
   const text = prefix ? `${prefix}\n\n${questionText}` : questionText;
   return {
     correct: { en: q.correctText, ru: q.questionLabel },
@@ -610,6 +617,7 @@ function buildIrregularPicked(prefix, forbiddenText) {
     keyboard,
     text,
     mode: "irregular",
+    level,
   };
 }
 // ============== Конец режима "Неправильные глаголы" ==============
@@ -758,13 +766,14 @@ async function deliverQuestion(chatId, picked) {
     seenEn: picked.newSeenEn || [],
     recentTail: picked.newTail || [],
     mode: picked.mode || "vocab",
+    level: picked.level || null,
   });
 }
 
 // Одиночная отправка вопроса (без одновременного обновления счёта) — для
 // /start и /play. Историю берём из предыдущего pending, если он есть
 // (надёжно, без похода в общее хранилище счёта).
-async function sendQuestion(chatId, stats, prefix, modeOverride) {
+async function sendQuestion(chatId, stats, prefix, modeOverride, levelOverride) {
   const prevPending = await pendingStore().get(String(chatId), { type: "json" });
   const currentMode = prevPending && prevPending.mode ? prevPending.mode : "vocab";
   const mode = modeOverride || currentMode;
@@ -776,7 +785,8 @@ async function sendQuestion(chatId, stats, prefix, modeOverride) {
   }
 
   if (mode === "irregular") {
-    const picked = buildIrregularPicked(prefix, null);
+    const level = levelOverride || (prevPending && prevPending.level) || "a";
+    const picked = buildIrregularPicked(prefix, null, level);
     await deliverQuestion(chatId, picked);
     return;
   }
@@ -1098,15 +1108,34 @@ async function handleCallback(callbackQuery) {
     return;
   }
 
-  if (data === "mode:vocab" || data === "mode:grammar" || data === "mode:irregular") {
+  if (data === "mode:vocab" || data === "mode:grammar") {
     const chosenMode = data.slice(5);
-    const labels = {
-      vocab: "📚 Режим: Лексика",
-      grammar: "📝 Режим: Грамматика (времена)",
-      irregular: "🔄 Режим: Неправильные глаголы",
-    };
+    const labels = { vocab: "📚 Режим: Лексика", grammar: "📝 Режим: Грамматика (времена)" };
     const stats = await getStats(chatId);
     await sendQuestion(chatId, stats, labels[chosenMode], chosenMode);
+    return;
+  }
+
+  if (data === "mode:irregular") {
+    await tg("sendMessage", {
+      chat_id: chatId,
+      text: "Неправильные глаголы — какой уровень?",
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: "A1–A2", callback_data: "ilevel:a" }],
+          [{ text: "B1–B2", callback_data: "ilevel:b" }],
+          [{ text: "B2+", callback_data: "ilevel:c" }],
+        ],
+      },
+    });
+    return;
+  }
+
+  if (data === "ilevel:a" || data === "ilevel:b" || data === "ilevel:c") {
+    const level = data.slice(7);
+    const label = `🔄 Неправильные глаголы — уровень ${IRREGULAR_LEVEL_LABELS[level]}`;
+    const stats = await getStats(chatId);
+    await sendQuestion(chatId, stats, label, "irregular", level);
     return;
   }
 
@@ -1152,7 +1181,7 @@ async function handleCallback(callbackQuery) {
     if (mode === "grammar") {
       picked = buildGrammarPicked(resultText, pending.correctEn);
     } else if (mode === "irregular") {
-      picked = buildIrregularPicked(resultText, pending.correctEn);
+      picked = buildIrregularPicked(resultText, pending.correctEn, pending.level || "a");
     } else if (vocab.length) {
       picked = buildQuestion(vocab, s.wrong, resultText, pending.correctEn, seenEnList, recentTailList);
     }
