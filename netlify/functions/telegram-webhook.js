@@ -1245,6 +1245,63 @@ async function handleSetTopic(chatId, argText) {
   await tg("sendMessage", { chat_id: chatId, text: msg });
 }
 
+// Только для админов: показывает весь словарь конкретного другого чата —
+// сгруппированный по темам (сначала общие слова, потом по каждой теме),
+// разбитый на несколько сообщений, если не влезает в одно (лимит Telegram —
+// 4096 символов на сообщение, берём запас поменьше).
+async function handleViewVocab(chatId, argText) {
+  if (!(await isAdmin(chatId))) {
+    await tg("sendMessage", { chat_id: chatId, text: "Эта команда недоступна." });
+    return;
+  }
+  const targetRaw = argText.trim();
+  if (!targetRaw) {
+    await tg("sendMessage", { chat_id: chatId, text: "Формат: /viewvocab @username (или chat_id)" });
+    return;
+  }
+  const targetId = await resolveTarget(targetRaw);
+  if (!targetId) {
+    await tg("sendMessage", { chat_id: chatId, text: `Не нашла «${targetRaw}» — проверь @username или chat_id (см. /students).` });
+    return;
+  }
+  const vocab = await getVocab(targetId);
+  if (!vocab.length) {
+    await tg("sendMessage", { chat_id: chatId, text: `У ${targetRaw} словарь сейчас пуст.` });
+    return;
+  }
+
+  const byTopic = new Map();
+  for (const w of vocab) {
+    const key = w.topic || GENERAL_TOPIC;
+    if (!byTopic.has(key)) byTopic.set(key, []);
+    byTopic.get(key).push(w);
+  }
+  const orderedKeys = [...byTopic.keys()].sort((a) => (a === GENERAL_TOPIC ? -1 : 1));
+
+  const lines = [`📖 Словарь ${targetRaw} — всего ${vocab.length} слов:`, ""];
+  for (const key of orderedKeys) {
+    const words = byTopic.get(key);
+    lines.push(`— ${topicLabel(key)} (${words.length}) —`);
+    for (const w of words) lines.push(`${w.en} . ${w.ru}`);
+    lines.push("");
+  }
+
+  const chunks = [];
+  let current = "";
+  for (const line of lines) {
+    if (current.length + line.length + 1 > 3500) {
+      chunks.push(current);
+      current = "";
+    }
+    current += (current ? "\n" : "") + line;
+  }
+  if (current) chunks.push(current);
+
+  for (const chunk of chunks) {
+    await tg("sendMessage", { chat_id: chatId, text: chunk });
+  }
+}
+
 
 async function handleDelete(chatId, argText) {
   const lines = argText
@@ -1619,6 +1676,9 @@ async function handleMessage(message) {
   }
   if (/^\/settopic(@\w+)?\s*/i.test(text)) {
     return handleSetTopic(chatId, text.replace(/^\/settopic(@\w+)?\s*/i, ""));
+  }
+  if (/^\/viewvocab(@\w+)?\s*/i.test(text)) {
+    return handleViewVocab(chatId, text.replace(/^\/viewvocab(@\w+)?\s*/i, ""));
   }
   if (text === "/help") return handleHelp(chatId);
   if (/^\/delete(@\w+)?\s*/i.test(text)) {
