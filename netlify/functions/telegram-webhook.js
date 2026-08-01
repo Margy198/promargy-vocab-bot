@@ -507,6 +507,113 @@ function buildGrammarPicked(prefix, forbiddenText) {
 }
 // =================== Конец режима "Грамматика" ===================
 
+// ================ Режим "Неправильные глаголы" ================
+// Показывает базовую форму глагола, просит выбрать верную пару
+// Past Simple — Past Participle из 6 вариантов (сама верная пара + пары от
+// 5 других случайных неправильных глаголов — это как раз и тренирует
+// запоминание, какая форма к какому глаголу относится).
+
+const IRREGULAR_VERBS = [
+  { base: "go", past: "went", participle: "gone", ru: "идти / ходить" },
+  { base: "have", past: "had", participle: "had", ru: "иметь" },
+  { base: "do", past: "did", participle: "done", ru: "делать" },
+  { base: "see", past: "saw", participle: "seen", ru: "видеть" },
+  { base: "come", past: "came", participle: "come", ru: "приходить" },
+  { base: "take", past: "took", participle: "taken", ru: "брать" },
+  { base: "make", past: "made", participle: "made", ru: "делать (создавать)" },
+  { base: "know", past: "knew", participle: "known", ru: "знать" },
+  { base: "get", past: "got", participle: "gotten", ru: "получать" },
+  { base: "give", past: "gave", participle: "given", ru: "давать" },
+  { base: "find", past: "found", participle: "found", ru: "находить" },
+  { base: "think", past: "thought", participle: "thought", ru: "думать" },
+  { base: "tell", past: "told", participle: "told", ru: "говорить (рассказывать)" },
+  { base: "become", past: "became", participle: "become", ru: "становиться" },
+  { base: "leave", past: "left", participle: "left", ru: "уходить / оставлять" },
+  { base: "feel", past: "felt", participle: "felt", ru: "чувствовать" },
+  { base: "bring", past: "brought", participle: "brought", ru: "приносить" },
+  { base: "write", past: "wrote", participle: "written", ru: "писать" },
+  { base: "sing", past: "sang", participle: "sung", ru: "петь" },
+  { base: "eat", past: "ate", participle: "eaten", ru: "есть (кушать)" },
+  { base: "drink", past: "drank", participle: "drunk", ru: "пить" },
+  { base: "speak", past: "spoke", participle: "spoken", ru: "говорить" },
+  { base: "buy", past: "bought", participle: "bought", ru: "покупать" },
+  { base: "meet", past: "met", participle: "met", ru: "встречать" },
+  { base: "run", past: "ran", participle: "run", ru: "бегать" },
+  { base: "fly", past: "flew", participle: "flown", ru: "летать" },
+  { base: "break", past: "broke", participle: "broken", ru: "ломать" },
+  { base: "choose", past: "chose", participle: "chosen", ru: "выбирать" },
+  { base: "sell", past: "sold", participle: "sold", ru: "продавать" },
+  { base: "send", past: "sent", participle: "sent", ru: "отправлять" },
+  { base: "build", past: "built", participle: "built", ru: "строить" },
+  { base: "understand", past: "understood", participle: "understood", ru: "понимать" },
+  { base: "win", past: "won", participle: "won", ru: "выигрывать" },
+  { base: "lose", past: "lost", participle: "lost", ru: "терять" },
+  { base: "pay", past: "paid", participle: "paid", ru: "платить" },
+  { base: "sit", past: "sat", participle: "sat", ru: "сидеть" },
+  { base: "stand", past: "stood", participle: "stood", ru: "стоять" },
+  { base: "hold", past: "held", participle: "held", ru: "держать" },
+  { base: "grow", past: "grew", participle: "grown", ru: "расти" },
+  { base: "draw", past: "drew", participle: "drawn", ru: "рисовать" },
+  { base: "drive", past: "drove", participle: "driven", ru: "водить (машину)" },
+  { base: "ride", past: "rode", participle: "ridden", ru: "ездить верхом" },
+  { base: "wear", past: "wore", participle: "worn", ru: "носить (одежду)" },
+  { base: "throw", past: "threw", participle: "thrown", ru: "бросать" },
+  { base: "catch", past: "caught", participle: "caught", ru: "ловить" },
+  { base: "teach", past: "taught", participle: "taught", ru: "учить (преподавать)" },
+  { base: "fight", past: "fought", participle: "fought", ru: "драться / бороться" },
+  { base: "forget", past: "forgot", participle: "forgotten", ru: "забывать" },
+  { base: "begin", past: "began", participle: "begun", ru: "начинать" },
+  { base: "read", past: "read", participle: "read", ru: "читать" },
+];
+
+function buildIrregularQuestion(forbiddenText) {
+  for (let attempt = 0; attempt < 25; attempt++) {
+    const idx = Math.floor(Math.random() * IRREGULAR_VERBS.length);
+    const verb = IRREGULAR_VERBS[idx];
+    const correctText = `${verb.past} — ${verb.participle}`;
+    if (forbiddenText && correctText.toLowerCase() === forbiddenText.toLowerCase()) continue;
+
+    const otherIndices = [];
+    while (otherIndices.length < 5) {
+      const j = Math.floor(Math.random() * IRREGULAR_VERBS.length);
+      if (j === idx || otherIndices.includes(j)) continue;
+      otherIndices.push(j);
+    }
+    const distractorTexts = otherIndices.map((j) => `${IRREGULAR_VERBS[j].past} — ${IRREGULAR_VERBS[j].participle}`);
+
+    const allOptions = [correctText, ...distractorTexts];
+    const uniqueOptions = new Set(allOptions.map((o) => o.toLowerCase()));
+    if (uniqueOptions.size !== allOptions.length) continue; // редкое совпадение форм — пробуем другой набор
+
+    const order = shuffle(allOptions.map((_, i) => i));
+    const correctPos = order.indexOf(0);
+    const options = order.map((i) => allOptions[i]);
+
+    return {
+      correctText,
+      questionLabel: `${verb.base.toUpperCase()} (${verb.ru}) — Past Simple — Past Participle`,
+      options,
+      correctPos,
+    };
+  }
+  return null; // практически недостижимо при таком размере списка
+}
+
+function buildIrregularPicked(prefix, forbiddenText) {
+  const q = buildIrregularQuestion(forbiddenText);
+  const keyboard = q.options.map((textOpt, i) => [{ text: textOpt, callback_data: `a:${i}` }]);
+  const questionText = `🎯 ${mdEscape(q.questionLabel)}?`;
+  const text = prefix ? `${prefix}\n\n${questionText}` : questionText;
+  return {
+    correct: { en: q.correctText, ru: q.questionLabel },
+    correctPos: q.correctPos,
+    keyboard,
+    text,
+    mode: "irregular",
+  };
+}
+// ============== Конец режима "Неправильные глаголы" ==============
+
 // Подбирает несколько неверных вариантов, у которых и перевод, и слово
 // отличаются от правильного и друг от друга (чтобы не было двух одинаковых кнопок).
 function pickDistractors(vocab, correctWord, count) {
@@ -659,10 +766,17 @@ async function deliverQuestion(chatId, picked) {
 // (надёжно, без похода в общее хранилище счёта).
 async function sendQuestion(chatId, stats, prefix, modeOverride) {
   const prevPending = await pendingStore().get(String(chatId), { type: "json" });
-  const mode = modeOverride || (prevPending && prevPending.mode === "grammar" ? "grammar" : "vocab");
+  const currentMode = prevPending && prevPending.mode ? prevPending.mode : "vocab";
+  const mode = modeOverride || currentMode;
 
   if (mode === "grammar") {
     const picked = buildGrammarPicked(prefix, null);
+    await deliverQuestion(chatId, picked);
+    return;
+  }
+
+  if (mode === "irregular") {
+    const picked = buildIrregularPicked(prefix, null);
     await deliverQuestion(chatId, picked);
     return;
   }
@@ -713,6 +827,7 @@ async function handleMode(chatId) {
       inline_keyboard: [
         [{ text: "📚 Лексика", callback_data: "mode:vocab" }],
         [{ text: "📝 Грамматика (времена)", callback_data: "mode:grammar" }],
+        [{ text: "🔄 Неправильные глаголы", callback_data: "mode:irregular" }],
       ],
     },
   });
@@ -983,11 +1098,15 @@ async function handleCallback(callbackQuery) {
     return;
   }
 
-  if (data === "mode:vocab" || data === "mode:grammar") {
-    const chosenMode = data === "mode:grammar" ? "grammar" : "vocab";
-    const label = chosenMode === "grammar" ? "📝 Режим: Грамматика (времена)" : "📚 Режим: Лексика";
+  if (data === "mode:vocab" || data === "mode:grammar" || data === "mode:irregular") {
+    const chosenMode = data.slice(5);
+    const labels = {
+      vocab: "📚 Режим: Лексика",
+      grammar: "📝 Режим: Грамматика (времена)",
+      irregular: "🔄 Режим: Неправильные глаголы",
+    };
     const stats = await getStats(chatId);
-    await sendQuestion(chatId, stats, label, chosenMode);
+    await sendQuestion(chatId, stats, labels[chosenMode], chosenMode);
     return;
   }
 
@@ -1007,7 +1126,7 @@ async function handleCallback(callbackQuery) {
   const isCorrect = chosenIdx === pending.correctPos;
   await log(`[callback] step3: word="${pending.correctEn}" chosenIdx=${chosenIdx} correctPos=${pending.correctPos} isCorrect=${isCorrect}`);
 
-  const mode = pending.mode === "grammar" ? "grammar" : "vocab";
+  const mode = pending.mode === "grammar" || pending.mode === "irregular" ? pending.mode : "vocab";
   const vocab = mode === "vocab" ? await getVocab(chatId) : null;
   const seenEnList = Array.isArray(pending.seenEn) ? pending.seenEn : [];
   const recentTailList = Array.isArray(pending.recentTail) ? pending.recentTail : [];
@@ -1032,6 +1151,8 @@ async function handleCallback(callbackQuery) {
 
     if (mode === "grammar") {
       picked = buildGrammarPicked(resultText, pending.correctEn);
+    } else if (mode === "irregular") {
+      picked = buildIrregularPicked(resultText, pending.correctEn);
     } else if (vocab.length) {
       picked = buildQuestion(vocab, s.wrong, resultText, pending.correctEn, seenEnList, recentTailList);
     }
