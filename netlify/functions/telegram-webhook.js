@@ -861,6 +861,7 @@ async function deliverQuestion(chatId, picked) {
     mode: picked.mode || "vocab",
     level: picked.level || null,
     exerciseType: picked.exerciseType || null,
+    topic: picked.topic !== undefined ? picked.topic : null,
   });
 
   // Озвучиваем голосом: в лексике — само слово, в неправильных глаголах —
@@ -879,7 +880,26 @@ async function deliverQuestion(chatId, picked) {
 // Одиночная отправка вопроса (без одновременного обновления счёта) — для
 // /start и /play. Историю берём из предыдущего pending, если он есть
 // (надёжно, без похода в общее хранилище счёта).
-async function sendQuestion(chatId, stats, prefix, modeOverride, levelOverride, exerciseTypeOverride) {
+// Слово без темы попадает в условную "общую" корзину. null/undefined в
+// качестве topic означает "все темы вместе", без фильтрации.
+const GENERAL_TOPIC = "__general__";
+
+function getDistinctTopics(vocab) {
+  return [...new Set(vocab.map((w) => w.topic || GENERAL_TOPIC))];
+}
+
+function filterByTopic(vocab, topic) {
+  if (!topic) return vocab;
+  if (topic === GENERAL_TOPIC) return vocab.filter((w) => !w.topic);
+  return vocab.filter((w) => w.topic === topic);
+}
+
+function topicLabel(topic) {
+  if (!topic || topic === GENERAL_TOPIC) return "Общие слова";
+  return topic;
+}
+
+async function sendQuestion(chatId, stats, prefix, modeOverride, levelOverride, exerciseTypeOverride, topicOverride) {
   const prevPending = await pendingStore().get(String(chatId), { type: "json" });
   const currentMode = prevPending && prevPending.mode ? prevPending.mode : "vocab";
   const mode = modeOverride || currentMode;
@@ -898,11 +918,15 @@ async function sendQuestion(chatId, stats, prefix, modeOverride, levelOverride, 
     return;
   }
 
-  const vocab = await getVocab(chatId);
+  const fullVocab = await getVocab(chatId);
+  const topic = topicOverride !== undefined ? topicOverride : prevPending && prevPending.topic ? prevPending.topic : null;
+  const vocab = filterByTopic(fullVocab, topic);
   if (!vocab.length) {
     await tg("sendMessage", {
       chat_id: chatId,
-      text: "Словарь сейчас пуст. Вставь сюда слова в формате «English . перевод», и я начну спрашивать.",
+      text: fullVocab.length
+        ? `В теме «${topicLabel(topic)}» пока нет слов.`
+        : "Словарь сейчас пуст. Вставь сюда слова в формате «English . перевод», и я начну спрашивать.",
     });
     return;
   }
@@ -911,6 +935,7 @@ async function sendQuestion(chatId, stats, prefix, modeOverride, levelOverride, 
   const recentTailList = prevPending && Array.isArray(prevPending.recentTail) ? prevPending.recentTail : [];
 
   const picked = buildQuestion(vocab, stats.wrong, prefix, null, seenEnList, recentTailList);
+  picked.topic = topic;
   await deliverQuestion(chatId, picked);
 }
 
@@ -1118,14 +1143,19 @@ async function handleAddTo(chatId, argText) {
     return;
   }
   const lines = argText.split(/\r?\n/);
-  const targetRaw = (lines[0] || "").trim();
-  if (!targetRaw) {
+  const firstLine = (lines[0] || "").trim();
+  if (!firstLine) {
     await tg("sendMessage", {
       chat_id: chatId,
-      text: "Формат:\n/addto @username (или chat_id)\nEnglish . перевод\n... (можно много строк)",
+      text: "Формат:\n/addto @username (или chat_id) [#тема]\nEnglish . перевод\n... (можно много строк)",
     });
     return;
   }
+  // Первая строка — получатель, и через пробел — необязательная тема
+  // (#медицина), которой будут помечены все добавляемые этим вызовом слова.
+  const firstLineParts = firstLine.split(/\s+/);
+  const targetRaw = firstLineParts[0];
+  const topicRaw = firstLineParts.slice(1).join(" ").replace(/^#/, "").trim();
   const targetId = await resolveTarget(targetRaw);
   if (!targetId) {
     await tg("sendMessage", { chat_id: chatId, text: `Не нашла «${targetRaw}» — проверь @username или chat_id (см. /students).` });
@@ -1135,7 +1165,10 @@ async function handleAddTo(chatId, argText) {
   const pairs = [];
   for (const line of lines.slice(1)) {
     const parsed = parseVocabLine(line);
-    if (parsed) pairs.push(parsed);
+    if (parsed) {
+      if (topicRaw) parsed.topic = topicRaw;
+      pairs.push(parsed);
+    }
   }
   if (!pairs.length) {
     await tg("sendMessage", { chat_id: chatId, text: "Не нашла ни одной пары «слово - перевод» после первой строки." });
@@ -1145,9 +1178,73 @@ async function handleAddTo(chatId, argText) {
   const { added, total } = await addWords(targetId, pairs);
   const skippedDupes = pairs.length - added;
   let msg = `✅ Добавлено в словарь ${targetRaw}: ${added}. Всего у него в словаре: ${total}.`;
+  if (topicRaw) msg += `\nТема: ${topicRaw}.`;
   if (skippedDupes) msg += `\nПропущено как дубли: ${skippedDupes}.`;
   await tg("sendMessage", { chat_id: chatId, text: msg });
 }
+
+// Только для админов: помечает темой УЖЕ СУЩЕСТВУЮЩИЕ слова в чьём-то
+// словаре (по точному совпадению английского термина) — чтобы можно было
+// разложить по темам то, что уже добавлено, без пересоздания слов заново.
+async function handleSetTopic(chatId, argText) {
+  if (!(await isAdmin(chatId))) {
+    await tg("sendMessage", { chat_id: chatId, text: "Эта команда недоступна." });
+    return;
+  }
+  const lines = argText.split(/\r?\n/);
+  const firstLine = (lines[0] || "").trim();
+  const firstLineParts = firstLine.split(/\s+/).filter(Boolean);
+  if (firstLineParts.length < 2) {
+    await tg("sendMessage", {
+      chat_id: chatId,
+      text: "Формат:\n/settopic @username (или chat_id) #тема\nEnglish term 1\nEnglish term 2\n...",
+    });
+    return;
+  }
+  const targetRaw = firstLineParts[0];
+  const topic = firstLineParts.slice(1).join(" ").replace(/^#/, "").trim();
+  const targetId = await resolveTarget(targetRaw);
+  if (!targetId) {
+    await tg("sendMessage", { chat_id: chatId, text: `Не нашла «${targetRaw}» — проверь @username или chat_id (см. /students).` });
+    return;
+  }
+  if (!topic) {
+    await tg("sendMessage", { chat_id: chatId, text: "Не указана тема (напиши после получателя, например #медицина)." });
+    return;
+  }
+
+  const terms = lines
+    .slice(1)
+    .map((l) => l.trim())
+    .filter(Boolean);
+  if (!terms.length) {
+    await tg("sendMessage", { chat_id: chatId, text: "Не нашла ни одного термина после первой строки (по одному English-слову на строку)." });
+    return;
+  }
+  const termSet = new Set(terms.map((t) => t.toLowerCase()));
+
+  let tagged = 0;
+  let notFound = [];
+  await withOptimisticUpdate(wordsStore(), `words:${targetId}`, () => [], (vocab) => {
+    tagged = 0;
+    const foundSet = new Set();
+    const next = vocab.map((w) => {
+      if (termSet.has(w.en.toLowerCase())) {
+        tagged += 1;
+        foundSet.add(w.en.toLowerCase());
+        return { ...w, topic };
+      }
+      return w;
+    });
+    notFound = terms.filter((t) => !foundSet.has(t.toLowerCase()));
+    return next;
+  });
+
+  let msg = `✅ Пометила темой «${topic}» у ${targetRaw}: ${tagged} слов.`;
+  if (notFound.length) msg += `\nНе нашла в словаре: ${notFound.length} (${notFound.slice(0, 10).join(", ")}${notFound.length > 10 ? "…" : ""}).`;
+  await tg("sendMessage", { chat_id: chatId, text: msg });
+}
+
 
 async function handleDelete(chatId, argText) {
   const lines = argText
@@ -1267,11 +1364,41 @@ async function handleCallback(callbackQuery) {
     return;
   }
 
-  if (data === "mode:vocab" || data === "mode:grammar") {
-    const chosenMode = data.slice(5);
-    const labels = { vocab: "📚 Режим: Лексика", grammar: "📝 Режим: Грамматика (времена)" };
+  if (data === "mode:vocab") {
+    const vocab = await getVocab(chatId);
+    const topics = getDistinctTopics(vocab);
+    if (topics.length <= 1) {
+      const stats = await getStats(chatId);
+      await sendQuestion(chatId, stats, "📚 Режим: Лексика", "vocab", undefined, undefined, null);
+      return;
+    }
+    await tg("sendMessage", {
+      chat_id: chatId,
+      text: "По какой теме?",
+      reply_markup: {
+        inline_keyboard: [
+          ...topics.map((t, i) => [{ text: `📌 ${topicLabel(t)}`, callback_data: `vtopic:${i}` }]),
+          [{ text: "🔀 Все темы вместе", callback_data: "vtopic:all" }],
+        ],
+      },
+    });
+    return;
+  }
+
+  if (data.startsWith("vtopic:")) {
+    const sel = data.slice(7);
+    const vocab = await getVocab(chatId);
+    const topics = getDistinctTopics(vocab);
+    const topic = sel === "all" ? null : topics[parseInt(sel, 10)] || null;
+    const label = `📚 Режим: Лексика — ${topic ? topicLabel(topic) : "все темы"}`;
     const stats = await getStats(chatId);
-    await sendQuestion(chatId, stats, labels[chosenMode], chosenMode);
+    await sendQuestion(chatId, stats, label, "vocab", undefined, undefined, topic);
+    return;
+  }
+
+  if (data === "mode:grammar") {
+    const stats = await getStats(chatId);
+    await sendQuestion(chatId, stats, "📝 Режим: Грамматика (времена)", "grammar");
     return;
   }
 
@@ -1329,7 +1456,8 @@ async function handleCallback(callbackQuery) {
   await log(`[callback] step3: word="${pending.correctEn}" chosenIdx=${chosenIdx} correctPos=${pending.correctPos} isCorrect=${isCorrect}`);
 
   const mode = pending.mode === "grammar" || pending.mode === "irregular" ? pending.mode : "vocab";
-  const vocab = mode === "vocab" ? await getVocab(chatId) : null;
+  const fullVocab = mode === "vocab" ? await getVocab(chatId) : null;
+  const vocab = mode === "vocab" ? filterByTopic(fullVocab, pending.topic || null) : null;
   const seenEnList = Array.isArray(pending.seenEn) ? pending.seenEn : [];
   const recentTailList = Array.isArray(pending.recentTail) ? pending.recentTail : [];
   let picked = null;
@@ -1357,6 +1485,7 @@ async function handleCallback(callbackQuery) {
       picked = buildIrregularPicked(resultText, pending.correctEn, pending.level || "a", pending.exerciseType || "triplet");
     } else if (vocab.length) {
       picked = buildQuestion(vocab, s.wrong, resultText, pending.correctEn, seenEnList, recentTailList);
+      picked.topic = pending.topic || null;
     }
 
     statsAfter = s;
@@ -1487,6 +1616,9 @@ async function handleMessage(message) {
   }
   if (/^\/addto(@\w+)?\s*/i.test(text)) {
     return handleAddTo(chatId, text.replace(/^\/addto(@\w+)?\s*/i, ""));
+  }
+  if (/^\/settopic(@\w+)?\s*/i.test(text)) {
+    return handleSetTopic(chatId, text.replace(/^\/settopic(@\w+)?\s*/i, ""));
   }
   if (text === "/help") return handleHelp(chatId);
   if (/^\/delete(@\w+)?\s*/i.test(text)) {
