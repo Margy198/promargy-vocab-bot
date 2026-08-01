@@ -1,0 +1,19 @@
+name: Send practice reminders
+
+# Раз в день дёргает функцию бота с секретом ?remind=..., чтобы она
+# разослала напоминания тем, кто давно не появлялся (см. sendReminders()
+# в telegram-webhook.js). Время выбрано ближе к вечеру по Москве (18:00 MSK
+# = 15:00 UTC) — можно поменять под удобное время.
+
+on:
+  schedule:
+    - cron: "0 15 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger reminder run
+        run: |
+          curl -s -w "\nstatus: %{http_code}\n" "https://magical-nougat-d42dea.netlify.app/telegram-webhook?remind=sdkffkfk"

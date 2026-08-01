@@ -1603,6 +1603,64 @@ async function notifyAdmins(text) {
   }
 }
 
+// Напоминания о практике: если человек не появлялся дольше REMIND_AFTER_MS
+// (и мы не напоминали ему за последние REMIND_MIN_GAP_MS, чтобы не слать
+// каждый день подряд одному и тому же), присылаем ему короткий пинг.
+// Каждый может отключить это себе командой /reminders off.
+const REMIND_AFTER_MS = 2 * 24 * 60 * 60 * 1000; // 2 дня без активности
+const REMIND_MIN_GAP_MS = 3 * 24 * 60 * 60 * 1000; // не чаще раза в 3 дня
+
+async function sendReminders() {
+  const ids = await identityStore().list();
+  const entries = ids && ids.blobs ? ids.blobs : [];
+  const now = Date.now();
+  let sentCount = 0;
+  for (const entry of entries) {
+    const info = await identityStore().get(entry.key, { type: "json" });
+    if (!info) continue;
+    if (info.remindersEnabled === false) continue;
+
+    const lastSeenMs = info.lastSeen ? new Date(info.lastSeen).getTime() : 0;
+    if (!lastSeenMs || now - lastSeenMs < REMIND_AFTER_MS) continue;
+
+    const lastReminderMs = info.lastReminderSent ? new Date(info.lastReminderSent).getTime() : 0;
+    if (lastReminderMs && now - lastReminderMs < REMIND_MIN_GAP_MS) continue;
+
+    const chatId = entry.key;
+    try {
+      await tg("sendMessage", {
+        chat_id: chatId,
+        text: "👋 Давно не виделись! Может, немного попрактикуемся? Жми /start или любую кнопку внизу.\n\n(Не хочешь получать напоминания — напиши /reminders off.)",
+      });
+      sentCount += 1;
+      await identityStore().setJSON(chatId, { ...info, lastReminderSent: new Date().toISOString() });
+    } catch (err) {
+      // не критично — пропускаем этого человека (например, заблокировал бота) и идём дальше
+    }
+  }
+  return sentCount;
+}
+
+async function handleReminders(chatId, argText) {
+  const arg = argText.trim().toLowerCase();
+  const identity = await identityStore().get(String(chatId), { type: "json" });
+  if (arg === "off") {
+    await identityStore().setJSON(String(chatId), { ...(identity || {}), remindersEnabled: false });
+    await tg("sendMessage", { chat_id: chatId, text: "Хорошо, напоминания о практике отключены. Включить обратно — /reminders on." });
+    return;
+  }
+  if (arg === "on") {
+    await identityStore().setJSON(String(chatId), { ...(identity || {}), remindersEnabled: true });
+    await tg("sendMessage", { chat_id: chatId, text: "Готово, буду иногда напоминать о практике, если долго не будет активности." });
+    return;
+  }
+  const enabled = !identity || identity.remindersEnabled !== false;
+  await tg("sendMessage", {
+    chat_id: chatId,
+    text: `Напоминания сейчас ${enabled ? "включены" : "выключены"}.\n/reminders on — включить\n/reminders off — выключить`,
+  });
+}
+
 async function handleMessage(message) {
   const chatId = message.chat.id;
   const text = (message.text || "").trim();
@@ -1639,6 +1697,9 @@ async function handleMessage(message) {
   if (text === "/whoami") {
     await tg("sendMessage", { chat_id: chatId, text: `Твой chat_id: ${chatId}` });
     return;
+  }
+  if (/^\/reminders(@\w+)?\s*/i.test(text)) {
+    return handleReminders(chatId, text.replace(/^\/reminders(@\w+)?\s*/i, ""));
   }
   if (/^\/claimadmin(@\w+)?\s*/i.test(text)) {
     const provided = text.replace(/^\/claimadmin(@\w+)?\s*/i, "").trim();
@@ -1791,6 +1852,16 @@ export default async (req) => {
       if (url.searchParams.get("debug") === WEBHOOK_SECRET) {
         const entries = await debugStore().get("log", { type: "json" });
         return new Response(JSON.stringify(entries || [], null, 2), {
+          status: 200,
+          headers: { "content-type": "application/json; charset=utf-8" },
+        });
+      }
+      // GET ?remind=<секрет> — запускается по расписанию (см.
+      // .github/workflows/remind.yml) раз в день, шлёт напоминания тем, кто
+      // давно не появлялся.
+      if (url.searchParams.get("remind") === WEBHOOK_SECRET) {
+        const count = await sendReminders();
+        return new Response(JSON.stringify({ ok: true, remindersSent: count }), {
           status: 200,
           headers: { "content-type": "application/json; charset=utf-8" },
         });
