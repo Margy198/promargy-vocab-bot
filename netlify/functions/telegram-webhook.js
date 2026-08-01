@@ -887,19 +887,17 @@ function statsLine(practicedCount, totalCount) {
 }
 
 async function handleStart(chatId) {
-  const stats = await getStats(chatId);
   await tg("sendMessage", {
     chat_id: chatId,
     text:
       "Привет! Это тренажёр 🎓\n\n" +
-      "Показываю слово, фразу или грамматическое упражнение — выбираешь верный вариант из вариантов. " +
+      "Показываю слово, фразу или упражнение — выбираешь верный вариант из вариантов. " +
       "То, в чём ошибаешься, будет попадаться чаще.\n\n" +
       "Чтобы добавить новые слова — просто вставь сюда строки вида «English . перевод» " +
       "(можно сразу много строк за раз), я сама их разберу.\n\n" +
-      "/mode — переключить лексика / грамматика\n" +
-      "Команды: /play, /score, /count, /delete <слово>, /reset, /help",
+      "Команды: /mode, /play, /score, /count, /delete <слово>, /reset, /help",
   });
-  await sendQuestion(chatId, stats);
+  await handleMode(chatId);
 }
 
 // Показывает выбор режима тренировки — кнопками, а не текстом, чтобы не
