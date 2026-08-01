@@ -348,8 +348,8 @@ async function deleteWords(chatId, terms) {
 async function tg(method, payload) {
   // Пауза, чтобы не слать больше ~1 сообщения в секунду в один и тот же чат
   // (см. комментарий у MIN_MS_BETWEEN_MESSAGES) — применяется ко всем
-  // sendMessage-вызовам автоматически, не только к вопросам.
-  if (method === "sendMessage" && payload && payload.chat_id != null) {
+  // sendMessage/sendAudio-вызовам автоматически, не только к вопросам.
+  if ((method === "sendMessage" || method === "sendAudio") && payload && payload.chat_id != null) {
     await waitForRateLimit(payload.chat_id);
   }
 
@@ -363,7 +363,7 @@ async function tg(method, payload) {
     await log(`[tg:${method}] FAILED status=${res.status}`, JSON.stringify(data), "payload:", JSON.stringify(payload));
   } else {
     await log(`[tg:${method}] ok`);
-    if (method === "sendMessage" && payload && payload.chat_id != null) {
+    if ((method === "sendMessage" || method === "sendAudio") && payload && payload.chat_id != null) {
       await markMessageSent(payload.chat_id);
     }
   }
@@ -815,6 +815,34 @@ function buildQuestion(vocab, wrongMap, prefix, forbiddenEn, seenEnList, recentT
 // sendQuestion (одиночный вызов), и из handleCallback (после совмещённого
 // обновления счёта+истории). История (newSeenEn/newTail) уходит в саму
 // запись pending — см. комментарий у buildQuestion.
+// Убирает то, что не стоит озвучивать голосом (фонетическую транскрипцию
+// в /слэшах/, обратные слэши-разделители) — оставляет только сам текст.
+function cleanTextForSpeech(text) {
+  return text
+    .replace(/\/[^/]*\//g, " ")
+    .replace(/\\/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/[-–—]\s*$/, "")
+    .trim();
+}
+
+// Озвучка слова голосом — используем бесплатный сервис синтеза речи (без
+// ключей и регистрации), передавая Telegram прямую ссылку на аудио: сам
+// файл при этом качает и пересылает уже сторона Telegram, нам скачивать
+// его самим не нужно. Если озвучка не получится (сервис недоступен и т.п.)
+// — не критично, просто пропускаем, вопрос всё равно уже отправлен текстом.
+async function sendPronunciation(chatId, text) {
+  const clean = cleanTextForSpeech(text);
+  if (!clean) return;
+  try {
+    const ttsUrl = `https://api.streamelements.com/kappa/v2/speech?voice=Brian&text=${encodeURIComponent(clean)}`;
+    await tg("sendAudio", { chat_id: chatId, audio: ttsUrl, title: clean });
+  } catch (err) {
+    // не критично
+  }
+}
+
 async function deliverQuestion(chatId, picked) {
   const result = await tg("sendMessage", {
     chat_id: chatId,
@@ -842,6 +870,13 @@ async function deliverQuestion(chatId, picked) {
     level: picked.level || null,
     exerciseType: picked.exerciseType || null,
   });
+
+  // Озвучиваем слово голосом — только в режиме лексики (для грамматики и
+  // неправильных глаголов это не так осмысленно, там сам "правильный
+  // ответ" — это форма, а не слово для запоминания произношения).
+  if ((picked.mode || "vocab") === "vocab") {
+    await sendPronunciation(chatId, picked.correct.en);
+  }
 }
 
 // Одиночная отправка вопроса (без одновременного обновления счёта) — для
