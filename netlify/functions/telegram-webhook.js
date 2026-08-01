@@ -14,6 +14,7 @@
 // нажатия кнопки не затирали прогресс друг друга.
 
 import { getStore } from "@netlify/blobs";
+import { VOCAB as DEFAULT_VOCAB } from "../../data/vocab.mjs";
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET; // опционально, но рекомендуется
@@ -1052,6 +1053,42 @@ async function handleClearVocab(chatId, argText) {
   await tg("sendMessage", { chat_id: chatId, text: `Готово — очистила словарь чата ${targetId} (было ${count} слов).` });
 }
 
+// Только для админов: убирает у КОНКРЕТНОГО другого чата именно слова из
+// старого стартового списка (data/vocab.mjs, 379 слов) — на случай, если
+// человек успел зарегистрироваться до того, как автозаполнение убрали.
+// Всё, что человек добавил сам сверх этого списка, остаётся нетронутым.
+async function handleRemoveDefault(chatId, argText) {
+  if (!(await isAdmin(chatId))) {
+    await tg("sendMessage", { chat_id: chatId, text: "Эта команда недоступна." });
+    return;
+  }
+  const targetRaw = argText.trim();
+  if (!targetRaw) {
+    await tg("sendMessage", { chat_id: chatId, text: "Формат: /removedefault @username или chat_id" });
+    return;
+  }
+  const targetId = await resolveTarget(targetRaw);
+  if (!targetId) {
+    await tg("sendMessage", { chat_id: chatId, text: `Не нашла «${targetRaw}» — проверь @username или chat_id (см. /students).` });
+    return;
+  }
+
+  const defaultEnSet = new Set(DEFAULT_VOCAB.map((w) => w.en.toLowerCase()));
+  let removed = 0;
+  let total = 0;
+  await withOptimisticUpdate(wordsStore(), `words:${targetId}`, () => [], (vocab) => {
+    const before = vocab.length;
+    const next = vocab.filter((w) => !defaultEnSet.has(w.en.toLowerCase()));
+    removed = before - next.length;
+    total = next.length;
+    return next;
+  });
+  await tg("sendMessage", {
+    chat_id: chatId,
+    text: `Готово — убрала у ${targetRaw} ${removed} слов из старого стартового списка. Осталось (добавлено самим человеком): ${total}.`,
+  });
+}
+
 // Находит chat_id по @username (ищет среди всех известных личностей) или,
 // если передали просто число, использует его как chat_id напрямую.
 async function resolveTarget(input) {
@@ -1444,6 +1481,9 @@ async function handleMessage(message) {
   if (text === "/migrate") return handleMigrate(chatId);
   if (/^\/clearvocab(@\w+)?\s*/i.test(text)) {
     return handleClearVocab(chatId, text.replace(/^\/clearvocab(@\w+)?\s*/i, ""));
+  }
+  if (/^\/removedefault(@\w+)?\s*/i.test(text)) {
+    return handleRemoveDefault(chatId, text.replace(/^\/removedefault(@\w+)?\s*/i, ""));
   }
   if (/^\/addto(@\w+)?\s*/i.test(text)) {
     return handleAddTo(chatId, text.replace(/^\/addto(@\w+)?\s*/i, ""));
