@@ -14,7 +14,6 @@
 // нажатия кнопки не затирали прогресс друг друга.
 
 import { getStore } from "@netlify/blobs";
-import { VOCAB as DEFAULT_VOCAB } from "../../data/vocab.mjs";
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET; // опционально, но рекомендуется
@@ -198,25 +197,16 @@ async function getStats(chatId) {
 }
 
 // --- Словарь: хранится в Blobs ОТДЕЛЬНО ДЛЯ КАЖДОГО ЧАТА (каждый ученик
-// видит и редактирует только свой собственный список слов), при первом
-// обращении сеется из data/vocab.mjs. ---
+// видит и редактирует только свой собственный список слов). У нового чата
+// словарь пустой (0 слов) — раньше сеялся стартовым набором из
+// data/vocab.mjs, но это был просто список слов ОДНОГО конкретного
+// человека из ранних тестов бота, и не должен доставаться всем по
+// умолчанию. Прежний общий словарь всё ещё доступен через /migrate, если
+// кому-то он нужен явно. ---
 
 async function getVocab(chatId) {
-  const key = `words:${chatId}`;
-  const v = await wordsStore().get(key, { type: "json" });
-  if (Array.isArray(v) && v.length) return v;
-  try {
-    await wordsStore().setJSON(key, DEFAULT_VOCAB, { onlyIfNew: true });
-  } catch (err) {
-    // Кто-то другой уже засеял словарь параллельно с нами — не страшно,
-    // просто читаем то, что получилось, ниже.
-  }
-  return getVocab_retryOnce(chatId);
-}
-
-async function getVocab_retryOnce(chatId) {
   const v = await wordsStore().get(`words:${chatId}`, { type: "json" });
-  return Array.isArray(v) && v.length ? v : DEFAULT_VOCAB;
+  return Array.isArray(v) ? v : [];
 }
 
 // Разбирает одну строку вида "English term . перевод" (разделители: . - — – → = ->)
@@ -274,7 +264,7 @@ async function addWords(chatId, pairs) {
   await withOptimisticUpdate(
     wordsStore(),
     `words:${chatId}`,
-    () => DEFAULT_VOCAB,
+    () => [],
     (vocab) => {
       const next = [...vocab];
       const seen = new Set(next.map((w) => w.en.toLowerCase()));
@@ -299,7 +289,7 @@ async function deleteWord(chatId, term) {
   await withOptimisticUpdate(
     wordsStore(),
     `words:${chatId}`,
-    () => DEFAULT_VOCAB,
+    () => [],
     (vocab) => {
       const before = vocab.length;
       const next = vocab.filter((w) => w.en.toLowerCase() !== term);
@@ -333,7 +323,7 @@ async function deleteWords(chatId, terms) {
   await withOptimisticUpdate(
     wordsStore(),
     `words:${chatId}`,
-    () => DEFAULT_VOCAB,
+    () => [],
     (vocab) => {
       const before = vocab.length;
       const next = vocab.filter((w) => !termSet.has(w.en.toLowerCase()));
