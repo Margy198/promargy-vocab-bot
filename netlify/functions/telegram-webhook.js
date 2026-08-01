@@ -957,11 +957,16 @@ function statsLine(practicedCount, totalCount) {
 // Постоянное меню снизу экрана (не привязано к конкретному сообщению, как
 // inline-кнопки, а всегда под рукой). Кнопки просто отправляют свой текст
 // как обычное сообщение — дальше это обрабатывается как любая команда.
+const BTN_VOCAB = "📚 Лексика";
+const BTN_IRREGULAR = "🔄 Неправильные глаголы";
+const BTN_GRAMMAR = "📝 Грамматика";
+
 async function mainReplyKeyboard(chatId) {
   const admin = await isAdmin(chatId);
   const rows = [
-    ["/mode", "/score"],
-    ["/count", "/help"],
+    [BTN_VOCAB, BTN_IRREGULAR],
+    [BTN_GRAMMAR, "/start"],
+    ["/score", "/count", "/help"],
   ];
   if (admin) rows.push(["/students"]);
   return {
@@ -988,6 +993,45 @@ async function handleStart(chatId) {
 
 // Показывает выбор режима тренировки — кнопками, а не текстом, чтобы не
 // нужно было ничего печатать.
+async function handleModeVocab(chatId) {
+  const vocab = await getVocab(chatId);
+  const topics = getDistinctTopics(vocab);
+  if (topics.length <= 1) {
+    const stats = await getStats(chatId);
+    await sendQuestion(chatId, stats, "📚 Режим: Лексика", "vocab", undefined, undefined, null);
+    return;
+  }
+  await tg("sendMessage", {
+    chat_id: chatId,
+    text: "По какой теме?",
+    reply_markup: {
+      inline_keyboard: [
+        ...topics.map((t, i) => [{ text: `📌 ${topicLabel(t)}`, callback_data: `vtopic:${i}` }]),
+        [{ text: "🔀 Все темы вместе", callback_data: "vtopic:all" }],
+      ],
+    },
+  });
+}
+
+async function handleModeGrammar(chatId) {
+  const stats = await getStats(chatId);
+  await sendQuestion(chatId, stats, "📝 Режим: Грамматика (времена)", "grammar");
+}
+
+async function handleModeIrregular(chatId) {
+  await tg("sendMessage", {
+    chat_id: chatId,
+    text: "Неправильные глаголы — какой уровень?",
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "A1–A2", callback_data: "ilevel:a" }],
+        [{ text: "B1–B2", callback_data: "ilevel:b" }],
+        [{ text: "B2+", callback_data: "ilevel:c" }],
+      ],
+    },
+  });
+}
+
 async function handleMode(chatId) {
   await tg("sendMessage", {
     chat_id: chatId,
@@ -1433,23 +1477,7 @@ async function handleCallback(callbackQuery) {
   }
 
   if (data === "mode:vocab") {
-    const vocab = await getVocab(chatId);
-    const topics = getDistinctTopics(vocab);
-    if (topics.length <= 1) {
-      const stats = await getStats(chatId);
-      await sendQuestion(chatId, stats, "📚 Режим: Лексика", "vocab", undefined, undefined, null);
-      return;
-    }
-    await tg("sendMessage", {
-      chat_id: chatId,
-      text: "По какой теме?",
-      reply_markup: {
-        inline_keyboard: [
-          ...topics.map((t, i) => [{ text: `📌 ${topicLabel(t)}`, callback_data: `vtopic:${i}` }]),
-          [{ text: "🔀 Все темы вместе", callback_data: "vtopic:all" }],
-        ],
-      },
-    });
+    await handleModeVocab(chatId);
     return;
   }
 
@@ -1465,23 +1493,12 @@ async function handleCallback(callbackQuery) {
   }
 
   if (data === "mode:grammar") {
-    const stats = await getStats(chatId);
-    await sendQuestion(chatId, stats, "📝 Режим: Грамматика (времена)", "grammar");
+    await handleModeGrammar(chatId);
     return;
   }
 
   if (data === "mode:irregular") {
-    await tg("sendMessage", {
-      chat_id: chatId,
-      text: "Неправильные глаголы — какой уровень?",
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: "A1–A2", callback_data: "ilevel:a" }],
-          [{ text: "B1–B2", callback_data: "ilevel:b" }],
-          [{ text: "B2+", callback_data: "ilevel:c" }],
-        ],
-      },
-    });
+    await handleModeIrregular(chatId);
     return;
   }
 
@@ -1615,6 +1632,9 @@ async function handleMessage(message) {
   }
 
   if (text === "/start") return handleStart(chatId);
+  if (text === BTN_VOCAB) return handleModeVocab(chatId);
+  if (text === BTN_IRREGULAR) return handleModeIrregular(chatId);
+  if (text === BTN_GRAMMAR) return handleModeGrammar(chatId);
   if (text === "/mode") return handleMode(chatId);
   if (text === "/whoami") {
     await tg("sendMessage", { chat_id: chatId, text: `Твой chat_id: ${chatId}` });
