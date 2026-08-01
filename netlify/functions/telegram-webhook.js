@@ -672,7 +672,7 @@ function buildIrregularQuestion(forbiddenText, level, exerciseType) {
     const correctPos = order.indexOf(0);
     const options = order.map((i) => allOptions[i]);
 
-    return { correctText, questionLabel, options, correctPos };
+    return { correctText, questionLabel, options, correctPos, spokenForms: `${verb.base} - ${verb.past} - ${verb.participle}` };
   }
   return null; // практически недостижимо при таком размере списка
 }
@@ -691,6 +691,7 @@ function buildIrregularPicked(prefix, forbiddenText, level, exerciseType) {
     mode: "irregular",
     level,
     exerciseType: exerciseType || "triplet",
+    speakText: q.spokenForms,
   };
 }
 // ============== Конец режима "Неправильные глаголы" ==============
@@ -871,11 +872,16 @@ async function deliverQuestion(chatId, picked) {
     exerciseType: picked.exerciseType || null,
   });
 
-  // Озвучиваем слово голосом — только в режиме лексики (для грамматики и
-  // неправильных глаголов это не так осмысленно, там сам "правильный
-  // ответ" — это форма, а не слово для запоминания произношения).
-  if ((picked.mode || "vocab") === "vocab") {
+  // Озвучиваем голосом: в лексике — само слово, в неправильных глаголах —
+  // все 3 формы подряд (base - past - participle), независимо от того,
+  // какой конкретно формат тренировки сейчас активен. В грамматике (времена)
+  // озвучки нет — там смысл в самой конструкции предложения, а не в
+  // запоминании произношения одного слова/формы.
+  const mode = picked.mode || "vocab";
+  if (mode === "vocab") {
     await sendPronunciation(chatId, picked.correct.en);
+  } else if (mode === "irregular" && picked.speakText) {
+    await sendPronunciation(chatId, picked.speakText);
   }
 }
 
