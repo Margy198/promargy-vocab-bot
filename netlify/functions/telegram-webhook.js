@@ -577,7 +577,12 @@ const IRREGULAR_EXERCISE_TYPES = {
   particonly: "② Только Past Participle",
   ru2en: "🇷🇺→🇬🇧 Перевод → глагол",
   form2base: "🔍 Угадай глагол по форме",
+  mix: "🎲 Микс всех форматов",
 };
+
+// "Настоящие" форматы, из которых Микс выбирает случайный на каждый вопрос
+// (сам "mix" не формат вопроса, а режим выбора формата).
+const IRREGULAR_REAL_EXERCISE_TYPES = ["triplet", "pastonly", "particonly", "ru2en", "form2base"];
 
 // Возвращает count случайных индексов из pool, отличных от excludeIdx и
 // друг от друга (и от alsoExclude, если передан).
@@ -609,9 +614,14 @@ function pickOtherIndices(pool, excludeIdx, count, alsoExclude) {
 //    тренирует узнавание "в тексте", а не заучивание таблицы
 function buildIrregularQuestion(forbiddenText, level, exerciseType) {
   const pool = level ? IRREGULAR_VERBS.filter((v) => v.level === level) : IRREGULAR_VERBS;
-  const type = exerciseType || "triplet";
+  const requestedType = exerciseType || "triplet";
 
   for (let attempt = 0; attempt < 25; attempt++) {
+    // При "mix" на КАЖДУЮ попытку берём случайный настоящий формат — так
+    // разнообразие сохраняется, даже если конкретная попытка не удалась и
+    // потребовался повтор цикла.
+    const type =
+      requestedType === "mix" ? IRREGULAR_REAL_EXERCISE_TYPES[Math.floor(Math.random() * IRREGULAR_REAL_EXERCISE_TYPES.length)] : requestedType;
     const idx = Math.floor(Math.random() * pool.length);
     const verb = pool[idx];
     const samePastAndParticiple = verb.past.toLowerCase() === verb.participle.toLowerCase();
