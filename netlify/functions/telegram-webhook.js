@@ -828,10 +828,21 @@ async function sendPronunciation(chatId, text) {
   const clean = cleanTextForSpeech(text);
   if (!clean) return;
   try {
-    const ttsUrl = `https://api.streamelements.com/kappa/v2/speech?voice=Brian&text=${encodeURIComponent(clean)}`;
-    await tg("sendAudio", { chat_id: chatId, audio: ttsUrl, title: clean });
+    const genRes = await fetch("https://freetts.org/api/tts", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text: clean, voice: "en-US-GuyNeural", rate: "+0%", pitch: "+0Hz" }),
+    });
+    const genData = await genRes.json();
+    if (!genData || !genData.file_id) {
+      await log("[sendPronunciation] FAILED to get file_id from freetts.org:", JSON.stringify(genData));
+      return;
+    }
+    const audioUrl = `https://freetts.org/api/audio/${genData.file_id}`;
+    await tg("sendAudio", { chat_id: chatId, audio: audioUrl, title: clean });
   } catch (err) {
-    // не критично
+    await log("[sendPronunciation] threw:", String(err));
+    // не критично — если озвучка не получится, вопрос всё равно уже отправлен текстом
   }
 }
 
