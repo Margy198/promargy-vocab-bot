@@ -571,21 +571,88 @@ const IRREGULAR_VERBS = [
 
 const IRREGULAR_LEVEL_LABELS = { a: "A1–A2", b: "B1–B2", c: "B2+" };
 
-function buildIrregularQuestion(forbiddenText, level) {
+const IRREGULAR_EXERCISE_TYPES = {
+  triplet: "🔺 Все 3 формы",
+  pastonly: "① Только Past Simple",
+  particonly: "② Только Past Participle",
+  ru2en: "🇷🇺→🇬🇧 Перевод → глагол",
+  form2base: "🔍 Угадай глагол по форме",
+};
+
+// Возвращает count случайных индексов из pool, отличных от excludeIdx и
+// друг от друга (и от alsoExclude, если передан).
+function pickOtherIndices(pool, excludeIdx, count, alsoExclude) {
+  const excluded = new Set([excludeIdx, ...((alsoExclude && alsoExclude) || [])]);
+  const result = [];
+  let guard = 0;
+  while (result.length < count && guard < 500) {
+    guard++;
+    const j = Math.floor(Math.random() * pool.length);
+    if (excluded.has(j) || result.includes(j)) continue;
+    result.push(j);
+  }
+  return result;
+}
+
+// Пять РАЗНЫХ по формату упражнений на неправильные глаголы:
+//  - triplet: даём перевод, просим узнать/вспомнить все 3 формы целиком
+//    (самый полный и самый сложный формат)
+//  - pastonly / particonly: только ОДНА конкретная форма — но среди
+//    вариантов специально есть "ловушка": форма-двойник ЭТОГО ЖЕ глагола
+//    (например, при вопросе про Past Simple один из неверных вариантов —
+//    Past Participle этого самого глагола), чтобы нельзя было угадать
+//    просто по знакомому виду слова
+//  - ru2en: только перевод, без английской подсказки вообще — просит
+//    вспомнить сам базовый глагол по-английски
+//  - form2base: показывает готовую форму (Past Simple ИЛИ Participle,
+//    без подписи какая) и просит определить, от какого глагола она —
+//    тренирует узнавание "в тексте", а не заучивание таблицы
+function buildIrregularQuestion(forbiddenText, level, exerciseType) {
   const pool = level ? IRREGULAR_VERBS.filter((v) => v.level === level) : IRREGULAR_VERBS;
+  const type = exerciseType || "triplet";
+
   for (let attempt = 0; attempt < 25; attempt++) {
     const idx = Math.floor(Math.random() * pool.length);
     const verb = pool[idx];
-    const correctText = `${verb.past} — ${verb.participle}`;
-    if (forbiddenText && correctText.toLowerCase() === forbiddenText.toLowerCase()) continue;
+    const samePastAndParticiple = verb.past.toLowerCase() === verb.participle.toLowerCase();
 
-    const otherIndices = [];
-    while (otherIndices.length < 5) {
-      const j = Math.floor(Math.random() * pool.length);
-      if (j === idx || otherIndices.includes(j)) continue;
-      otherIndices.push(j);
+    let correctText;
+    let questionLabel;
+    let distractorTexts;
+
+    if (type === "pastonly") {
+      correctText = verb.past;
+      questionLabel = `${verb.base.toUpperCase()} (${verb.ru}) — Past Simple?`;
+      const others = pickOtherIndices(pool, idx, samePastAndParticiple ? 5 : 4);
+      distractorTexts = others.map((j) => pool[j].past);
+      if (!samePastAndParticiple) distractorTexts.push(verb.participle); // ловушка: спутать с Participle
+    } else if (type === "particonly") {
+      correctText = verb.participle;
+      questionLabel = `${verb.base.toUpperCase()} (${verb.ru}) — Past Participle?`;
+      const others = pickOtherIndices(pool, idx, samePastAndParticiple ? 5 : 4);
+      distractorTexts = others.map((j) => pool[j].participle);
+      if (!samePastAndParticiple) distractorTexts.push(verb.past); // ловушка: спутать с Past Simple
+    } else if (type === "ru2en") {
+      correctText = verb.base;
+      questionLabel = `Как будет по-английски: «${verb.ru}»?`;
+      const others = pickOtherIndices(pool, idx, 5);
+      distractorTexts = others.map((j) => pool[j].base);
+    } else if (type === "form2base") {
+      const useParticiple = !samePastAndParticiple && Math.random() < 0.5;
+      const shownForm = useParticiple ? verb.participle : verb.past;
+      correctText = verb.base;
+      questionLabel = `Какой это глагол — «${shownForm}»?`;
+      const others = pickOtherIndices(pool, idx, 5);
+      distractorTexts = others.map((j) => pool[j].base);
+    } else {
+      // triplet
+      correctText = `${verb.base} - ${verb.past} - ${verb.participle}`;
+      questionLabel = `Вспомни все 3 формы: «${verb.ru}»`;
+      const others = pickOtherIndices(pool, idx, 5);
+      distractorTexts = others.map((j) => `${pool[j].base} - ${pool[j].past} - ${pool[j].participle}`);
     }
-    const distractorTexts = otherIndices.map((j) => `${pool[j].past} — ${pool[j].participle}`);
+
+    if (forbiddenText && correctText.toLowerCase() === forbiddenText.toLowerCase()) continue;
 
     const allOptions = [correctText, ...distractorTexts];
     const uniqueOptions = new Set(allOptions.map((o) => o.toLowerCase()));
@@ -595,21 +662,16 @@ function buildIrregularQuestion(forbiddenText, level) {
     const correctPos = order.indexOf(0);
     const options = order.map((i) => allOptions[i]);
 
-    return {
-      correctText,
-      questionLabel: `${verb.base.toUpperCase()} (${verb.ru}) — Past Simple — Past Participle`,
-      options,
-      correctPos,
-    };
+    return { correctText, questionLabel, options, correctPos };
   }
   return null; // практически недостижимо при таком размере списка
 }
 
-function buildIrregularPicked(prefix, forbiddenText, level) {
-  const q = buildIrregularQuestion(forbiddenText, level);
+function buildIrregularPicked(prefix, forbiddenText, level, exerciseType) {
+  const q = buildIrregularQuestion(forbiddenText, level, exerciseType);
   const keyboard = q.options.map((textOpt, i) => [{ text: textOpt, callback_data: `a:${i}` }]);
   const levelLabel = level ? ` [${IRREGULAR_LEVEL_LABELS[level] || level}]` : "";
-  const questionText = `🎯${levelLabel} ${mdEscape(q.questionLabel)}?`;
+  const questionText = `🎯${levelLabel} ${mdEscape(q.questionLabel)}`;
   const text = prefix ? `${prefix}\n\n${questionText}` : questionText;
   return {
     correct: { en: q.correctText, ru: q.questionLabel },
@@ -618,6 +680,7 @@ function buildIrregularPicked(prefix, forbiddenText, level) {
     text,
     mode: "irregular",
     level,
+    exerciseType: exerciseType || "triplet",
   };
 }
 // ============== Конец режима "Неправильные глаголы" ==============
@@ -767,13 +830,14 @@ async function deliverQuestion(chatId, picked) {
     recentTail: picked.newTail || [],
     mode: picked.mode || "vocab",
     level: picked.level || null,
+    exerciseType: picked.exerciseType || null,
   });
 }
 
 // Одиночная отправка вопроса (без одновременного обновления счёта) — для
 // /start и /play. Историю берём из предыдущего pending, если он есть
 // (надёжно, без похода в общее хранилище счёта).
-async function sendQuestion(chatId, stats, prefix, modeOverride, levelOverride) {
+async function sendQuestion(chatId, stats, prefix, modeOverride, levelOverride, exerciseTypeOverride) {
   const prevPending = await pendingStore().get(String(chatId), { type: "json" });
   const currentMode = prevPending && prevPending.mode ? prevPending.mode : "vocab";
   const mode = modeOverride || currentMode;
@@ -786,7 +850,8 @@ async function sendQuestion(chatId, stats, prefix, modeOverride, levelOverride) 
 
   if (mode === "irregular") {
     const level = levelOverride || (prevPending && prevPending.level) || "a";
-    const picked = buildIrregularPicked(prefix, null, level);
+    const exerciseType = exerciseTypeOverride || (prevPending && prevPending.exerciseType) || "triplet";
+    const picked = buildIrregularPicked(prefix, null, level, exerciseType);
     await deliverQuestion(chatId, picked);
     return;
   }
@@ -1133,9 +1198,23 @@ async function handleCallback(callbackQuery) {
 
   if (data === "ilevel:a" || data === "ilevel:b" || data === "ilevel:c") {
     const level = data.slice(7);
-    const label = `🔄 Неправильные глаголы — уровень ${IRREGULAR_LEVEL_LABELS[level]}`;
+    await tg("sendMessage", {
+      chat_id: chatId,
+      text: `Уровень ${IRREGULAR_LEVEL_LABELS[level]} — какой формат тренировки?`,
+      reply_markup: {
+        inline_keyboard: Object.entries(IRREGULAR_EXERCISE_TYPES).map(([key, label]) => [
+          { text: label, callback_data: `itype:${level}:${key}` },
+        ]),
+      },
+    });
+    return;
+  }
+
+  if (data.startsWith("itype:")) {
+    const [, level, exerciseType] = data.split(":");
+    const label = `🔄 Неправильные глаголы — ${IRREGULAR_LEVEL_LABELS[level]} — ${IRREGULAR_EXERCISE_TYPES[exerciseType] || exerciseType}`;
     const stats = await getStats(chatId);
-    await sendQuestion(chatId, stats, label, "irregular", level);
+    await sendQuestion(chatId, stats, label, "irregular", level, exerciseType);
     return;
   }
 
@@ -1181,7 +1260,7 @@ async function handleCallback(callbackQuery) {
     if (mode === "grammar") {
       picked = buildGrammarPicked(resultText, pending.correctEn);
     } else if (mode === "irregular") {
-      picked = buildIrregularPicked(resultText, pending.correctEn, pending.level || "a");
+      picked = buildIrregularPicked(resultText, pending.correctEn, pending.level || "a", pending.exerciseType || "triplet");
     } else if (vocab.length) {
       picked = buildQuestion(vocab, s.wrong, resultText, pending.correctEn, seenEnList, recentTailList);
     }
