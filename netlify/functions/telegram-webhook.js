@@ -376,10 +376,29 @@ function shuffle(arr) {
 }
 
 // ===================== Режим "Грамматика" =====================
-// В отличие от лексики (готовый список слов), упражнения на времена
-// генерируются на лету из набора подлежащих и глаголов — вариантов
-// получается очень много (подлежащие × глаголы × время × утверждение/
-// отрицание), так что осмысленно "закончить" этот режим невозможно.
+// В отличие от лексики (готовый список слов), упражнения генерируются на
+// лету из набора подлежащих и глаголов — вариантов получается очень много,
+// так что осмысленно "закончить" этот режим невозможно.
+//
+// Четыре формата вместо одного общего — каждый целится в конкретную
+// типичную ошибку:
+//  - tenses: общая тренировка на все времена/утверждение-отрицание сразу
+//  - negation: don't / doesn't / didn't — самая частая путаница
+//  - tobe: когда нужен to be (am/is/are/was/were), а когда — обычный
+//    глагол ("She tired" вместо "She is tired", или наоборot "She is
+//    play" вместо "She plays")
+//  - v2vs: V2 (прошедшее) vs Vs (3-е лицо наст. времени) — "goes" vs
+//    "went", с явным маркером времени (every day / yesterday), чтобы
+//    ошибка была видна конкретно
+
+const GRAMMAR_EXERCISE_TYPES = {
+  tenses: "🔀 Времена (общее)",
+  negation: "❌ Отрицания: don't / doesn't / didn't",
+  tobe: "🔵 To be vs. обычный глагол",
+  v2vs: "🔁 V2 vs Vs (прошедшее / настоящее)",
+  mix: "🎲 Микс всех форматов",
+};
+const GRAMMAR_REAL_EXERCISE_TYPES = ["tenses", "negation", "tobe", "v2vs"];
 
 const GRAMMAR_VERBS = [
   { base: "go", past: "went", ru: "идти / ходить", contextEn: "to school", contextRu: "в школу" },
@@ -430,6 +449,15 @@ function thirdPersonForm(verb) {
   return b + "s";
 }
 
+// Для -ing-дистракторов: отбрасываем немую "e" на конце (write -> writing,
+// make -> making), не трогаем случаи вроде "see"/"agree", где "e"
+// произносится (двойная "ee").
+function ingForm(verb) {
+  const b = verb.base;
+  if (/[^aeiou]e$/.test(b)) return b.slice(0, -1) + "ing";
+  return b + "ing";
+}
+
 function conjugate(subject, verb, tense, polarity) {
   const is3rd = subject.is3rd;
   if (tense === "present") {
@@ -445,26 +473,22 @@ function conjugate(subject, verb, tense, polarity) {
   return "won't " + verb.base;
 }
 
-// Берёт случайное подлежащее+глагол+время+полярность. В качестве вариантов
-// ответа — формы для ВСЕХ 6 комбинаций время×полярность для того же
-// подлежащего и глагола: это как раз и тренирует различение времён и
-// утверждения/отрицания, а не угадывание случайных слов.
-function buildGrammarQuestion(forbiddenText) {
+function contextFor(subject, verb) {
+  return verb.contextEn.replace(/\bmy\b/, subject.poss);
+}
+
+// --- Формат "tenses": общая тренировка на все времена/утверждение-отрицание ---
+function buildTensesQuestion(forbiddenText) {
   for (let attempt = 0; attempt < 25; attempt++) {
     const subject = GRAMMAR_SUBJECTS[Math.floor(Math.random() * GRAMMAR_SUBJECTS.length)];
     const verb = GRAMMAR_VERBS[Math.floor(Math.random() * GRAMMAR_VERBS.length)];
     const targetIdx = Math.floor(Math.random() * TENSE_POLARITY_COMBOS.length);
     const target = TENSE_POLARITY_COMBOS[targetIdx];
 
-    // Полное предложение — подлежащее + форма глагола + контекст (например,
-    // "He doesn't play football") вместо голой формы глагола, чтобы
-    // варианты ответа звучали как настоящие предложения. Притяжательное
-    // "my" в контексте (например, "my mother") согласуем с подлежащим —
-    // "his mother", "their mother" и т.д.
-    const context = verb.contextEn.replace(/\bmy\b/, subject.poss);
+    const context = contextFor(subject, verb);
     const sentences = TENSE_POLARITY_COMBOS.map((c) => `${subject.pron} ${conjugate(subject, verb, c.tense, c.polarity)} ${context}`);
     const uniqueSentences = new Set(sentences.map((s) => s.toLowerCase()));
-    if (uniqueSentences.size !== sentences.length) continue; // редкое совпадение форм — пробуем другую комбинацию
+    if (uniqueSentences.size !== sentences.length) continue;
 
     const correctText = sentences[targetIdx];
     if (forbiddenText && correctText.toLowerCase() === forbiddenText.toLowerCase()) continue;
@@ -480,11 +504,213 @@ function buildGrammarQuestion(forbiddenText) {
       correctPos,
     };
   }
-  return null; // практически недостижимо при таком наборе глаголов/подлежащих
+  return null;
 }
 
-function buildGrammarPicked(prefix, forbiddenText) {
-  const q = buildGrammarQuestion(forbiddenText);
+// --- Формат "negation": don't / doesn't / didn't ---
+// Даём подлежащее + глагол + время (present/past — future сюда не
+// затрагиваем, это отдельная путаница). Варианты — все 3 вспомогательных
+// глагола (правильный + 2 неверных), плюс типичные ошибки: забытый
+// вспомогательный глагол ("not play" вместо "doesn't play") и правильный
+// вспомогательный, но неверная форма смыслового глагола ("doesn't played").
+function buildNegationQuestion(forbiddenText) {
+  const AUX = { present3rd: "doesn't", presentOther: "don't", past: "didn't" };
+  for (let attempt = 0; attempt < 25; attempt++) {
+    const subject = GRAMMAR_SUBJECTS[Math.floor(Math.random() * GRAMMAR_SUBJECTS.length)];
+    const verb = GRAMMAR_VERBS[Math.floor(Math.random() * GRAMMAR_VERBS.length)];
+    const tense = Math.random() < 0.5 ? "present" : "past";
+    if (verb.base.toLowerCase() === verb.past.toLowerCase()) continue; // избегаем "read"-подобных совпадений форм
+    const context = contextFor(subject, verb);
+
+    const correctAux = tense === "present" ? (subject.is3rd ? AUX.present3rd : AUX.presentOther) : AUX.past;
+    const otherAuxes = [AUX.present3rd, AUX.presentOther, AUX.past].filter((a) => a !== correctAux);
+
+    const correctText = `${subject.pron} ${correctAux} ${verb.base} ${context}`;
+    if (forbiddenText && correctText.toLowerCase() === forbiddenText.toLowerCase()) continue;
+
+    const candidates = [
+      correctText,
+      `${subject.pron} ${otherAuxes[0]} ${verb.base} ${context}`,
+      `${subject.pron} ${otherAuxes[1]} ${verb.base} ${context}`,
+      `${subject.pron} not ${verb.base} ${context}`, // забыли вспомогательный глагол
+      `${subject.pron} ${correctAux} ${verb.past} ${context}`, // верный aux, неверная форма глагола
+      `${subject.pron} ${otherAuxes[0]} ${verb.past} ${context}`,
+    ];
+    const uniqueOptions = new Set(candidates.map((c) => c.toLowerCase()));
+    if (uniqueOptions.size !== candidates.length) continue;
+
+    const order = shuffle(candidates.map((_, i) => i));
+    const correctPos = order.indexOf(0);
+    const options = order.map((i) => candidates[i]);
+
+    return {
+      correctText,
+      questionLabel: `${subject.pron} (${subject.ru}) + ${verb.ru} ${verb.contextRu} — отрицание, ${tense === "present" ? "Present" : "Past"} Simple`,
+      options,
+      correctPos,
+    };
+  }
+  return null;
+}
+
+// --- Формат "tobe": to be vs обычный глагол ---
+// Половина вопросов — описание состояния/качества (нужен to be: is/am/
+// are/was/were), половина — действие (нужен обычный глагол). Среди
+// неверных вариантов — как раз путаница между двумя типами конструкций.
+const STATE_ADJECTIVES = [
+  { adj: "tired", ru: "уставший/-ая" },
+  { adj: "happy", ru: "счастливый/-ая" },
+  { adj: "hungry", ru: "голодный/-ая" },
+  { adj: "late", ru: "опаздывающий/-ая" },
+  { adj: "busy", ru: "занятый/-ая" },
+  { adj: "ready", ru: "готовый/-ая" },
+  { adj: "sad", ru: "грустный/-ая" },
+  { adj: "angry", ru: "злой/злая" },
+  { adj: "at home", ru: "дома" },
+  { adj: "at work", ru: "на работе" },
+  { adj: "a doctor", ru: "врач" },
+  { adj: "a teacher", ru: "учитель/-ница" },
+];
+
+function beForm(subject, tense) {
+  if (tense === "present") {
+    if (subject.pron === "I") return "am";
+    return subject.is3rd ? "is" : "are";
+  }
+  return subject.is3rd || subject.pron === "I" ? "was" : "were";
+}
+
+function buildBeVsVerbQuestion(forbiddenText) {
+  for (let attempt = 0; attempt < 25; attempt++) {
+    const subject = GRAMMAR_SUBJECTS[Math.floor(Math.random() * GRAMMAR_SUBJECTS.length)];
+    const tense = Math.random() < 0.5 ? "present" : "past";
+    const wantState = Math.random() < 0.5;
+
+    let correctText;
+    let questionLabel;
+    let candidates;
+
+    if (wantState) {
+      const state = STATE_ADJECTIVES[Math.floor(Math.random() * STATE_ADJECTIVES.length)];
+      const be = beForm(subject, tense);
+      correctText = `${subject.pron} ${be} ${state.adj}`;
+      questionLabel = `${subject.pron} (${subject.ru}) — ${state.ru} (${tense === "present" ? "сейчас" : "тогда"})`;
+
+      const verb1 = GRAMMAR_VERBS[Math.floor(Math.random() * GRAMMAR_VERBS.length)];
+      const verb2 = GRAMMAR_VERBS[Math.floor(Math.random() * GRAMMAR_VERBS.length)];
+      const otherBe = tense === "present" ? beForm(subject, "past") : beForm(subject, "present");
+      candidates = [
+        correctText,
+        `${subject.pron} ${otherBe} ${state.adj}`, // верная конструкция, неверное время
+        `${subject.pron} ${conjugate(subject, verb1, tense, "affirmative")} ${state.adj}`, // обычный глагол вместо to be — частая ошибка
+        `${subject.pron} ${be} ${conjugate(subject, verb2, tense, "affirmative")}`, // to be + обычный глагол вместе — тоже частая ошибка
+        `${subject.pron} ${conjugate(subject, verb1, tense, "negative")} ${state.adj}`,
+        `${subject.pron} not ${be} ${state.adj}`, // неверный порядок отрицания
+      ];
+    } else {
+      const verb = GRAMMAR_VERBS[Math.floor(Math.random() * GRAMMAR_VERBS.length)];
+      const context = contextFor(subject, verb);
+      correctText = `${subject.pron} ${conjugate(subject, verb, tense, "affirmative")} ${context}`;
+      questionLabel = `${subject.pron} (${subject.ru}) + ${verb.ru} ${verb.contextRu} — действие, ${tense === "present" ? "Present" : "Past"} Simple`;
+
+      const be = beForm(subject, tense);
+      const otherBe = tense === "present" ? beForm(subject, "past") : beForm(subject, "present");
+      const state = STATE_ADJECTIVES[Math.floor(Math.random() * STATE_ADJECTIVES.length)];
+      candidates = [
+        correctText,
+        `${subject.pron} ${be} ${conjugate(subject, verb, tense, "affirmative")} ${context}`, // лишний to be перед глаголом — частая ошибка
+        `${subject.pron} ${be} ${ingForm(verb)} ${context}`, // подмена Present Simple на -ing-форму с to be
+        `${subject.pron} ${conjugate(subject, verb, tense === "present" ? "past" : "present", "affirmative")} ${context}`, // не то время
+        `${subject.pron} ${be} ${state.adj}`, // to be с прилагательным вместо действия
+        `${subject.pron} ${otherBe} ${ingForm(verb)} ${context}`,
+      ];
+    }
+
+    if (forbiddenText && correctText.toLowerCase() === forbiddenText.toLowerCase()) continue;
+    const uniqueOptions = new Set(candidates.map((c) => c.toLowerCase()));
+    if (uniqueOptions.size !== candidates.length) continue;
+
+    const order = shuffle(candidates.map((_, i) => i));
+    const correctPos = order.indexOf(0);
+    const options = order.map((i) => candidates[i]);
+
+    return { correctText, questionLabel, options, correctPos };
+  }
+  return null;
+}
+
+// --- Формат "v2vs": V2 (прошедшее) vs Vs (3-е лицо наст. времени) ---
+// Только He/She/It — именно тут визуально путаются "-s" и форма
+// прошедшего времени. Явный маркер времени (every day / yesterday) прямо
+// указывает, какая форма нужна.
+const TIME_MARKERS_PRESENT = [
+  { en: "every day", ru: "каждый день" },
+  { en: "usually", ru: "обычно" },
+];
+const TIME_MARKERS_PAST = [
+  { en: "yesterday", ru: "вчера" },
+  { en: "last week", ru: "на прошлой неделе" },
+];
+
+function buildV2VsQuestion(forbiddenText) {
+  const thirdPersonSubjects = GRAMMAR_SUBJECTS.filter((s) => s.is3rd);
+  for (let attempt = 0; attempt < 25; attempt++) {
+    const subject = thirdPersonSubjects[Math.floor(Math.random() * thirdPersonSubjects.length)];
+    const verb = GRAMMAR_VERBS[Math.floor(Math.random() * GRAMMAR_VERBS.length)];
+    if (verb.base.toLowerCase() === verb.past.toLowerCase()) continue;
+    const context = contextFor(subject, verb);
+    const wantPresent = Math.random() < 0.5;
+    const marker = wantPresent
+      ? TIME_MARKERS_PRESENT[Math.floor(Math.random() * TIME_MARKERS_PRESENT.length)]
+      : TIME_MARKERS_PAST[Math.floor(Math.random() * TIME_MARKERS_PAST.length)];
+
+    const vs = thirdPersonForm(verb);
+    const v2 = verb.past;
+    const correctForm = wantPresent ? vs : v2;
+    const correctText = `${subject.pron} ${correctForm} ${context} ${marker.en}`;
+    if (forbiddenText && correctText.toLowerCase() === forbiddenText.toLowerCase()) continue;
+
+    const candidates = [
+      correctText,
+      `${subject.pron} ${wantPresent ? v2 : vs} ${context} ${marker.en}`, // главная путаница: V2 вместо Vs или наоборот
+      `${subject.pron} ${verb.base} ${context} ${marker.en}`, // забыли -s (или использовали базовую форму вместо прошедшего)
+      `${subject.pron} ${ingForm(verb)} ${context} ${marker.en}`,
+      `${subject.pron} doesn't ${verb.base} ${context} ${marker.en}`,
+      `${subject.pron} didn't ${verb.base} ${context} ${marker.en}`,
+    ];
+    const uniqueOptions = new Set(candidates.map((c) => c.toLowerCase()));
+    if (uniqueOptions.size !== candidates.length) continue;
+
+    const order = shuffle(candidates.map((_, i) => i));
+    const correctPos = order.indexOf(0);
+    const options = order.map((i) => candidates[i]);
+
+    return {
+      correctText,
+      questionLabel: `${subject.pron} (${subject.ru}) + ${verb.ru} ${verb.contextRu}, «${marker.ru}»`,
+      options,
+      correctPos,
+    };
+  }
+  return null;
+}
+
+function buildGrammarQuestion(forbiddenText, exerciseType) {
+  const requestedType = exerciseType || "tenses";
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const type = requestedType === "mix" ? GRAMMAR_REAL_EXERCISE_TYPES[Math.floor(Math.random() * GRAMMAR_REAL_EXERCISE_TYPES.length)] : requestedType;
+    let q;
+    if (type === "negation") q = buildNegationQuestion(forbiddenText);
+    else if (type === "tobe") q = buildBeVsVerbQuestion(forbiddenText);
+    else if (type === "v2vs") q = buildV2VsQuestion(forbiddenText);
+    else q = buildTensesQuestion(forbiddenText);
+    if (q) return q;
+  }
+  return null;
+}
+
+function buildGrammarPicked(prefix, forbiddenText, exerciseType) {
+  const q = buildGrammarQuestion(forbiddenText, exerciseType);
   const keyboard = q.options.map((textOpt, i) => [{ text: textOpt, callback_data: `a:${i}` }]);
   const questionText = `🎯 ${mdEscape(q.questionLabel)}\nВыбери верную форму:`;
   const text = prefix ? `${prefix}\n\n${questionText}` : questionText;
@@ -494,6 +720,7 @@ function buildGrammarPicked(prefix, forbiddenText) {
     keyboard,
     text,
     mode: "grammar",
+    exerciseType: exerciseType || "tenses",
   };
 }
 // =================== Конец режима "Грамматика" ===================
@@ -916,7 +1143,8 @@ async function sendQuestion(chatId, stats, prefix, modeOverride, levelOverride, 
   const mode = modeOverride || currentMode;
 
   if (mode === "grammar") {
-    const picked = buildGrammarPicked(prefix, null);
+    const exerciseType = exerciseTypeOverride || (prevPending && prevPending.mode === "grammar" && prevPending.exerciseType) || "tenses";
+    const picked = buildGrammarPicked(prefix, null, exerciseType);
     await deliverQuestion(chatId, picked);
     return;
   }
@@ -1014,8 +1242,13 @@ async function handleModeVocab(chatId) {
 }
 
 async function handleModeGrammar(chatId) {
-  const stats = await getStats(chatId);
-  await sendQuestion(chatId, stats, "📝 Режим: Грамматика (времена)", "grammar");
+  await tg("sendMessage", {
+    chat_id: chatId,
+    text: "Грамматика — какой формат?",
+    reply_markup: {
+      inline_keyboard: Object.entries(GRAMMAR_EXERCISE_TYPES).map(([key, label]) => [{ text: label, callback_data: `gtype:${key}` }]),
+    },
+  });
 }
 
 async function handleModeIrregular(chatId) {
@@ -1524,6 +1757,14 @@ async function handleCallback(callbackQuery) {
     return;
   }
 
+  if (data.startsWith("gtype:")) {
+    const exerciseType = data.slice(6);
+    const label = `📝 Режим: Грамматика — ${GRAMMAR_EXERCISE_TYPES[exerciseType] || exerciseType}`;
+    const stats = await getStats(chatId);
+    await sendQuestion(chatId, stats, label, "grammar", undefined, exerciseType);
+    return;
+  }
+
   if (!data || !data.startsWith("a:")) {
     await log("[callback] unrecognized data, stopping:", data);
     return;
@@ -1565,7 +1806,7 @@ async function handleCallback(callbackQuery) {
     const resultText = `${isCorrect ? "✅" : "❌"} *${mdEscape(pending.correctEn)}* — ${mdEscape(pending.correctRu)}${statsSuffix}`;
 
     if (mode === "grammar") {
-      picked = buildGrammarPicked(resultText, pending.correctEn);
+      picked = buildGrammarPicked(resultText, pending.correctEn, pending.exerciseType || "tenses");
     } else if (mode === "irregular") {
       picked = buildIrregularPicked(resultText, pending.correctEn, pending.level || "a", pending.exerciseType || "triplet");
     } else if (vocab.length) {
