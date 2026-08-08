@@ -396,9 +396,10 @@ const GRAMMAR_EXERCISE_TYPES = {
   negation: "❌ Отрицания: don't / doesn't / didn't",
   tobe: "🔵 To be vs. обычный глагол",
   v2vs: "🔁 V2 vs Vs (прошедшее / настоящее)",
+  collocations: "🤝 give / get / take / have",
   mix: "🎲 Микс всех форматов",
 };
-const GRAMMAR_REAL_EXERCISE_TYPES = ["tenses", "negation", "tobe", "v2vs"];
+const GRAMMAR_REAL_EXERCISE_TYPES = ["tenses", "negation", "tobe", "v2vs", "collocations"];
 
 const GRAMMAR_VERBS = [
   { base: "go", past: "went", ru: "идти / ходить", contextEn: "to school", contextRu: "в школу" },
@@ -695,6 +696,68 @@ function buildV2VsQuestion(forbiddenText) {
   return null;
 }
 
+// --- Формат "collocations": give / get / take / have ---
+// Это не про времена, а про то, какой из четырёх глаголов идёт с
+// конкретным выражением (give advice, get married, take a photo, have
+// breakfast). Специально отобраны только те сочетания, где среди этих
+// четырёх глаголов верен ровно один — без "have a shower vs take a
+// shower"-подобной двусмысленности между британским и американским
+// вариантами.
+const COLLOCATIONS = [
+  { verb: "give", obj: "advice", ru: "давать совет" },
+  { verb: "give", obj: "a presentation", ru: "делать презентацию" },
+  { verb: "give", obj: "a hand", ru: "помочь" },
+  { verb: "give", obj: "a call", ru: "позвонить" },
+  { verb: "give", obj: "a hug", ru: "обнять" },
+  { verb: "give", obj: "an example", ru: "привести пример" },
+  { verb: "give", obj: "a speech", ru: "произнести речь" },
+  { verb: "give", obj: "permission", ru: "дать разрешение" },
+  { verb: "get", obj: "a job", ru: "получить работу" },
+  { verb: "get", obj: "married", ru: "жениться / выйти замуж" },
+  { verb: "get", obj: "home", ru: "добраться домой" },
+  { verb: "get", obj: "ready", ru: "приготовиться" },
+  { verb: "get", obj: "an idea", ru: "прийти в голову (об идее)" },
+  { verb: "get", obj: "angry", ru: "разозлиться" },
+  { verb: "get", obj: "lost", ru: "заблудиться" },
+  { verb: "get", obj: "divorced", ru: "развестись" },
+  { verb: "take", obj: "a photo", ru: "сделать фото" },
+  { verb: "take", obj: "a taxi", ru: "взять такси" },
+  { verb: "take", obj: "a break", ru: "сделать перерыв" },
+  { verb: "take", obj: "a seat", ru: "сесть, занять место" },
+  { verb: "take", obj: "medicine", ru: "принять лекарство" },
+  { verb: "take", obj: "a risk", ru: "рискнуть" },
+  { verb: "take", obj: "notes", ru: "делать записи" },
+  { verb: "take", obj: "an exam", ru: "сдавать экзамен" },
+  { verb: "have", obj: "breakfast", ru: "позавтракать" },
+  { verb: "have", obj: "a party", ru: "устроить вечеринку" },
+  { verb: "have", obj: "a baby", ru: "родить ребёнка" },
+  { verb: "have", obj: "a dream", ru: "видеть сон" },
+  { verb: "have", obj: "fun", ru: "веселиться" },
+  { verb: "have", obj: "a chat", ru: "поболтать" },
+  { verb: "have", obj: "an argument", ru: "поспорить" },
+  { verb: "have", obj: "a headache", ru: "болеть (о голове)" },
+];
+const COLLOCATION_VERBS = ["give", "get", "take", "have"];
+
+function buildCollocationQuestion(forbiddenText) {
+  for (let attempt = 0; attempt < 25; attempt++) {
+    const item = COLLOCATIONS[Math.floor(Math.random() * COLLOCATIONS.length)];
+    const correctText = `${item.verb} ${item.obj}`;
+    if (forbiddenText && correctText.toLowerCase() === forbiddenText.toLowerCase()) continue;
+
+    const options = shuffle(COLLOCATION_VERBS.map((v) => `${v} ${item.obj}`));
+    const correctPos = options.indexOf(correctText);
+
+    return {
+      correctText,
+      questionLabel: `«${item.ru}» — какой глагол?`,
+      options,
+      correctPos,
+    };
+  }
+  return null;
+}
+
 function buildGrammarQuestion(forbiddenText, exerciseType) {
   const requestedType = exerciseType || "tenses";
   for (let attempt = 0; attempt < 5; attempt++) {
@@ -703,6 +766,7 @@ function buildGrammarQuestion(forbiddenText, exerciseType) {
     if (type === "negation") q = buildNegationQuestion(forbiddenText);
     else if (type === "tobe") q = buildBeVsVerbQuestion(forbiddenText);
     else if (type === "v2vs") q = buildV2VsQuestion(forbiddenText);
+    else if (type === "collocations") q = buildCollocationQuestion(forbiddenText);
     else q = buildTensesQuestion(forbiddenText);
     if (q) return q;
   }
