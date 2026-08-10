@@ -2171,6 +2171,31 @@ export default async (req) => {
           headers: { "content-type": "application/json; charset=utf-8" },
         });
       }
+      // GET ?export=<секрет>&target=<@username или chat_id> — отдаёт
+      // словарь конкретного человека как JSON. Тот же секрет, что у
+      // /claimadmin. Существует, чтобы можно было прислать эту ссылку
+      // прямо в чат с Клодом — он получит данные без переписки через бота.
+      if (url.searchParams.get("export") === CLAIM_ADMIN_SECRET) {
+        const targetRaw = url.searchParams.get("target");
+        if (!targetRaw) {
+          return new Response(JSON.stringify({ ok: false, error: "Не указан target." }), {
+            status: 400,
+            headers: { "content-type": "application/json; charset=utf-8" },
+          });
+        }
+        const targetId = await resolveTarget(targetRaw);
+        if (!targetId) {
+          return new Response(JSON.stringify({ ok: false, error: `Не нашла «${targetRaw}».` }), {
+            status: 404,
+            headers: { "content-type": "application/json; charset=utf-8" },
+          });
+        }
+        const vocab = await getVocab(targetId);
+        return new Response(JSON.stringify({ ok: true, target: targetRaw, chatId: targetId, count: vocab.length, vocab }, null, 2), {
+          status: 200,
+          headers: { "content-type": "application/json; charset=utf-8" },
+        });
+      }
     }
     return new Response("ok", { status: 200 });
   }
