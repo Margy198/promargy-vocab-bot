@@ -402,26 +402,46 @@ const GRAMMAR_EXERCISE_TYPES = {
 const GRAMMAR_REAL_EXERCISE_TYPES = ["tenses", "negation", "tobe", "v2vs", "collocations"];
 
 const GRAMMAR_VERBS = [
-  { base: "go", past: "went", ru: "идти / ходить", contextEn: "to school", contextRu: "в школу" },
-  { base: "go", past: "went", ru: "идти / ходить", contextEn: "to the cinema", contextRu: "в кино" },
-  { base: "play", past: "played", ru: "играть", contextEn: "football", contextRu: "в футбол" },
-  { base: "play", past: "played", ru: "играть", contextEn: "the guitar", contextRu: "на гитаре" },
-  { base: "watch", past: "watched", ru: "смотреть", contextEn: "a film", contextRu: "фильм" },
-  { base: "work", past: "worked", ru: "работать", contextEn: "at home", contextRu: "дома" },
-  { base: "study", past: "studied", ru: "учить", contextEn: "English", contextRu: "английский" },
-  { base: "eat", past: "ate", ru: "есть (кушать)", contextEn: "breakfast", contextRu: "завтрак" },
-  { base: "drink", past: "drank", ru: "пить", contextEn: "coffee", contextRu: "кофе" },
-  { base: "read", past: "read", ru: "читать", contextEn: "a book", contextRu: "книгу" },
-  { base: "write", past: "wrote", ru: "писать", contextEn: "a letter", contextRu: "письмо" },
-  { base: "speak", past: "spoke", ru: "говорить", contextEn: "English", contextRu: "по-английски" },
-  { base: "come", past: "came", ru: "приходить", contextEn: "home late", contextRu: "домой поздно" },
-  { base: "see", past: "saw", ru: "видеть", contextEn: "my friends", contextRu: "своих друзей" },
-  { base: "make", past: "made", ru: "делать (создавать)", contextEn: "dinner", contextRu: "ужин" },
-  { base: "take", past: "took", ru: "брать", contextEn: "a taxi", contextRu: "такси" },
-  { base: "do", past: "did", ru: "делать", irregular3rd: "does", contextEn: "my homework", contextRu: "домашнюю работу" },
-  { base: "help", past: "helped", ru: "помогать", contextEn: "my mother", contextRu: "маме" },
-  { base: "call", past: "called", ru: "звонить", contextEn: "my friend", contextRu: "другу" },
-  { base: "clean", past: "cleaned", ru: "убирать", contextEn: "the house", contextRu: "дом" },
+  { base: "go", past: "went", ru: "идти / ходить", contextEn: "to school", contextRu: "в школу",
+    ruInf: "идти", ru3sg: "идёт", ru1pl: "идём", ru3pl: "идут", ruPastM: "шёл", ruPastF: "шла", ruPastPl: "шли" },
+  { base: "go", past: "went", ru: "идти / ходить", contextEn: "to the cinema", contextRu: "в кино",
+    ruInf: "идти", ru3sg: "идёт", ru1pl: "идём", ru3pl: "идут", ruPastM: "шёл", ruPastF: "шла", ruPastPl: "шли" },
+  { base: "play", past: "played", ru: "играть", contextEn: "football", contextRu: "в футбол",
+    ruInf: "играть", ru3sg: "играет", ru1pl: "играем", ru3pl: "играют", ruPastM: "играл", ruPastF: "играла", ruPastPl: "играли" },
+  { base: "play", past: "played", ru: "играть", contextEn: "the guitar", contextRu: "на гитаре",
+    ruInf: "играть", ru3sg: "играет", ru1pl: "играем", ru3pl: "играют", ruPastM: "играл", ruPastF: "играла", ruPastPl: "играли" },
+  { base: "watch", past: "watched", ru: "смотреть", contextEn: "a film", contextRu: "фильм",
+    ruInf: "смотреть", ru3sg: "смотрит", ru1pl: "смотрим", ru3pl: "смотрят", ruPastM: "смотрел", ruPastF: "смотрела", ruPastPl: "смотрели" },
+  { base: "work", past: "worked", ru: "работать", contextEn: "at home", contextRu: "дома",
+    ruInf: "работать", ru3sg: "работает", ru1pl: "работаем", ru3pl: "работают", ruPastM: "работал", ruPastF: "работала", ruPastPl: "работали" },
+  { base: "study", past: "studied", ru: "учить", contextEn: "English", contextRu: "английский",
+    ruInf: "учить", ru3sg: "учит", ru1pl: "учим", ru3pl: "учат", ruPastM: "учил", ruPastF: "учила", ruPastPl: "учили" },
+  { base: "eat", past: "ate", ru: "есть (кушать)", contextEn: "breakfast", contextRu: "завтрак",
+    ruInf: "есть", ru3sg: "ест", ru1pl: "едим", ru3pl: "едят", ruPastM: "ел", ruPastF: "ела", ruPastPl: "ели" },
+  { base: "drink", past: "drank", ru: "пить", contextEn: "coffee", contextRu: "кофе",
+    ruInf: "пить", ru3sg: "пьёт", ru1pl: "пьём", ru3pl: "пьют", ruPastM: "пил", ruPastF: "пила", ruPastPl: "пили" },
+  { base: "read", past: "read", ru: "читать", contextEn: "a book", contextRu: "книгу",
+    ruInf: "читать", ru3sg: "читает", ru1pl: "читаем", ru3pl: "читают", ruPastM: "читал", ruPastF: "читала", ruPastPl: "читали" },
+  { base: "write", past: "wrote", ru: "писать", contextEn: "a letter", contextRu: "письмо",
+    ruInf: "писать", ru3sg: "пишет", ru1pl: "пишем", ru3pl: "пишут", ruPastM: "писал", ruPastF: "писала", ruPastPl: "писали" },
+  { base: "speak", past: "spoke", ru: "говорить", contextEn: "English", contextRu: "по-английски",
+    ruInf: "говорить", ru3sg: "говорит", ru1pl: "говорим", ru3pl: "говорят", ruPastM: "говорил", ruPastF: "говорила", ruPastPl: "говорили" },
+  { base: "come", past: "came", ru: "приходить", contextEn: "home late", contextRu: "домой поздно",
+    ruInf: "приходить", ru3sg: "приходит", ru1pl: "приходим", ru3pl: "приходят", ruPastM: "приходил", ruPastF: "приходила", ruPastPl: "приходили" },
+  { base: "see", past: "saw", ru: "видеть", contextEn: "my friends", contextRu: "своих друзей",
+    ruInf: "видеть", ru3sg: "видит", ru1pl: "видим", ru3pl: "видят", ruPastM: "видел", ruPastF: "видела", ruPastPl: "видели" },
+  { base: "make", past: "made", ru: "делать (создавать)", contextEn: "dinner", contextRu: "ужин",
+    ruInf: "делать", ru3sg: "делает", ru1pl: "делаем", ru3pl: "делают", ruPastM: "делал", ruPastF: "делала", ruPastPl: "делали" },
+  { base: "take", past: "took", ru: "брать", contextEn: "a taxi", contextRu: "такси",
+    ruInf: "брать", ru3sg: "берёт", ru1pl: "берём", ru3pl: "берут", ruPastM: "брал", ruPastF: "брала", ruPastPl: "брали" },
+  { base: "do", past: "did", ru: "делать", irregular3rd: "does", contextEn: "my homework", contextRu: "домашнюю работу",
+    ruInf: "делать", ru3sg: "делает", ru1pl: "делаем", ru3pl: "делают", ruPastM: "делал", ruPastF: "делала", ruPastPl: "делали" },
+  { base: "help", past: "helped", ru: "помогать", contextEn: "my mother", contextRu: "маме",
+    ruInf: "помогать", ru3sg: "помогает", ru1pl: "помогаем", ru3pl: "помогают", ruPastM: "помогал", ruPastF: "помогала", ruPastPl: "помогали" },
+  { base: "call", past: "called", ru: "звонить", contextEn: "my friend", contextRu: "другу",
+    ruInf: "звонить", ru3sg: "звонит", ru1pl: "звоним", ru3pl: "звонят", ruPastM: "звонил", ruPastF: "звонила", ruPastPl: "звонили" },
+  { base: "clean", past: "cleaned", ru: "убирать", contextEn: "the house", contextRu: "дом",
+    ruInf: "убирать", ru3sg: "убирает", ru1pl: "убираем", ru3pl: "убирают", ruPastM: "убирал", ruPastF: "убирала", ruPastPl: "убирали" },
 ];
 
 const GRAMMAR_SUBJECTS = [
@@ -432,6 +452,47 @@ const GRAMMAR_SUBJECTS = [
   { pron: "We", ru: "мы", is3rd: false, poss: "our" },
   { pron: "They", ru: "они", is3rd: false, poss: "their" },
 ];
+
+// Только для формата "tenses" (натуральные русские предложения): без "I"/
+// "You" — у них в прошедшем времени по-русски нужен род говорящего
+// (шёл/шла), а мы его не знаем. He/She однозначны по роду, We/They не
+// требуют рода вовсе (мн. число).
+const RU_SENTENCE_SUBJECTS = [
+  { pron: "He", ru: "он", is3rd: true, poss: "his", gender: "m", isPlural: false },
+  { pron: "She", ru: "она", is3rd: true, poss: "her", gender: "f", isPlural: false },
+  { pron: "We", ru: "мы", is3rd: false, poss: "our", gender: null, isPlural: true },
+  { pron: "They", ru: "они", is3rd: false, poss: "their", gender: null, isPlural: true },
+];
+
+// Явные показатели времени по-русски — делают время однозначным, не
+// оставляя простора для "а может, это другое время".
+const RU_TIME_MARKERS = {
+  present: ["каждый день", "обычно"],
+  past: ["вчера", "на прошлой неделе"],
+  future: ["завтра", "на следующей неделе"],
+};
+
+// Спрягает русский глагол под подлежащее/время/полярность — используется
+// только для натуральных предложений в формате "tenses".
+function ruConjugate(verb, subject, tense) {
+  let form;
+  if (tense === "present") {
+    form = subject.isPlural ? (subject.pron === "We" ? verb.ru1pl : verb.ru3pl) : verb.ru3sg;
+  } else if (tense === "past") {
+    form = subject.isPlural ? verb.ruPastPl : subject.gender === "m" ? verb.ruPastM : verb.ruPastF;
+  } else {
+    const aux = subject.pron === "We" ? "будем" : subject.isPlural ? "будут" : "будет";
+    form = `${aux} ${verb.ruInf}`;
+  }
+  return form;
+}
+
+function buildRuSentence(subject, verb, tense, polarity, marker) {
+  const verbForm = ruConjugate(verb, subject, tense);
+  const negPrefix = polarity === "negative" ? "не " : "";
+  const sentence = `${subject.ru} ${negPrefix}${verbForm} ${verb.contextRu} ${marker}`.replace(/\s+/g, " ").trim();
+  return sentence.charAt(0).toUpperCase() + sentence.slice(1);
+}
 
 const TENSE_POLARITY_COMBOS = [
   { tense: "present", polarity: "affirmative", label: "Present Simple, утверждение" },
@@ -481,10 +542,12 @@ function contextFor(subject, verb) {
 // --- Формат "tenses": общая тренировка на все времена/утверждение-отрицание ---
 function buildTensesQuestion(forbiddenText) {
   for (let attempt = 0; attempt < 25; attempt++) {
-    const subject = GRAMMAR_SUBJECTS[Math.floor(Math.random() * GRAMMAR_SUBJECTS.length)];
+    const subject = RU_SENTENCE_SUBJECTS[Math.floor(Math.random() * RU_SENTENCE_SUBJECTS.length)];
     const verb = GRAMMAR_VERBS[Math.floor(Math.random() * GRAMMAR_VERBS.length)];
     const targetIdx = Math.floor(Math.random() * TENSE_POLARITY_COMBOS.length);
     const target = TENSE_POLARITY_COMBOS[targetIdx];
+    const markers = RU_TIME_MARKERS[target.tense];
+    const marker = markers[Math.floor(Math.random() * markers.length)];
 
     const context = contextFor(subject, verb);
     const sentences = TENSE_POLARITY_COMBOS.map((c) => `${subject.pron} ${conjugate(subject, verb, c.tense, c.polarity)} ${context}`);
@@ -500,7 +563,7 @@ function buildTensesQuestion(forbiddenText) {
 
     return {
       correctText,
-      questionLabel: `${subject.pron} (${subject.ru}) + ${verb.ru} ${verb.contextRu} — ${target.label}`,
+      questionLabel: buildRuSentence(subject, verb, target.tense, target.polarity, marker),
       options,
       correctPos,
     };
@@ -546,7 +609,7 @@ function buildNegationQuestion(forbiddenText) {
 
     return {
       correctText,
-      questionLabel: `${subject.pron} (${subject.ru}) + ${verb.ru} ${verb.contextRu} — отрицание, ${tense === "present" ? "Present" : "Past"} Simple`,
+      questionLabel: `${subject.pron} + ${verb.ru} ${verb.contextRu} — отрицание, ${tense === "present" ? "Present" : "Past"} Simple`,
       options,
       correctPos,
     };
@@ -595,7 +658,7 @@ function buildBeVsVerbQuestion(forbiddenText) {
       const state = STATE_ADJECTIVES[Math.floor(Math.random() * STATE_ADJECTIVES.length)];
       const be = beForm(subject, tense);
       correctText = `${subject.pron} ${be} ${state.adj}`;
-      questionLabel = `${subject.pron} (${subject.ru}) — ${state.ru} (${tense === "present" ? "сейчас" : "тогда"})`;
+      questionLabel = `${subject.pron} — ${state.ru}`;
 
       const verb1 = GRAMMAR_VERBS[Math.floor(Math.random() * GRAMMAR_VERBS.length)];
       const verb2 = GRAMMAR_VERBS[Math.floor(Math.random() * GRAMMAR_VERBS.length)];
@@ -612,7 +675,7 @@ function buildBeVsVerbQuestion(forbiddenText) {
       const verb = GRAMMAR_VERBS[Math.floor(Math.random() * GRAMMAR_VERBS.length)];
       const context = contextFor(subject, verb);
       correctText = `${subject.pron} ${conjugate(subject, verb, tense, "affirmative")} ${context}`;
-      questionLabel = `${subject.pron} (${subject.ru}) + ${verb.ru} ${verb.contextRu} — действие, ${tense === "present" ? "Present" : "Past"} Simple`;
+      questionLabel = `${subject.pron} + ${verb.ru} ${verb.contextRu} — действие, ${tense === "present" ? "Present" : "Past"} Simple`;
 
       const be = beForm(subject, tense);
       const otherBe = tense === "present" ? beForm(subject, "past") : beForm(subject, "present");
@@ -688,7 +751,7 @@ function buildV2VsQuestion(forbiddenText) {
 
     return {
       correctText,
-      questionLabel: `${subject.pron} (${subject.ru}) + ${verb.ru} ${verb.contextRu}, «${marker.ru}»`,
+      questionLabel: `${subject.pron} + ${verb.ru} ${verb.contextRu}, «${marker.ru}»`,
       options,
       correctPos,
     };
@@ -1100,13 +1163,18 @@ function buildQuestion(vocab, wrongMap, prefix, forbiddenEn, seenEnList, recentT
 // запись pending — см. комментарий у buildQuestion.
 // Убирает то, что не стоит озвучивать голосом (фонетическую транскрипцию
 // в /слэшах/, обратные слэши-разделители) — оставляет только сам текст.
+// Внутренние тире (например, в тройках неправильных глаголов "go - went -
+// gone") заменяем на запятые — судя по всему, именно из-за тире озвучка
+// неправильных глаголов не проигрывалась вовсе (обычные слова без тире
+// озвучивались нормально), плюс так это звучит естественнее.
 function cleanTextForSpeech(text) {
   return text
     .replace(/\/[^/]*\//g, " ")
     .replace(/\\/g, " ")
+    .replace(/\s+-\s+/g, ", ")
     .replace(/\s+/g, " ")
     .trim()
-    .replace(/[-–—]\s*$/, "")
+    .replace(/[-–—,]\s*$/, "")
     .trim();
 }
 
@@ -1258,7 +1326,7 @@ async function mainReplyKeyboard(chatId) {
   const rows = [
     [BTN_VOCAB, BTN_IRREGULAR],
     [BTN_GRAMMAR, "/start"],
-    ["/score", "/count", "/help"],
+    ["/help"],
   ];
   if (admin) rows.push(["/students"]);
   return {
