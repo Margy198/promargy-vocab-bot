@@ -397,9 +397,12 @@ const GRAMMAR_EXERCISE_TYPES = {
   tobe: "🔵 To be vs. обычный глагол",
   v2vs: "🔁 V2 vs Vs (прошедшее / настоящее)",
   collocations: "🤝 give / get / take / have",
+  modalMeaning: "🧭 Модальные — по смыслу",
+  modalTo: "🔧 Модальные — нужна ли to",
+  futureInPast: "⏳ Future in the Past vs Future Simple",
   mix: "🎲 Микс всех форматов",
 };
-const GRAMMAR_REAL_EXERCISE_TYPES = ["tenses", "negation", "tobe", "v2vs", "collocations"];
+const GRAMMAR_REAL_EXERCISE_TYPES = ["tenses", "negation", "tobe", "v2vs", "collocations", "modalMeaning", "modalTo", "futureInPast"];
 
 const GRAMMAR_VERBS = [
   { base: "go", past: "went", ru: "идти / ходить", contextEn: "to school", contextRu: "в школу",
@@ -802,6 +805,186 @@ const COLLOCATIONS = [
 ];
 const COLLOCATION_VERBS = ["give", "get", "take", "have"];
 
+// --- Форматы "modalMeaning" и "modalTo": модальные глаголы ---
+// must / have to / should / ought to / need to / can (+ прошедшее время
+// там, где оно у модального глагола вообще есть — must/should/ought to
+// своей "простой" формы прошедшего времени в этом же значении не имеют,
+// поэтому прошедшее даём только для have to → had to, need to → needed
+// to, can → could).
+const MODAL_VERBS = [
+  { key: "must", base: "must", thirdSg: "must", past: null, needsTo: false, cueRu: "я уверен, что это очень важно" },
+  { key: "haveTo", base: "have to", thirdSg: "has to", past: "had to", needsTo: true, cueRu: "так требуют правила или обстоятельства" },
+  { key: "should", base: "should", thirdSg: "should", past: null, needsTo: false, cueRu: "я советую, но это не обязательно" },
+  { key: "oughtTo", base: "ought to", thirdSg: "ought to", past: null, needsTo: true, cueRu: "это было бы правильно (более формально)" },
+  { key: "needTo", base: "need to", thirdSg: "needs to", past: "needed to", needsTo: true, cueRu: "это просто необходимо" },
+  { key: "can", base: "can", thirdSg: "can", past: "could", needsTo: false, cueRu: "у него это получается или это разрешено" },
+];
+
+const RU_DATIVE = { I: "мне", You: "тебе", He: "ему", She: "ей", We: "нам", They: "им" };
+const RU_NOM = { I: "я", You: "ты", He: "он", She: "она", We: "мы", They: "они" };
+
+// Русское предложение-ситуация под конкретный модальный глагол — для
+// "должен"/"может" берём именительный падеж, для "следует"/"нужно" —
+// дательный (так по-русски естественнее: "ему следует", "нам нужно").
+function ruModalSentence(subject, modal, verb) {
+  let prefix;
+  if (modal.key === "must" || modal.key === "haveTo") {
+    const form = subject.isPlural ? "должны" : subject.gender === "f" ? "должна" : "должен";
+    prefix = `${RU_NOM[subject.pron]} ${form}`;
+  } else if (modal.key === "can") {
+    const form = subject.isPlural ? "могут" : "может";
+    prefix = `${RU_NOM[subject.pron]} ${form}`;
+  } else if (modal.key === "should" || modal.key === "oughtTo") {
+    prefix = `${RU_DATIVE[subject.pron]} следует`;
+  } else {
+    prefix = `${RU_DATIVE[subject.pron]} нужно`;
+  }
+  const sentence = `${prefix} ${verb.ruInf} ${verb.contextRu}`;
+  return sentence.charAt(0).toUpperCase() + sentence.slice(1);
+}
+
+// Формат "по смыслу": даётся ситуация по-русски (с явной подсказкой,
+// какой оттенок смысла нужен — иначе "должен" из русского одинаково
+// подходит и под must, и под have to), и все 6 модальных глаголов с тем
+// же подлежащим и глаголом — как варианты ответа.
+function buildModalMeaningQuestion(forbiddenText) {
+  for (let attempt = 0; attempt < 25; attempt++) {
+    const subject = RU_SENTENCE_SUBJECTS[Math.floor(Math.random() * RU_SENTENCE_SUBJECTS.length)];
+    const verb = GRAMMAR_VERBS[Math.floor(Math.random() * GRAMMAR_VERBS.length)];
+    const targetModal = MODAL_VERBS[Math.floor(Math.random() * MODAL_VERBS.length)];
+    const context = contextFor(subject, verb);
+
+    const phraseFor = (modal) => {
+      const form = subject.is3rd && !subject.isPlural ? modal.thirdSg : modal.base;
+      return `${subject.pron} ${form} ${verb.base} ${context}`;
+    };
+
+    const correctText = phraseFor(targetModal);
+    if (forbiddenText && correctText.toLowerCase() === forbiddenText.toLowerCase()) continue;
+
+    const candidates = MODAL_VERBS.map(phraseFor);
+    const uniqueOptions = new Set(candidates.map((c) => c.toLowerCase()));
+    if (uniqueOptions.size !== candidates.length) continue;
+
+    const targetIdx = MODAL_VERBS.indexOf(targetModal);
+    const order = shuffle(candidates.map((_, i) => i));
+    const correctPos = order.indexOf(targetIdx);
+    const options = order.map((i) => candidates[i]);
+
+    return {
+      correctText,
+      questionLabel: `${ruModalSentence(subject, targetModal, verb)} (${targetModal.cueRu})`,
+      options,
+      correctPos,
+    };
+  }
+  return null;
+}
+
+// Формат "нужна ли to": фиксируем модальный глагол и глагол действия,
+// главный дистрактор — та же форма модального глагола, но с "to", где
+// его быть не должно (must to go), или без "to", где оно обязательно
+// (has go вместо has to go). Плюс формы других модальных глаголов для
+// разнообразия.
+function buildModalToQuestion(forbiddenText) {
+  for (let attempt = 0; attempt < 25; attempt++) {
+    const modal = MODAL_VERBS[Math.floor(Math.random() * MODAL_VERBS.length)];
+    const subject = GRAMMAR_SUBJECTS[Math.floor(Math.random() * GRAMMAR_SUBJECTS.length)];
+    const verb = GRAMMAR_VERBS[Math.floor(Math.random() * GRAMMAR_VERBS.length)];
+    const context = contextFor(subject, verb);
+    const usePast = !!modal.past && Math.random() < 0.5;
+
+    const modalForm = usePast ? modal.past : subject.is3rd ? modal.thirdSg : modal.base;
+    const correctText = `${subject.pron} ${modalForm} ${verb.base} ${context}`;
+    if (forbiddenText && correctText.toLowerCase() === forbiddenText.toLowerCase()) continue;
+
+    const toggledForm = modal.needsTo ? modalForm.replace(/\s*to$/, "").trim() : `${modalForm} to`;
+    const toggledText = `${subject.pron} ${toggledForm} ${verb.base} ${context}`;
+
+    const otherModals = shuffle(MODAL_VERBS.filter((m) => m.key !== modal.key)).slice(0, 4);
+    const otherTexts = otherModals.map((m) => {
+      const f = subject.is3rd ? m.thirdSg : m.base;
+      return `${subject.pron} ${f} ${verb.base} ${context}`;
+    });
+
+    const candidates = [correctText, toggledText, ...otherTexts];
+    const uniqueOptions = new Set(candidates.map((c) => c.toLowerCase()));
+    if (uniqueOptions.size !== 6) continue;
+
+    const order = shuffle(candidates.map((_, i) => i));
+    const correctPos = order.indexOf(0);
+    const options = order.map((i) => candidates[i]);
+
+    return {
+      correctText,
+      questionLabel: `${subject.pron} + ${verb.ru} ${verb.contextRu} — ${modal.base}${usePast ? " (прошедшее время)" : ""}`,
+      options,
+      correctPos,
+    };
+  }
+  return null;
+}
+
+// --- Формат "futureInPast": Future in the Past vs Future Simple ---
+// Ключевое отличие — от какого момента "будущее": если рамка (думает/
+// говорит/уверен...) в настоящем времени, это обычное будущее (will);
+// если рамка сама в прошедшем (думал/сказал/была уверена...), то это
+// будущее-в-прошедшем (would) — классический разбор косвенной речи.
+// Русское предложение внутри "что..." по-русски звучит одинаково в обоих
+// случаях (будущее время глагола не меняется от контекста рамки) — именно
+// поэтому по-русски это не путается, а в английском нужно верно выбрать
+// will или would, ориентируясь на время самой рамки.
+const FUTURE_IN_PAST_FRAMES = [
+  { ru: "Он думает, что", useWould: false },
+  { ru: "Он думал, что", useWould: true },
+  { ru: "Она говорит, что", useWould: false },
+  { ru: "Она сказала, что", useWould: true },
+  { ru: "Они уверены, что", useWould: false },
+  { ru: "Они были уверены, что", useWould: true },
+  { ru: "Мы знаем, что", useWould: false },
+  { ru: "Мы знали, что", useWould: true },
+];
+
+function buildFutureInPastQuestion(forbiddenText) {
+  for (let attempt = 0; attempt < 25; attempt++) {
+    const frame = FUTURE_IN_PAST_FRAMES[Math.floor(Math.random() * FUTURE_IN_PAST_FRAMES.length)];
+    const subject = RU_SENTENCE_SUBJECTS[Math.floor(Math.random() * RU_SENTENCE_SUBJECTS.length)];
+    const verb = GRAMMAR_VERBS[Math.floor(Math.random() * GRAMMAR_VERBS.length)];
+    const context = contextFor(subject, verb);
+
+    const correctModal = frame.useWould ? "would" : "will";
+    const correctText = `${subject.pron} ${correctModal} ${verb.base} ${context}`;
+    if (forbiddenText && correctText.toLowerCase() === forbiddenText.toLowerCase()) continue;
+
+    const wrongModal = frame.useWould ? "will" : "would";
+    const candidates = [
+      correctText,
+      `${subject.pron} ${wrongModal} ${verb.base} ${context}`, // главная путаница: will vs would
+      `${subject.pron} ${correctModal} ${verb.past} ${context}`, // верный модальный, но неверная форма глагола
+      `${subject.pron} ${verb.base} ${context}`, // модальный вообще пропущен
+      `${subject.pron} ${verb.past} ${context}`, // тоже пропущен, но со "случайным" прошедшим
+      `${subject.pron} ${wrongModal} ${verb.past} ${context}`, // и то, и другое неверно
+    ];
+    const uniqueOptions = new Set(candidates.map((c) => c.toLowerCase()));
+    if (uniqueOptions.size !== 6) continue;
+
+    const order = shuffle(candidates.map((_, i) => i));
+    const correctPos = order.indexOf(0);
+    const options = order.map((i) => candidates[i]);
+
+    const ruClause = ruConjugate(verb, subject, "future");
+    const ruSentence = `${frame.ru} ${subject.ru} ${ruClause} ${verb.contextRu}`;
+
+    return {
+      correctText,
+      questionLabel: ruSentence.charAt(0).toUpperCase() + ruSentence.slice(1),
+      options,
+      correctPos,
+    };
+  }
+  return null;
+}
+
 function buildCollocationQuestion(forbiddenText) {
   for (let attempt = 0; attempt < 25; attempt++) {
     const item = COLLOCATIONS[Math.floor(Math.random() * COLLOCATIONS.length)];
@@ -830,6 +1013,9 @@ function buildGrammarQuestion(forbiddenText, exerciseType) {
     else if (type === "tobe") q = buildBeVsVerbQuestion(forbiddenText);
     else if (type === "v2vs") q = buildV2VsQuestion(forbiddenText);
     else if (type === "collocations") q = buildCollocationQuestion(forbiddenText);
+    else if (type === "modalMeaning") q = buildModalMeaningQuestion(forbiddenText);
+    else if (type === "modalTo") q = buildModalToQuestion(forbiddenText);
+    else if (type === "futureInPast") q = buildFutureInPastQuestion(forbiddenText);
     else q = buildTensesQuestion(forbiddenText);
     if (q) return q;
   }
@@ -1043,21 +1229,60 @@ function buildIrregularPicked(prefix, forbiddenText, level, exerciseType) {
 
 // Подбирает несколько неверных вариантов, у которых и перевод, и слово
 // отличаются от правильного и друг от друга (чтобы не было двух одинаковых кнопок).
+// Грубое определение "это глагол или нет" — точного разбора частей речи у
+// нас нет (слова добавляются свободным текстом), так что ориентируемся на
+// приметы: тире в форме глагола ("Write - wrote - written", "Make - made"),
+// явный английский инфинитив ("to run"), или характерное для русского
+// инфинитива окончание перевода (-ть/-ти/-чь — играть, идти, мочь).
+function looksLikeVerb(word) {
+  const en = (word.en || "").trim();
+  if (/^\S.*\s-\s\S/.test(en)) return true; // "Write - wrote - written", "Make - made"
+  if (/^to\s+\S/i.test(en)) return true; // "to run"
+  const ruFirstWord = (word.ru || "")
+    .trim()
+    .toLowerCase()
+    .split(/[\s,/(]/)[0];
+  return /(ть|ти|чь)$/.test(ruFirstWord);
+}
+
+// Подбирает неверные варианты — по возможности той же "части речи" (если
+// правильный ответ похож на глагол, стараемся давать в качестве
+// дистракторов тоже глаголы, а не вперемешку с существительными и
+// прилагательными — иначе можно угадать правильный ответ просто по виду
+// слова, не зная перевода). Если в словаре не хватает слов той же
+// категории — достаём недостающие дистракторы из остальных слов, чтобы
+// вариантов всегда было ровно нужное количество.
 function pickDistractors(vocab, correctWord, count) {
   const usedRu = new Set([correctWord.ru.toLowerCase().trim()]);
   const usedEn = new Set([correctWord.en.toLowerCase().trim()]);
   const chosen = [];
-  let attempts = 0;
-  while (chosen.length < count && attempts < 300 && chosen.length < vocab.length - 1) {
-    attempts++;
-    const w = vocab[Math.floor(Math.random() * vocab.length)];
+
+  const wantVerb = looksLikeVerb(correctWord);
+  const pool = vocab.filter((w) => {
     const ru = w.ru.toLowerCase().trim();
     const en = w.en.toLowerCase().trim();
-    if (usedEn.has(en) || usedRu.has(ru)) continue;
-    usedRu.add(ru);
-    usedEn.add(en);
-    chosen.push(w);
+    return !usedEn.has(en) && !usedRu.has(ru);
+  });
+  const samePos = pool.filter((w) => looksLikeVerb(w) === wantVerb);
+  const otherPos = pool.filter((w) => looksLikeVerb(w) !== wantVerb);
+
+  function pickFrom(list) {
+    let attempts = 0;
+    while (chosen.length < count && list.length && attempts < 300) {
+      attempts++;
+      const w = list[Math.floor(Math.random() * list.length)];
+      const ru = w.ru.toLowerCase().trim();
+      const en = w.en.toLowerCase().trim();
+      if (usedEn.has(en) || usedRu.has(ru)) continue;
+      usedRu.add(ru);
+      usedEn.add(en);
+      chosen.push(w);
+    }
   }
+
+  pickFrom(samePos);
+  if (chosen.length < count) pickFrom(otherPos); // не хватает своей категории — добираем остальными
+
   return chosen;
 }
 
@@ -1183,27 +1408,59 @@ function cleanTextForSpeech(text) {
 // файл при этом качает и пересылает уже сторона Telegram, нам скачивать
 // его самим не нужно. Если озвучка не получится (сервис недоступен и т.п.)
 // — не критично, просто пропускаем, вопрос всё равно уже отправлен текстом.
+// Озвучка слова голосом — через платный API OpenAI (надёжнее бесплатных
+// сервисов без ключа, которые у нас уже дважды подводили: streamelements
+// внезапно потребовал авторизацию, freetts.org тоже вёл себя нестабильно).
+// Нужен ключ в переменной окружения OPENAI_API_KEY (настраивается в
+// Netlify: Site configuration → Environment variables).
+//
+// В отличие от freetts.org, OpenAI отдаёт СРАЗУ байты mp3-файла, а не
+// ссылку на готовый файл — поэтому загружаем их в Telegram напрямую через
+// multipart/form-data, а не просто передаём URL (это единственное место в
+// боте, где нужен именно такой запрос, а не обычный JSON через tg()).
 async function sendPronunciation(chatId, text) {
   const clean = cleanTextForSpeech(text);
   if (!clean) return;
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    await log("[sendPronunciation] OPENAI_API_KEY не настроен в переменных окружения — озвучка пропущена");
+    return;
+  }
   try {
-    const genRes = await fetch("https://freetts.org/api/tts", {
+    const ttsRes = await fetch("https://api.openai.com/v1/audio/speech", {
       method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ text: clean, voice: "en-US-GuyNeural", rate: "+0%", pitch: "+0Hz" }),
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ model: "tts-1", voice: "alloy", input: clean }),
     });
-    const genData = await genRes.json();
-    if (!genData || !genData.file_id) {
-      await log("[sendPronunciation] FAILED to get file_id from freetts.org:", JSON.stringify(genData));
+    if (!ttsRes.ok) {
+      const errText = await ttsRes.text();
+      await log("[sendPronunciation] OpenAI TTS FAILED:", ttsRes.status, errText);
       return;
     }
-    const audioUrl = `https://freetts.org/api/audio/${genData.file_id}`;
-    await tg("sendAudio", { chat_id: chatId, audio: audioUrl, title: clean });
+    const audioBuffer = await ttsRes.arrayBuffer();
+
+    await waitForRateLimit(chatId);
+    const form = new FormData();
+    form.append("chat_id", String(chatId));
+    form.append("title", clean);
+    form.append("audio", new Blob([audioBuffer], { type: "audio/mpeg" }), "pronunciation.mp3");
+
+    const sendRes = await fetch(`${API}/sendAudio`, { method: "POST", body: form });
+    const sendData = await sendRes.json();
+    if (!sendData.ok) {
+      await log("[sendPronunciation] Telegram sendAudio FAILED:", JSON.stringify(sendData));
+    } else {
+      await markMessageSent(chatId);
+    }
   } catch (err) {
     await log("[sendPronunciation] threw:", String(err));
     // не критично — если озвучка не получится, вопрос всё равно уже отправлен текстом
   }
 }
+
 
 async function deliverQuestion(chatId, picked) {
   const result = await tg("sendMessage", {
@@ -1423,6 +1680,7 @@ async function handleHelp(chatId) {
       "/reset — сбросить прогресс\n\n" +
       "Чтобы добавить слова — просто пришли строки вида «English . перевод», " +
       "хоть одну, хоть весь список с урока сразу.",
+    reply_markup: await mainReplyKeyboard(chatId),
   });
 }
 
@@ -1439,17 +1697,18 @@ async function handleScore(chatId) {
   await tg("sendMessage", {
     chat_id: chatId,
     text: `📊 ${statsLine(practicedCount, vocab.length)}` + (missed ? `\n\nЧаще всего путаешь:\n${missed}` : ""),
+    reply_markup: await mainReplyKeyboard(chatId),
   });
 }
 
 async function handleReset(chatId) {
   await withOptimisticUpdate(statsStore(), String(chatId), emptyStats, () => emptyStats());
-  await tg("sendMessage", { chat_id: chatId, text: "Прогресс сброшен. /play — начать заново." });
+  await tg("sendMessage", { chat_id: chatId, text: "Прогресс сброшен. /play — начать заново.", reply_markup: await mainReplyKeyboard(chatId) });
 }
 
 async function handleCount(chatId) {
   const vocab = await getVocab(chatId);
-  await tg("sendMessage", { chat_id: chatId, text: `В словаре сейчас ${vocab.length} слов.` });
+  await tg("sendMessage", { chat_id: chatId, text: `В словаре сейчас ${vocab.length} слов.`, reply_markup: await mainReplyKeyboard(chatId) });
 }
 
 // Разовая команда для перехода на приватные (по чату) словари: раньше был
@@ -1665,6 +1924,44 @@ async function handleSetTopic(chatId, argText) {
   await tg("sendMessage", { chat_id: chatId, text: msg });
 }
 
+// Только для админов: то же самое, что /delete, но для словаря КОНКРЕТНОГО
+// ДРУГОГО чата — первая строка после команды это @username или chat_id,
+// дальше по одному English-термину на строку (как в /delete).
+async function handleDeleteFrom(chatId, argText) {
+  if (!(await isAdmin(chatId))) {
+    await tg("sendMessage", { chat_id: chatId, text: "Эта команда недоступна." });
+    return;
+  }
+  const lines = argText
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+  const targetRaw = lines[0];
+  if (!targetRaw) {
+    await tg("sendMessage", {
+      chat_id: chatId,
+      text: "Формат:\n/deletefrom @username (или chat_id)\nEnglish term 1\nEnglish term 2\n...",
+    });
+    return;
+  }
+  const targetId = await resolveTarget(targetRaw);
+  if (!targetId) {
+    await tg("sendMessage", { chat_id: chatId, text: `Не нашла «${targetRaw}» — проверь @username или chat_id (см. /students).` });
+    return;
+  }
+  const termLines = lines.slice(1);
+  if (!termLines.length) {
+    await tg("sendMessage", { chat_id: chatId, text: "Не нашла ни одного термина после первой строки." });
+    return;
+  }
+  const terms = termLines.map(extractEnForDelete).filter(Boolean);
+  const { removedCount, total } = await deleteWords(targetId, terms);
+  const notFound = terms.length - removedCount;
+  let msg = `🗑 Удалила у ${targetRaw}: ${removedCount}. Осталось у него в словаре: ${total}.`;
+  if (notFound > 0) msg += `\nНе нашла: ${notFound}.`;
+  await tg("sendMessage", { chat_id: chatId, text: msg });
+}
+
 // Только для админов: показывает весь словарь конкретного другого чата —
 // сгруппированный по темам (сначала общие слова, потом по каждой теме),
 // разбитый на несколько сообщений, если не влезает в одно (лимит Telegram —
@@ -1786,10 +2083,8 @@ async function handleBulkAdd(chatId, text) {
   if (badLines.length) {
     msg += `\nНе распознано строк: ${badLines.length}${badLines.length <= 5 ? " — " + badLines.join(" | ") : ""}.`;
   }
-  await tg("sendMessage", { chat_id: chatId, text: msg });
+  await tg("sendMessage", { chat_id: chatId, text: msg, reply_markup: await mainReplyKeyboard(chatId) });
 }
-
-// Пытается "забрать" текущий вопрос для обработки ровно один раз: если два
 // запроса (например, из-за повторной доставки Telegram или очень быстрого
 // повторного нажатия) придут почти одновременно, обработает его только тот,
 // кто успеет записать consumed:true первым — второй получит null и не будет
@@ -2141,6 +2436,9 @@ async function handleMessage(message) {
   }
   if (/^\/settopic(@\w+)?\s*/i.test(text)) {
     return handleSetTopic(chatId, text.replace(/^\/settopic(@\w+)?\s*/i, ""));
+  }
+  if (/^\/deletefrom(@\w+)?\s*/i.test(text)) {
+    return handleDeleteFrom(chatId, text.replace(/^\/deletefrom(@\w+)?\s*/i, ""));
   }
   if (/^\/viewvocab(@\w+)?\s*/i.test(text)) {
     return handleViewVocab(chatId, text.replace(/^\/viewvocab(@\w+)?\s*/i, ""));
