@@ -583,11 +583,13 @@ function buildTensesQuestion(forbiddenText) {
 function buildNegationQuestion(forbiddenText) {
   const AUX = { present3rd: "doesn't", presentOther: "don't", past: "didn't" };
   for (let attempt = 0; attempt < 25; attempt++) {
-    const subject = GRAMMAR_SUBJECTS[Math.floor(Math.random() * GRAMMAR_SUBJECTS.length)];
+    const subject = RU_SENTENCE_SUBJECTS[Math.floor(Math.random() * RU_SENTENCE_SUBJECTS.length)];
     const verb = GRAMMAR_VERBS[Math.floor(Math.random() * GRAMMAR_VERBS.length)];
     const tense = Math.random() < 0.5 ? "present" : "past";
     if (verb.base.toLowerCase() === verb.past.toLowerCase()) continue; // избегаем "read"-подобных совпадений форм
     const context = contextFor(subject, verb);
+    const markers = RU_TIME_MARKERS[tense];
+    const marker = markers[Math.floor(Math.random() * markers.length)];
 
     const correctAux = tense === "present" ? (subject.is3rd ? AUX.present3rd : AUX.presentOther) : AUX.past;
     const otherAuxes = [AUX.present3rd, AUX.presentOther, AUX.past].filter((a) => a !== correctAux);
@@ -610,9 +612,12 @@ function buildNegationQuestion(forbiddenText) {
     const correctPos = order.indexOf(0);
     const options = order.map((i) => candidates[i]);
 
+    const ruClause = ruConjugate(verb, subject, tense);
+    const ruSentence = `${subject.ru} не ${ruClause} ${verb.contextRu} ${marker}`;
+
     return {
       correctText,
-      questionLabel: `${subject.pron} + ${verb.ru} ${verb.contextRu} — отрицание, ${tense === "present" ? "Present" : "Past"} Simple`,
+      questionLabel: ruSentence.charAt(0).toUpperCase() + ruSentence.slice(1),
       options,
       correctPos,
     };
@@ -625,19 +630,24 @@ function buildNegationQuestion(forbiddenText) {
 // are/was/were), половина — действие (нужен обычный глагол). Среди
 // неверных вариантов — как раз путаница между двумя типами конструкций.
 const STATE_ADJECTIVES = [
-  { adj: "tired", ru: "уставший/-ая" },
-  { adj: "happy", ru: "счастливый/-ая" },
-  { adj: "hungry", ru: "голодный/-ая" },
-  { adj: "late", ru: "опаздывающий/-ая" },
-  { adj: "busy", ru: "занятый/-ая" },
-  { adj: "ready", ru: "готовый/-ая" },
-  { adj: "sad", ru: "грустный/-ая" },
-  { adj: "angry", ru: "злой/злая" },
-  { adj: "at home", ru: "дома" },
-  { adj: "at work", ru: "на работе" },
-  { adj: "a doctor", ru: "врач" },
-  { adj: "a teacher", ru: "учитель/-ница" },
+  { adj: "tired", m: "уставший", f: "уставшая", pl: "уставшие" },
+  { adj: "happy", m: "счастливый", f: "счастливая", pl: "счастливые" },
+  { adj: "hungry", m: "голодный", f: "голодная", pl: "голодные" },
+  { adj: "late", m: "опаздывающий", f: "опаздывающая", pl: "опаздывающие" },
+  { adj: "busy", m: "занятый", f: "занятая", pl: "занятые" },
+  { adj: "ready", m: "готовый", f: "готовая", pl: "готовые" },
+  { adj: "sad", m: "грустный", f: "грустная", pl: "грустные" },
+  { adj: "angry", m: "злой", f: "злая", pl: "злые" },
+  { adj: "at home", m: "дома", f: "дома", pl: "дома" },
+  { adj: "at work", m: "на работе", f: "на работе", pl: "на работе" },
+  { adj: "a doctor", m: "врач", f: "врач", pl: "врачи" },
+  { adj: "a teacher", m: "учитель", f: "учительница", pl: "учителя" },
 ];
+
+function stateAdjRu(state, subject) {
+  if (subject.isPlural) return state.pl;
+  return subject.gender === "f" ? state.f : state.m;
+}
 
 function beForm(subject, tense) {
   if (tense === "present") {
@@ -649,19 +659,22 @@ function beForm(subject, tense) {
 
 function buildBeVsVerbQuestion(forbiddenText) {
   for (let attempt = 0; attempt < 25; attempt++) {
-    const subject = GRAMMAR_SUBJECTS[Math.floor(Math.random() * GRAMMAR_SUBJECTS.length)];
+    const subject = RU_SENTENCE_SUBJECTS[Math.floor(Math.random() * RU_SENTENCE_SUBJECTS.length)];
     const tense = Math.random() < 0.5 ? "present" : "past";
     const wantState = Math.random() < 0.5;
+    const markers = RU_TIME_MARKERS[tense];
+    const marker = markers[Math.floor(Math.random() * markers.length)];
 
     let correctText;
-    let questionLabel;
+    let ruSentence;
     let candidates;
 
     if (wantState) {
       const state = STATE_ADJECTIVES[Math.floor(Math.random() * STATE_ADJECTIVES.length)];
       const be = beForm(subject, tense);
       correctText = `${subject.pron} ${be} ${state.adj}`;
-      questionLabel = `${subject.pron} — ${state.ru}`;
+      const beRu = tense === "present" ? (subject.isPlural ? "" : "") : subject.isPlural ? "были" : subject.gender === "f" ? "была" : "был";
+      ruSentence = tense === "present" ? `${subject.ru} ${stateAdjRu(state, subject)} ${marker}` : `${subject.ru} ${beRu} ${stateAdjRu(state, subject)} ${marker}`;
 
       const verb1 = GRAMMAR_VERBS[Math.floor(Math.random() * GRAMMAR_VERBS.length)];
       const verb2 = GRAMMAR_VERBS[Math.floor(Math.random() * GRAMMAR_VERBS.length)];
@@ -678,7 +691,8 @@ function buildBeVsVerbQuestion(forbiddenText) {
       const verb = GRAMMAR_VERBS[Math.floor(Math.random() * GRAMMAR_VERBS.length)];
       const context = contextFor(subject, verb);
       correctText = `${subject.pron} ${conjugate(subject, verb, tense, "affirmative")} ${context}`;
-      questionLabel = `${subject.pron} + ${verb.ru} ${verb.contextRu} — действие, ${tense === "present" ? "Present" : "Past"} Simple`;
+      const ruClause = ruConjugate(verb, subject, tense);
+      ruSentence = `${subject.ru} ${ruClause} ${verb.contextRu} ${marker}`;
 
       const be = beForm(subject, tense);
       const otherBe = tense === "present" ? beForm(subject, "past") : beForm(subject, "present");
@@ -700,6 +714,7 @@ function buildBeVsVerbQuestion(forbiddenText) {
     const order = shuffle(candidates.map((_, i) => i));
     const correctPos = order.indexOf(0);
     const options = order.map((i) => candidates[i]);
+    const questionLabel = ruSentence.charAt(0).toUpperCase() + ruSentence.slice(1);
 
     return { correctText, questionLabel, options, correctPos };
   }
@@ -720,7 +735,7 @@ const TIME_MARKERS_PAST = [
 ];
 
 function buildV2VsQuestion(forbiddenText) {
-  const thirdPersonSubjects = GRAMMAR_SUBJECTS.filter((s) => s.is3rd);
+  const thirdPersonSubjects = RU_SENTENCE_SUBJECTS.filter((s) => s.is3rd);
   for (let attempt = 0; attempt < 25; attempt++) {
     const subject = thirdPersonSubjects[Math.floor(Math.random() * thirdPersonSubjects.length)];
     const verb = GRAMMAR_VERBS[Math.floor(Math.random() * GRAMMAR_VERBS.length)];
@@ -752,9 +767,12 @@ function buildV2VsQuestion(forbiddenText) {
     const correctPos = order.indexOf(0);
     const options = order.map((i) => candidates[i]);
 
+    const ruClause = ruConjugate(verb, subject, wantPresent ? "present" : "past");
+    const ruSentence = `${subject.ru} ${ruClause} ${verb.contextRu} ${marker.ru}`;
+
     return {
       correctText,
-      questionLabel: `${subject.pron} + ${verb.ru} ${verb.contextRu}, «${marker.ru}»`,
+      questionLabel: ruSentence.charAt(0).toUpperCase() + ruSentence.slice(1),
       options,
       correctPos,
     };
