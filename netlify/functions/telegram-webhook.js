@@ -1695,7 +1695,9 @@ async function handleHelp(chatId) {
       "/score — статистика\n" +
       "/count — сколько слов в словаре\n" +
       "/delete <English> — удалить слово (можно сразу список, по одному на строку)\n" +
-      "/reset — сбросить прогресс\n\n" +
+      "/reset — сбросить прогресс\n" +
+      "/hidemenu — убрать нижнее меню (если на телефоне не видно переписку)\n" +
+      "/showmenu — вернуть его обратно\n\n" +
       "Чтобы добавить слова — просто пришли строки вида «English . перевод», " +
       "хоть одну, хоть весь список с урока сразу.",
     reply_markup: await mainReplyKeyboard(chatId),
@@ -1727,6 +1729,20 @@ async function handleReset(chatId) {
 async function handleCount(chatId) {
   const vocab = await getVocab(chatId);
   await tg("sendMessage", { chat_id: chatId, text: `В словаре сейчас ${vocab.length} слов.`, reply_markup: await mainReplyKeyboard(chatId) });
+}
+
+// Убрать/вернуть нижнее меню — на маленьких экранах оно занимает много
+// места и заслоняет переписку, поэтому можно временно спрятать.
+async function handleHideMenu(chatId) {
+  await tg("sendMessage", {
+    chat_id: chatId,
+    text: "Меню внизу скрыто. Все команды по-прежнему работают, если написать их текстом (/mode, /help и т.д.). Вернуть меню — /showmenu.",
+    reply_markup: { remove_keyboard: true },
+  });
+}
+
+async function handleShowMenu(chatId) {
+  await tg("sendMessage", { chat_id: chatId, text: "Меню снова внизу.", reply_markup: await mainReplyKeyboard(chatId) });
 }
 
 // Разовая команда для перехода на приватные (по чату) словари: раньше был
@@ -2380,6 +2396,8 @@ async function handleMessage(message) {
   if (text === BTN_IRREGULAR) return handleModeIrregular(chatId);
   if (text === BTN_GRAMMAR) return handleModeGrammar(chatId);
   if (text === "/mode") return handleMode(chatId);
+  if (text === "/hidemenu") return handleHideMenu(chatId);
+  if (text === "/showmenu") return handleShowMenu(chatId);
   if (text === "/whoami") {
     await tg("sendMessage", { chat_id: chatId, text: `Твой chat_id: ${chatId}` });
     return;
