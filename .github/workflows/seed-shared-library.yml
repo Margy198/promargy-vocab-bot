@@ -1,0 +1,24 @@
+name: Seed shared vocabulary library
+
+# Срабатывает автоматически при пуше в код функции — ждёт, пока Netlify
+# закончит разворачивать новую версию, и дёргает ?seedshared=..., который
+# загружает стартовый набор общей библиотеки (SEED_SHARED_LIBRARY в коде).
+# Безопасно запускать при каждом будущем пуше — уже загруженные слова
+# просто пропускаются как дубли, ничего не задвоится.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "netlify/functions/**"
+  workflow_dispatch: {}
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for Netlify to finish deploying
+        run: sleep 90
+      - name: Seed the shared library
+        run: |
+          curl -s -w "\nstatus: %{http_code}\n" "https://magical-nougat-d42dea.netlify.app/telegram-webhook?seedshared=sdkffkfk"
