@@ -723,6 +723,45 @@ const SEED_SHARED_LIBRARY_A2 = {
       { en: "Go along this street", ru: "Идите по этой улице" },
       { en: "straight ahead", ru: "прямо впереди" },
     ],
+    "маркетинг": [
+      { en: "audience", ru: "аудитория" },
+      { en: "target group", ru: "целевая группа" },
+      { en: "campaign", ru: "кампания" },
+      { en: "launch a product", ru: "выпустить продукт на рынок" },
+      { en: "budget", ru: "бюджет" },
+      { en: "cost", ru: "стоимость, затраты" },
+      { en: "profit", ru: "прибыль" },
+      { en: "demand", ru: "спрос" },
+      { en: "supply", ru: "предложение на рынке" },
+      { en: "competitor", ru: "конкурент" },
+      { en: "compare", ru: "сравнивать" },
+      { en: "research", ru: "исследование" },
+      { en: "survey", ru: "опрос" },
+      { en: "result", ru: "результат" },
+      { en: "increase", ru: "рост, расти" },
+      { en: "decrease", ru: "снижение, снижаться" },
+      { en: "grow", ru: "расти" },
+      { en: "feedback", ru: "обратная связь" },
+      { en: "review", ru: "отзыв" },
+      { en: "customer service", ru: "обслуживание клиентов" },
+      { en: "loyal customer", ru: "постоянный клиент" },
+      { en: "value for money", ru: "соотношение цены и качества" },
+      { en: "special offer", ru: "спецпредложение" },
+      { en: "content", ru: "контент" },
+      { en: "banner", ru: "баннер" },
+      { en: "newsletter", ru: "рассылка" },
+      { en: "subscriber", ru: "подписчик" },
+      { en: "follower", ru: "подписчик в соцсетях" },
+      { en: "influencer", ru: "блогер, инфлюенсер" },
+      { en: "share", ru: "делиться, репостить" },
+      { en: "comment", ru: "комментарий, комментировать" },
+      { en: "order", ru: "заказ" },
+      { en: "delivery", ru: "доставка" },
+      { en: "supplier", ru: "поставщик" },
+      { en: "presentation", ru: "презентация" },
+      { en: "deadline", ru: "срок сдачи" },
+      { en: "word of mouth", ru: "сарафанное радио" },
+    ],
   },
 };
 
@@ -1772,6 +1811,43 @@ const SEED_SHARED_LIBRARY_A1 = {
       { en: "right", ru: "правильный, правый" },
       { en: "wrong", ru: "неправильный" },
     ],
+    "маркетинг": [
+      { en: "brand", ru: "бренд" },
+      { en: "company", ru: "компания" },
+      { en: "product", ru: "продукт, товар" },
+      { en: "service", ru: "услуга" },
+      { en: "customer", ru: "клиент, покупатель" },
+      { en: "market", ru: "рынок" },
+      { en: "price", ru: "цена" },
+      { en: "sale", ru: "продажа" },
+      { en: "sales", ru: "продажи, объём продаж" },
+      { en: "discount", ru: "скидка" },
+      { en: "ad", ru: "реклама (одно объявление)" },
+      { en: "advertising", ru: "реклама (сфера, деятельность)" },
+      { en: "advertise", ru: "рекламировать" },
+      { en: "promote", ru: "продвигать" },
+      { en: "buy", ru: "покупать" },
+      { en: "sell", ru: "продавать" },
+      { en: "offer", ru: "предложение" },
+      { en: "free", ru: "бесплатный" },
+      { en: "cheap", ru: "дешёвый" },
+      { en: "expensive", ru: "дорогой" },
+      { en: "quality", ru: "качество" },
+      { en: "popular", ru: "популярный" },
+      { en: "logo", ru: "логотип" },
+      { en: "slogan", ru: "слоган" },
+      { en: "packaging", ru: "упаковка" },
+      { en: "website", ru: "сайт" },
+      { en: "online store", ru: "интернет-магазин" },
+      { en: "social media", ru: "соцсети" },
+      { en: "post", ru: "пост, публикация" },
+      { en: "photo", ru: "фото" },
+      { en: "video", ru: "видео" },
+      { en: "email", ru: "письмо, имейл" },
+      { en: "team", ru: "команда" },
+      { en: "meeting", ru: "встреча, созвон" },
+      { en: "report", ru: "отчёт" },
+    ],
   },
 };
 
@@ -2430,6 +2506,56 @@ const SEED_SHARED_LIBRARY_C1 = {
       { en: "food for thought", ru: "пища для размышлений" },
       { en: "to have second thoughts", ru: "засомневаться" },
     ],
+    "маркетинг": [
+      { en: "product-market fit", ru: "попадание продукта в рынок" },
+      { en: "category creation", ru: "создание новой категории" },
+      { en: "share of voice", ru: "доля бренда в медиапространстве" },
+      { en: "brand equity", ru: "накопленный капитал бренда" },
+      { en: "brand salience", ru: "насколько бренд первым приходит в голову" },
+      { en: "differentiation", ru: "чем мы отличаемся от остальных" },
+      { en: "commoditize", ru: "обезличить, свести к цене" },
+      { en: "price elasticity", ru: "чувствительность спроса к цене" },
+      { en: "margin", ru: "маржа" },
+      { en: "payback period", ru: "срок окупаемости" },
+      { en: "blended CAC", ru: "усреднённая стоимость привлечения по всем каналам" },
+      { en: "incrementality", ru: "реальный прирост именно от канала" },
+      { en: "halo effect", ru: "эффект ореола, побочная польза для других каналов" },
+      { en: "cannibalization", ru: "каннибализация, отъедание у своего же канала" },
+      { en: "audience saturation", ru: "насыщение аудитории" },
+      { en: "diminishing returns", ru: "убывающая отдача от вложений" },
+      { en: "media mix", ru: "распределение бюджета по каналам" },
+      { en: "cohort", ru: "когорта" },
+      { en: "statistical significance", ru: "статистическая значимость" },
+      { en: "directional data", ru: "данные, задающие направление, но не точные" },
+      { en: "proxy metric", ru: "метрика-заместитель" },
+      { en: "vanity metric", ru: "красивая метрика, не связанная с деньгами" },
+      { en: "north star metric", ru: "главная метрика продукта" },
+      { en: "narrative", ru: "нарратив, история, которую мы продаём" },
+      { en: "reframe", ru: "сместить рамку, подать под другим углом" },
+      { en: "positioning statement", ru: "формулировка позиционирования" },
+      { en: "land and expand", ru: "зайти малым, потом расширяться внутри клиента" },
+      { en: "flywheel", ru: "маховик, самораскручивающийся рост" },
+      { en: "moat", ru: "устойчивое преимущество, которое сложно скопировать" },
+      { en: "table stakes", ru: "базовый минимум, без которого не заходишь на рынок" },
+      { en: "headwinds", ru: "встречные обстоятельства" },
+      { en: "tailwinds", ru: "попутные обстоятельства, рынок помогает" },
+      { en: "de-risk", ru: "снизить риск заранее" },
+      { en: "sunk cost", ru: "уже потраченное, что не вернуть" },
+      { en: "hedge", ru: "подстраховаться" },
+      { en: "greenlight", ru: "дать зелёный свет" },
+      { en: "sunset a product", ru: "закрыть, вывести из линейки" },
+      { en: "soft launch", ru: "тихий запуск на узкой аудитории" },
+      { en: "socialize an idea", ru: "обкатать идею на людях до решения" },
+      { en: "get buy-in", ru: "заручиться поддержкой" },
+      { en: "make the case for smth", ru: "обосновать, аргументировать" },
+      { en: "build consensus", ru: "свести всех к общему решению" },
+      { en: "caveat", ru: "оговорка, важное «но»" },
+      { en: "back-of-the-envelope", ru: "прикидка на коленке" },
+      { en: "take smth with a grain of salt", ru: "относиться с осторожностью" },
+      { en: "overpromise and underdeliver", ru: "наобещать и не вытянуть" },
+      { en: "set expectations", ru: "обозначить, чего ждать" },
+      { en: "manage up", ru: "выстраивать коммуникацию с руководством" },
+    ],
   },
 };
 
@@ -2888,6 +3014,40 @@ const SEED_SHARED_LIBRARY_B1 = {
       { en: "word of mouth", ru: "сарафанное радио" },
       { en: "to recommend", ru: "рекомендовать" },
       { en: "review", ru: "отзыв" },
+    ],
+    "маркетинг": [
+      { en: "target audience", ru: "целевая аудитория" },
+      { en: "brand awareness", ru: "узнаваемость бренда" },
+      { en: "launch", ru: "запуск (продукта, кампании)" },
+      { en: "run a campaign", ru: "вести кампанию" },
+      { en: "reach", ru: "охват" },
+      { en: "engagement", ru: "вовлечённость" },
+      { en: "lead", ru: "лид, потенциальный клиент" },
+      { en: "landing page", ru: "посадочная страница, лендинг" },
+      { en: "conversion", ru: "конверсия" },
+      { en: "conversion rate", ru: "процент конверсии" },
+      { en: "click-through rate (CTR)", ru: "кликабельность" },
+      { en: "ad spend", ru: "расходы на рекламу" },
+      { en: "paid ads", ru: "платная реклама" },
+      { en: "organic traffic", ru: "органический трафик" },
+      { en: "copy", ru: "рекламный текст" },
+      { en: "headline", ru: "заголовок" },
+      { en: "call to action (CTA)", ru: "призыв к действию" },
+      { en: "creative", ru: "рекламный материал, креатив" },
+      { en: "asset", ru: "материал (баннер, видео, текст)" },
+      { en: "channel", ru: "канал" },
+      { en: "placement", ru: "место размещения" },
+      { en: "impression", ru: "показ" },
+      { en: "audience segment", ru: "сегмент аудитории" },
+      { en: "brief", ru: "бриф, техзадание" },
+      { en: "deliverable", ru: "то, что сдаём по итогу" },
+      { en: "stakeholder", ru: "тот, кого касается решение" },
+      { en: "milestone", ru: "контрольная точка" },
+      { en: "mock-up", ru: "макет" },
+      { en: "reach out to smb", ru: "написать, связаться" },
+      { en: "follow up", ru: "вернуться к вопросу, напомнить" },
+      { en: "sign off on smth", ru: "утвердить, согласовать" },
+      { en: "share of the market", ru: "доля рынка" },
     ],
   },
 };
@@ -3476,6 +3636,60 @@ const SEED_SHARED_LIBRARY_B2 = {
       { en: "broadly speaking", ru: "в общем говоря" },
       { en: "to bear in mind", ru: "иметь в виду" },
     ],
+    "маркетинг": [
+      { en: "positioning", ru: "позиционирование" },
+      { en: "value proposition", ru: "ценностное предложение" },
+      { en: "messaging", ru: "то, как мы говорим о продукте" },
+      { en: "brand voice", ru: "голос бренда, тон коммуникации" },
+      { en: "tone of voice", ru: "тональность" },
+      { en: "go-to-market (GTM)", ru: "план вывода на рынок" },
+      { en: "funnel", ru: "воронка" },
+      { en: "top of funnel", ru: "верх воронки" },
+      { en: "bottom of funnel", ru: "низ воронки, ближе к покупке" },
+      { en: "drop-off", ru: "отвал, точка, где люди уходят" },
+      { en: "bounce rate", ru: "показатель отказов" },
+      { en: "acquisition", ru: "привлечение" },
+      { en: "retention", ru: "удержание" },
+      { en: "churn", ru: "отток клиентов" },
+      { en: "customer acquisition cost (CAC)", ru: "стоимость привлечения клиента" },
+      { en: "lifetime value (LTV)", ru: "сколько клиент приносит за всё время" },
+      { en: "return on ad spend (ROAS)", ru: "окупаемость рекламных расходов" },
+      { en: "attribution", ru: "атрибуция, кому засчитываем результат" },
+      { en: "benchmark", ru: "ориентир, с чем сравниваем" },
+      { en: "baseline", ru: "базовый уровень до изменений" },
+      { en: "uplift", ru: "прирост относительно базы" },
+      { en: "A/B test", ru: "A/B-тест" },
+      { en: "control group", ru: "контрольная группа" },
+      { en: "retargeting", ru: "ретаргетинг" },
+      { en: "lookalike audience", ru: "похожая аудитория" },
+      { en: "frequency cap", ru: "ограничение частоты показов" },
+      { en: "nurture leads", ru: "прогревать лидов" },
+      { en: "pipeline", ru: "воронка сделок" },
+      { en: "forecast", ru: "прогноз" },
+      { en: "scale", ru: "масштабировать" },
+      { en: "iterate", ru: "дорабатывать по шагам" },
+      { en: "roll out", ru: "раскатывать, выкатывать поэтапно" },
+      { en: "ship", ru: "выпустить, выкатить" },
+      { en: "ramp up", ru: "наращивать обороты" },
+      { en: "pull the plug on smth", ru: "свернуть, отключить" },
+      { en: "double down on smth", ru: "вложиться сильнее в то, что работает" },
+      { en: "move the needle", ru: "дать заметный результат" },
+      { en: "low-hanging fruit", ru: "то, что даёт быстрый эффект малой ценой" },
+      { en: "trade-off", ru: "компромисс, чем приходится жертвовать" },
+      { en: "rule of thumb", ru: "практическое правило" },
+      { en: "ballpark figure", ru: "примерная цифра" },
+      { en: "underperform", ru: "не дотягивать до плана" },
+      { en: "outperform", ru: "обгонять план" },
+      { en: "burn budget", ru: "сжигать бюджет" },
+      { en: "own smth", ru: "отвечать за направление" },
+      { en: "align on smth", ru: "договориться, синхронизироваться" },
+      { en: "push back", ru: "возразить, не согласиться" },
+      { en: "loop smb in", ru: "подключить человека к вопросу" },
+      { en: "circle back", ru: "вернуться к теме позже" },
+      { en: "bandwidth", ru: "свободный ресурс времени и сил" },
+      { en: "heads-up", ru: "предупреждение заранее" },
+      { en: "takeaway", ru: "главный вывод" },
+    ],
   },
 };
 
@@ -3678,54 +3892,67 @@ const GRAMMAR_EXERCISE_TYPES = {
   negation: "❌ Отрицания: don't / doesn't / didn't",
   tobe: "🔵 To be vs. обычный глагол",
   v2vs: "🔁 V2 vs Vs (прошедшее / настоящее)",
+  vsV1: "🔤 Vs vs V1 (He/She vs We, только настоящее)",
+  psVsPrPs: "🆕 Past Simple vs Present Perfect (для начинающих)",
   collocations: "🤝 give / get / take / have",
   modalMeaning: "🧭 Модальные — по смыслу",
   modalTo: "🔧 Модальные — нужна ли to",
   futureInPast: "⏳ Future in the Past vs Future Simple",
   mix: "🎲 Микс всех форматов",
 };
-const GRAMMAR_REAL_EXERCISE_TYPES = ["tenses", "negation", "tobe", "v2vs", "collocations", "modalMeaning", "modalTo", "futureInPast"];
+const GRAMMAR_REAL_EXERCISE_TYPES = [
+  "tenses",
+  "negation",
+  "tobe",
+  "v2vs",
+  "vsV1",
+  "psVsPrPs",
+  "collocations",
+  "modalMeaning",
+  "modalTo",
+  "futureInPast",
+];
 
 const GRAMMAR_VERBS = [
-  { base: "go", past: "went", ru: "идти / ходить", contextEn: "to school", contextRu: "в школу",
+  { base: "go", participle: "gone", past: "went", ru: "идти / ходить", contextEn: "to school", contextRu: "в школу",
     ruInf: "идти", ru3sg: "идёт", ru1pl: "идём", ru3pl: "идут", ruPastM: "шёл", ruPastF: "шла", ruPastPl: "шли" },
-  { base: "go", past: "went", ru: "идти / ходить", contextEn: "to the cinema", contextRu: "в кино",
+  { base: "go", participle: "gone", past: "went", ru: "идти / ходить", contextEn: "to the cinema", contextRu: "в кино",
     ruInf: "идти", ru3sg: "идёт", ru1pl: "идём", ru3pl: "идут", ruPastM: "шёл", ruPastF: "шла", ruPastPl: "шли" },
-  { base: "play", past: "played", ru: "играть", contextEn: "football", contextRu: "в футбол",
+  { base: "play", participle: "played", past: "played", ru: "играть", contextEn: "football", contextRu: "в футбол",
     ruInf: "играть", ru3sg: "играет", ru1pl: "играем", ru3pl: "играют", ruPastM: "играл", ruPastF: "играла", ruPastPl: "играли" },
-  { base: "play", past: "played", ru: "играть", contextEn: "the guitar", contextRu: "на гитаре",
+  { base: "play", participle: "played", past: "played", ru: "играть", contextEn: "the guitar", contextRu: "на гитаре",
     ruInf: "играть", ru3sg: "играет", ru1pl: "играем", ru3pl: "играют", ruPastM: "играл", ruPastF: "играла", ruPastPl: "играли" },
-  { base: "watch", past: "watched", ru: "смотреть", contextEn: "a film", contextRu: "фильм",
+  { base: "watch", participle: "watched", past: "watched", ru: "смотреть", contextEn: "a film", contextRu: "фильм",
     ruInf: "смотреть", ru3sg: "смотрит", ru1pl: "смотрим", ru3pl: "смотрят", ruPastM: "смотрел", ruPastF: "смотрела", ruPastPl: "смотрели" },
-  { base: "work", past: "worked", ru: "работать", contextEn: "at home", contextRu: "дома",
+  { base: "work", participle: "worked", past: "worked", ru: "работать", contextEn: "at home", contextRu: "дома",
     ruInf: "работать", ru3sg: "работает", ru1pl: "работаем", ru3pl: "работают", ruPastM: "работал", ruPastF: "работала", ruPastPl: "работали" },
-  { base: "study", past: "studied", ru: "учить", contextEn: "English", contextRu: "английский",
+  { base: "study", participle: "studied", past: "studied", ru: "учить", contextEn: "English", contextRu: "английский",
     ruInf: "учить", ru3sg: "учит", ru1pl: "учим", ru3pl: "учат", ruPastM: "учил", ruPastF: "учила", ruPastPl: "учили" },
-  { base: "eat", past: "ate", ru: "есть (кушать)", contextEn: "breakfast", contextRu: "завтрак",
+  { base: "eat", participle: "eaten", past: "ate", ru: "есть (кушать)", contextEn: "breakfast", contextRu: "завтрак",
     ruInf: "есть", ru3sg: "ест", ru1pl: "едим", ru3pl: "едят", ruPastM: "ел", ruPastF: "ела", ruPastPl: "ели" },
-  { base: "drink", past: "drank", ru: "пить", contextEn: "coffee", contextRu: "кофе",
+  { base: "drink", participle: "drunk", past: "drank", ru: "пить", contextEn: "coffee", contextRu: "кофе",
     ruInf: "пить", ru3sg: "пьёт", ru1pl: "пьём", ru3pl: "пьют", ruPastM: "пил", ruPastF: "пила", ruPastPl: "пили" },
-  { base: "read", past: "read", ru: "читать", contextEn: "a book", contextRu: "книгу",
+  { base: "read", participle: "read", past: "read", ru: "читать", contextEn: "a book", contextRu: "книгу",
     ruInf: "читать", ru3sg: "читает", ru1pl: "читаем", ru3pl: "читают", ruPastM: "читал", ruPastF: "читала", ruPastPl: "читали" },
-  { base: "write", past: "wrote", ru: "писать", contextEn: "a letter", contextRu: "письмо",
+  { base: "write", participle: "written", past: "wrote", ru: "писать", contextEn: "a letter", contextRu: "письмо",
     ruInf: "писать", ru3sg: "пишет", ru1pl: "пишем", ru3pl: "пишут", ruPastM: "писал", ruPastF: "писала", ruPastPl: "писали" },
-  { base: "speak", past: "spoke", ru: "говорить", contextEn: "English", contextRu: "по-английски",
+  { base: "speak", participle: "spoken", past: "spoke", ru: "говорить", contextEn: "English", contextRu: "по-английски",
     ruInf: "говорить", ru3sg: "говорит", ru1pl: "говорим", ru3pl: "говорят", ruPastM: "говорил", ruPastF: "говорила", ruPastPl: "говорили" },
-  { base: "come", past: "came", ru: "приходить", contextEn: "home late", contextRu: "домой поздно",
+  { base: "come", participle: "come", past: "came", ru: "приходить", contextEn: "home late", contextRu: "домой поздно",
     ruInf: "приходить", ru3sg: "приходит", ru1pl: "приходим", ru3pl: "приходят", ruPastM: "приходил", ruPastF: "приходила", ruPastPl: "приходили" },
-  { base: "see", past: "saw", ru: "видеть", contextEn: "my friends", contextRu: "своих друзей",
+  { base: "see", participle: "seen", past: "saw", ru: "видеть", contextEn: "my friends", contextRu: "своих друзей",
     ruInf: "видеть", ru3sg: "видит", ru1pl: "видим", ru3pl: "видят", ruPastM: "видел", ruPastF: "видела", ruPastPl: "видели" },
-  { base: "make", past: "made", ru: "делать (создавать)", contextEn: "dinner", contextRu: "ужин",
+  { base: "make", participle: "made", past: "made", ru: "делать (создавать)", contextEn: "dinner", contextRu: "ужин",
     ruInf: "делать", ru3sg: "делает", ru1pl: "делаем", ru3pl: "делают", ruPastM: "делал", ruPastF: "делала", ruPastPl: "делали" },
-  { base: "take", past: "took", ru: "брать", contextEn: "a taxi", contextRu: "такси",
+  { base: "take", participle: "taken", past: "took", ru: "брать", contextEn: "a taxi", contextRu: "такси",
     ruInf: "брать", ru3sg: "берёт", ru1pl: "берём", ru3pl: "берут", ruPastM: "брал", ruPastF: "брала", ruPastPl: "брали" },
-  { base: "do", past: "did", ru: "делать", irregular3rd: "does", contextEn: "my homework", contextRu: "домашнюю работу",
+  { base: "do", participle: "done", past: "did", ru: "делать", irregular3rd: "does", contextEn: "my homework", contextRu: "домашнюю работу",
     ruInf: "делать", ru3sg: "делает", ru1pl: "делаем", ru3pl: "делают", ruPastM: "делал", ruPastF: "делала", ruPastPl: "делали" },
-  { base: "help", past: "helped", ru: "помогать", contextEn: "my mother", contextRu: "маме",
+  { base: "help", participle: "helped", past: "helped", ru: "помогать", contextEn: "my mother", contextRu: "маме",
     ruInf: "помогать", ru3sg: "помогает", ru1pl: "помогаем", ru3pl: "помогают", ruPastM: "помогал", ruPastF: "помогала", ruPastPl: "помогали" },
-  { base: "call", past: "called", ru: "звонить", contextEn: "my friend", contextRu: "другу",
+  { base: "call", participle: "called", past: "called", ru: "звонить", contextEn: "my friend", contextRu: "другу",
     ruInf: "звонить", ru3sg: "звонит", ru1pl: "звоним", ru3pl: "звонят", ruPastM: "звонил", ruPastF: "звонила", ruPastPl: "звонили" },
-  { base: "clean", past: "cleaned", ru: "убирать", contextEn: "the house", contextRu: "дом",
+  { base: "clean", participle: "cleaned", past: "cleaned", ru: "убирать", contextEn: "the house", contextRu: "дом",
     ruInf: "убирать", ru3sg: "убирает", ru1pl: "убираем", ru3pl: "убирают", ruPastM: "убирал", ruPastF: "убирала", ruPastPl: "убирали" },
 ];
 
@@ -4071,6 +4298,113 @@ function buildV2VsQuestion(forbiddenText) {
   return null;
 }
 
+// --- Формат "vsV1": Vs vs V1, только внутри Present Simple ---
+// В отличие от v2vs (там путаница между настоящим и прошедшим), здесь
+// сравнение — внутри ОДНОГО времени: нужна ли -s или нет. Специально
+// упрощено до минимальной пары подлежащих — He/She (нужна -s) против We
+// (нужна голая базовая форма, без -s) — чтобы сфокусироваться именно на
+// этом различии, не отвлекаясь на остальные лица.
+const VS_V1_SUBJECTS = RU_SENTENCE_SUBJECTS.filter((s) => s.pron === "He" || s.pron === "She" || s.pron === "We");
+
+function buildVsV1Question(forbiddenText) {
+  for (let attempt = 0; attempt < 25; attempt++) {
+    const subject = VS_V1_SUBJECTS[Math.floor(Math.random() * VS_V1_SUBJECTS.length)];
+    const verb = GRAMMAR_VERBS[Math.floor(Math.random() * GRAMMAR_VERBS.length)];
+    const context = contextFor(subject, verb);
+    const marker = RU_TIME_MARKERS.present[Math.floor(Math.random() * RU_TIME_MARKERS.present.length)];
+
+    const vs = thirdPersonForm(verb);
+    const v1 = verb.base;
+    const correctForm = subject.is3rd ? vs : v1;
+    const correctText = `${subject.pron} ${correctForm} ${context}`;
+    if (forbiddenText && correctText.toLowerCase() === forbiddenText.toLowerCase()) continue;
+
+    const wrongForm = subject.is3rd ? v1 : vs; // главная путаница: Vs вместо V1 или наоборот
+    const candidates = [
+      correctText,
+      `${subject.pron} ${wrongForm} ${context}`,
+      `${subject.pron} ${verb.past} ${context}`, // прошедшее вместо настоящего
+      `${subject.pron} ${ingForm(verb)} ${context}`, // -ing вместо простого настоящего
+      `${subject.pron} doesn't ${verb.base} ${context}`,
+      `${subject.pron} don't ${verb.base} ${context}`,
+    ];
+    const uniqueOptions = new Set(candidates.map((c) => c.toLowerCase()));
+    if (uniqueOptions.size !== 6) continue;
+
+    const order = shuffle(candidates.map((_, i) => i));
+    const correctPos = order.indexOf(0);
+    const options = order.map((i) => candidates[i]);
+
+    const ruClause = ruConjugate(verb, subject, "present");
+    const ruSentence = `${subject.ru} ${ruClause} ${verb.contextRu} ${marker}`;
+
+    return {
+      correctText,
+      questionLabel: ruSentence.charAt(0).toUpperCase() + ruSentence.slice(1),
+      options,
+      correctPos,
+    };
+  }
+  return null;
+}
+
+// --- Формат "psVsPrPs": Past Simple vs Present Perfect (для начинающих) ---
+// Самое частое затруднение у русскоговорящих — в русском нет
+// грамматической разницы между "я сделал" и "я уже сделал (сделал к
+// настоящему моменту)", а в английском это два разных времени. Упрощаем
+// правило до уровня новичка: есть конкретное время в прошлом (вчера, два
+// дня назад) — Past Simple; есть "уже"/"только что" без конкретного
+// времени — Present Perfect (have/has + V3).
+const PS_PRPS_MARKERS_PAST = ["вчера", "на прошлой неделе", "два дня назад", "в прошлом году"];
+const PS_PRPS_MARKERS_PERFECT = ["уже", "только что"];
+
+function buildPsVsPrPsQuestion(forbiddenText) {
+  for (let attempt = 0; attempt < 25; attempt++) {
+    const subject = RU_SENTENCE_SUBJECTS[Math.floor(Math.random() * RU_SENTENCE_SUBJECTS.length)];
+    const verb = GRAMMAR_VERBS[Math.floor(Math.random() * GRAMMAR_VERBS.length)];
+    if (verb.base.toLowerCase() === verb.past.toLowerCase() || verb.past.toLowerCase() === verb.participle.toLowerCase()) continue;
+    const context = contextFor(subject, verb);
+    const wantPerfect = Math.random() < 0.5;
+    const haveForm = subject.is3rd && !subject.isPlural ? "has" : "have";
+    const wrongHaveForm = haveForm === "has" ? "have" : "has";
+
+    const correctForm = wantPerfect ? `${haveForm} ${verb.participle}` : verb.past;
+    const marker = wantPerfect
+      ? PS_PRPS_MARKERS_PERFECT[Math.floor(Math.random() * PS_PRPS_MARKERS_PERFECT.length)]
+      : PS_PRPS_MARKERS_PAST[Math.floor(Math.random() * PS_PRPS_MARKERS_PAST.length)];
+
+    const correctText = `${subject.pron} ${correctForm} ${context}`;
+    if (forbiddenText && correctText.toLowerCase() === forbiddenText.toLowerCase()) continue;
+
+    const wrongTenseForm = wantPerfect ? verb.past : `${haveForm} ${verb.participle}`; // главная путаница
+    const candidates = [
+      correctText,
+      `${subject.pron} ${wrongTenseForm} ${context}`,
+      `${subject.pron} ${haveForm} ${verb.past} ${context}`, // have/has + V2 вместо V3
+      `${subject.pron} ${verb.participle} ${context}`, // забыли have/has
+      `${subject.pron} ${verb.base} ${context}`, // забыли прошедшее вообще
+      `${subject.pron} ${wrongHaveForm} ${verb.participle} ${context}`, // неверное согласование have/has
+    ];
+    const uniqueOptions = new Set(candidates.map((c) => c.toLowerCase()));
+    if (uniqueOptions.size !== 6) continue;
+
+    const order = shuffle(candidates.map((_, i) => i));
+    const correctPos = order.indexOf(0);
+    const options = order.map((i) => candidates[i]);
+
+    const ruClause2 = ruConjugate(verb, subject, "past");
+    const ruSentence2 = `${subject.ru} ${ruClause2} ${verb.contextRu} ${marker}`;
+
+    return {
+      correctText,
+      questionLabel: ruSentence2.charAt(0).toUpperCase() + ruSentence2.slice(1),
+      options,
+      correctPos,
+    };
+  }
+  return null;
+}
+
 // --- Формат "collocations": give / get / take / have ---
 // Это не про времена, а про то, какой из четырёх глаголов идёт с
 // конкретным выражением (give advice, get married, take a photo, have
@@ -4354,6 +4688,8 @@ function buildGrammarQuestion(forbiddenText, exerciseType) {
     if (type === "negation") q = buildNegationQuestion(forbiddenText);
     else if (type === "tobe") q = buildBeVsVerbQuestion(forbiddenText);
     else if (type === "v2vs") q = buildV2VsQuestion(forbiddenText);
+    else if (type === "vsV1") q = buildVsV1Question(forbiddenText);
+    else if (type === "psVsPrPs") q = buildPsVsPrPsQuestion(forbiddenText);
     else if (type === "collocations") q = buildCollocationQuestion(forbiddenText);
     else if (type === "modalMeaning") q = buildModalMeaningQuestion(forbiddenText);
     else if (type === "modalTo") q = buildModalToQuestion(forbiddenText);
@@ -4846,13 +5182,13 @@ function statsLine(practicedCount, totalCount) {
 const BTN_VOCAB = "📚 Лексика";
 const BTN_IRREGULAR = "🔄 Неправильные глаголы";
 const BTN_GRAMMAR = "📝 Грамматика";
+const BTN_HIDE = "🔽 Скрыть меню";
 
 async function mainReplyKeyboard(chatId) {
   const admin = await isAdmin(chatId);
   const rows = [
-    [BTN_VOCAB, BTN_IRREGULAR],
-    [BTN_GRAMMAR, "/start"],
-    ["/help"],
+    [BTN_VOCAB, BTN_IRREGULAR, BTN_GRAMMAR],
+    ["/start", BTN_HIDE],
   ];
   if (admin) rows.push(["/students"]);
   return {
@@ -4968,7 +5304,7 @@ async function handleHelp(chatId) {
       "/count — сколько слов в словаре\n" +
       "/delete <English> — удалить слово (можно сразу список, по одному на строку)\n" +
       "/reset — сбросить прогресс\n" +
-      "/hidemenu — убрать нижнее меню (если на телефоне не видно переписку)\n" +
+      "/hidemenu (или кнопка «🔽 Скрыть меню») — убрать нижнее меню (если на телефоне не видно переписку)\n" +
       "/showmenu — вернуть его обратно\n\n" +
       "Чтобы добавить слова — просто пришли строки вида «English . перевод», " +
       "хоть одну, хоть весь список с урока сразу.",
@@ -5819,7 +6155,7 @@ async function handleMessage(message) {
   if (text === BTN_IRREGULAR) return handleModeIrregular(chatId);
   if (text === BTN_GRAMMAR) return handleModeGrammar(chatId);
   if (text === "/mode") return handleMode(chatId);
-  if (text === "/hidemenu") return handleHideMenu(chatId);
+  if (text === "/hidemenu" || text === BTN_HIDE) return handleHideMenu(chatId);
   if (text === "/showmenu") return handleShowMenu(chatId);
   if (text === "/whoami") {
     await tg("sendMessage", { chat_id: chatId, text: `Твой chat_id: ${chatId}` });
