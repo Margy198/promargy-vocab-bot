@@ -53,8 +53,13 @@ async function rememberIdentity(chatId, from) {
   if (!from) return;
   try {
     const existing = await identityStore().get(String(chatId), { type: "json" });
+    // Новым чатам (existing === null) сразу проставляем approved: false —
+    // доступ только по приглашению. У УЖЕ существующих чатов ничего не
+    // трогаем: раз existing содержит их прежние данные, поле approved (или
+    // его отсутствие) сохраняется как было — так все, кто уже пользовался
+    // ботом до этой правки, не теряют доступ автоматически.
     await identityStore().setJSON(String(chatId), {
-      ...(existing || {}),
+      ...(existing || { approved: false }),
       firstName: from.first_name || "",
       lastName: from.last_name || "",
       username: from.username || "",
@@ -5866,6 +5871,12 @@ async function handleCallback(callbackQuery) {
   const messageId = callbackQuery.message.message_id;
   const data = callbackQuery.data;
 
+  const gateIdentity = await identityStore().get(String(chatId), { type: "json" });
+  if (gateIdentity && gateIdentity.approved === false && !(await isAdmin(chatId))) {
+    await log("[callback] blocked: chat not yet approved", chatId);
+    return;
+  }
+
   if (data === "start") {
     const stats = await getStats(chatId);
     await sendQuestion(chatId, stats);
@@ -6064,6 +6075,76 @@ async function notifyAdmins(text) {
   }
 }
 
+// Доступ по приглашению: новые чаты создаются с approved: false (см.
+// rememberIdentity) — эти три команды дают админу управлять этим.
+async function handleApprove(chatId, argText) {
+  if (!(await isAdmin(chatId))) {
+    await tg("sendMessage", { chat_id: chatId, text: "Эта команда недоступна." });
+    return;
+  }
+  const targetRaw = argText.trim();
+  if (!targetRaw) {
+    await tg("sendMessage", { chat_id: chatId, text: "Формат: /approve @username (или chat_id) — см. /pending" });
+    return;
+  }
+  const targetId = await resolveTarget(targetRaw);
+  if (!targetId) {
+    await tg("sendMessage", { chat_id: chatId, text: `Не нашла «${targetRaw}» — проверь @username или chat_id (см. /pending или /students).` });
+    return;
+  }
+  const identity = await identityStore().get(String(targetId), { type: "json" });
+  await identityStore().setJSON(String(targetId), { ...(identity || {}), approved: true });
+  await tg("sendMessage", { chat_id: chatId, text: `✅ Доступ разрешён для ${targetRaw}.` });
+  try {
+    await tg("sendMessage", { chat_id: targetId, text: "✅ Тебе открыт доступ к боту! Нажми /start, чтобы начать." });
+  } catch (err) {
+    // не критично — если у бота нет возможности написать первым (человек ещё не открывал чат), ничего страшного
+  }
+}
+
+async function handleRevoke(chatId, argText) {
+  if (!(await isAdmin(chatId))) {
+    await tg("sendMessage", { chat_id: chatId, text: "Эта команда недоступна." });
+    return;
+  }
+  const targetRaw = argText.trim();
+  if (!targetRaw) {
+    await tg("sendMessage", { chat_id: chatId, text: "Формат: /revoke @username (или chat_id)" });
+    return;
+  }
+  const targetId = await resolveTarget(targetRaw);
+  if (!targetId) {
+    await tg("sendMessage", { chat_id: chatId, text: `Не нашла «${targetRaw}».` });
+    return;
+  }
+  const identity = await identityStore().get(String(targetId), { type: "json" });
+  await identityStore().setJSON(String(targetId), { ...(identity || {}), approved: false });
+  await tg("sendMessage", { chat_id: chatId, text: `🚫 Доступ закрыт для ${targetRaw}.` });
+}
+
+async function handlePending(chatId) {
+  if (!(await isAdmin(chatId))) {
+    await tg("sendMessage", { chat_id: chatId, text: "Эта команда недоступна." });
+    return;
+  }
+  const list = await identityStore().list();
+  const entries = list && list.blobs ? list.blobs : [];
+  const pending = [];
+  for (const entry of entries) {
+    const info = await identityStore().get(entry.key, { type: "json" });
+    if (info && info.approved === false) {
+      const name = [info.firstName, info.lastName].filter(Boolean).join(" ") || "без имени";
+      const uname = info.username ? ` (@${info.username})` : "";
+      pending.push(`• ${name}${uname} — chat_id ${entry.key}`);
+    }
+  }
+  if (!pending.length) {
+    await tg("sendMessage", { chat_id: chatId, text: "Никто не ждёт одобрения." });
+    return;
+  }
+  await tg("sendMessage", { chat_id: chatId, text: `⏳ Ждут доступа:\n${pending.join("\n")}\n\nОдобрить: /approve @username (или chat_id)` });
+}
+
 // Напоминания о практике: если человек не появлялся дольше REMIND_AFTER_MS
 // (и мы не напоминали ему за последние REMIND_MIN_GAP_MS, чтобы не слать
 // каждый день подряд одному и тому же), присылаем ему короткий пинг.
@@ -6136,6 +6217,27 @@ async function handleMessage(message) {
     await notifyAdmins(`👋 Новый пользователь бота: ${name}${uname}, chat_id ${chatId}`);
   }
 
+  // Доступ по приглашению: новые чаты (approved === false) не пускаем
+  // дальше ни к каким командам, кроме /whoami — чтобы человек мог сообщить
+  // свой chat_id учителю для одобрения. У уже существующих пользователей
+  // (approved отсутствует или true) это никак не меняется.
+  const gateIdentity = await identityStore().get(String(chatId), { type: "json" });
+  if (gateIdentity && gateIdentity.approved === false && !(await isAdmin(chatId))) {
+    if (text === "/whoami") {
+      await tg("sendMessage", { chat_id: chatId, text: `Твой chat_id: ${chatId}` });
+      return;
+    }
+    if (/^\/claimadmin(@\w+)?\s*/i.test(text)) {
+      // не блокируем — сама команда сама проверит секрет
+    } else {
+      await tg("sendMessage", {
+        chat_id: chatId,
+        text: `Доступ к этому боту открывается только по приглашению. Отправь этот номер своему преподавателю: ${chatId}`,
+      });
+      return;
+    }
+  }
+
   // Если человек только что написал /register без текста — бот ждёт от
   // него имя следующим сообщением. Перехватываем это здесь, раньше любых
   // других команд/разбора слов.
@@ -6171,6 +6273,7 @@ async function handleMessage(message) {
       return;
     }
     await adminStore().setJSON(String(chatId), { grantedAt: new Date().toISOString() });
+    await identityStore().setJSON(String(chatId), { ...(identity || {}), approved: true });
     await tg("sendMessage", {
       chat_id: chatId,
       text: "Готово — теперь тебе доступна команда /students.",
@@ -6189,6 +6292,13 @@ async function handleMessage(message) {
     await tg("sendMessage", { chat_id: chatId, text: `Готово, записала: ${label}` });
     return;
   }
+  if (/^\/approve(@\w+)?\s*/i.test(text)) {
+    return handleApprove(chatId, text.replace(/^\/approve(@\w+)?\s*/i, ""));
+  }
+  if (/^\/revoke(@\w+)?\s*/i.test(text)) {
+    return handleRevoke(chatId, text.replace(/^\/revoke(@\w+)?\s*/i, ""));
+  }
+  if (text === "/pending") return handlePending(chatId);
   if (text === "/students") {
     if (!(await isAdmin(chatId))) {
       await tg("sendMessage", { chat_id: chatId, text: "Эта команда недоступна." });
