@@ -39,6 +39,10 @@ const sharedLibraryStore = () => getStore("vocab-bot-shared-library", { consiste
 // Секрет можно передать и другому человеку (например, помощнику), если ему
 // тоже нужен доступ к /students.
 const CLAIM_ADMIN_SECRET = "GCfVjhtMz9-wJSgQ";
+// Отдельный секрет для пригласительной ссылки: t.me/<имя_бота>?start=<INVITE_SECRET>
+// Кто угодно с этой ссылкой получает доступ мгновенно, без ручного /approve.
+// Не совпадает с CLAIM_ADMIN_SECRET — этим секретом нельзя получить права админа.
+const INVITE_SECRET = "PromargyStart2026";
 
 async function isAdmin(chatId) {
   const v = await adminStore().get(String(chatId), { type: "json" });
@@ -53,6 +57,10 @@ async function rememberIdentity(chatId, from) {
   if (!from) return;
   try {
     const existing = await identityStore().get(String(chatId), { type: "json" });
+    const today = new Date().toISOString().slice(0, 10);
+    const activeDays = existing && Array.isArray(existing.activeDays) ? [...existing.activeDays] : [];
+    if (!activeDays.includes(today)) activeDays.push(today);
+    const firstSeen = (existing && existing.firstSeen) || new Date().toISOString();
     // Новым чатам (existing === null) сразу проставляем approved: false —
     // доступ только по приглашению. У УЖЕ существующих чатов ничего не
     // трогаем: раз existing содержит их прежние данные, поле approved (или
@@ -64,6 +72,8 @@ async function rememberIdentity(chatId, from) {
       lastName: from.last_name || "",
       username: from.username || "",
       lastSeen: new Date().toISOString(),
+      firstSeen,
+      activeDays,
     });
   } catch (err) {
     // не критично
@@ -3698,10 +3708,1778 @@ const SEED_SHARED_LIBRARY_B2 = {
   },
 };
 
+// --- Третий блок: деловой английский (business English), объединено из
+// отдельного корпуса по уровням A1-C1, темы с приставкой деловой_ — чтобы
+// не конфликтовать с уже существующими общими темами вроде 'переговоры'. ---
+const SEED_SHARED_LIBRARY_BIZ_A1 = {
+  difficulty: "A1",
+  topics: {
+    "деловой_компания": [
+      { en: "department", ru: "отдел" },
+      { en: "colleague", ru: "сотрудник" },
+      { en: "employee", ru: "сотрудник" },
+      { en: "employer", ru: "работодатель" },
+    ],
+    "деловой_карьера": [
+      { en: "experience", ru: "опыт" },
+      { en: "hire", ru: "нанять на работу\\нанимать" },
+      { en: "job", ru: "работа" },
+      { en: "position", ru: "должность" },
+      { en: "role", ru: "роль" },
+      { en: "skill", ru: "навык" },
+    ],
+    "деловой_задачи": [
+      { en: "task", ru: "задача" },
+    ],
+    "деловой_переписка": [
+      { en: "report", ru: "отчет" },
+    ],
+    "деловой_встречи": [
+      { en: "meeting", ru: "встреча" },
+    ],
+    "деловой_маркетинг": [
+      { en: "customer", ru: "покупатель\\завсегдатай" },
+      { en: "market", ru: "рынок" },
+      { en: "order", ru: "заказ" },
+      { en: "client", ru: "клиент" },
+    ],
+    "деловой_финансы": [
+      { en: "bank", ru: "банк" },
+      { en: "account", ru: "счет" },
+    ],
+    "деловой_глаголы": [
+      { en: "join", ru: "присоединиться" },
+      { en: "money", ru: "деньги" },
+      { en: "pay", ru: "выплата\\зарплата\\жалованье" },
+      { en: "product", ru: "продукт\\товар" },
+      { en: "service", ru: "услуга\\услуги" },
+      { en: "work", ru: "работать" },
+    ],
+  },
+};
+
+const SEED_SHARED_LIBRARY_BIZ_A2 = {
+  difficulty: "A2",
+  topics: {
+    "деловой_компания": [
+      { en: "accounting department", ru: "бухгалтерия" },
+      { en: "advertising department", ru: "отдел рекламы" },
+      { en: "finance department", ru: "финансовый отдел" },
+      { en: "legal department", ru: "юридический отдел" },
+      { en: "marketing department", ru: "отдел маркетинга" },
+      { en: "production department", ru: "производственный отдел" },
+      { en: "purchasing department", ru: "отдел закупок" },
+    ],
+    "деловой_карьера": [
+      { en: "promotion", ru: "продвижение (по службе)\\продвижение (карьерное)" },
+      { en: "salary", ru: "зарплата (ежемесячная)\\заработная плата\\зарплата" },
+      { en: "vacancy", ru: "вакансия" },
+      { en: "wage", ru: "заработная плата (еженедельная)" },
+      { en: "interview", ru: "собеседование" },
+      { en: "retire", ru: "уйти на пенсию" },
+    ],
+    "деловой_задачи": [
+      { en: "leave", ru: "уходить" },
+      { en: "schedule", ru: "расписание" },
+    ],
+    "деловой_переписка": [
+      { en: "attachment", ru: "приложение (к договору)" },
+      { en: "bug report", ru: "баг-репорт" },
+      { en: "discuss", ru: "обсуждать" },
+      { en: "explain", ru: "объяснять" },
+      { en: "feedback", ru: "обратная связь" },
+      { en: "message", ru: "сообщение\\донесение\\извещение\\письмо" },
+    ],
+    "деловой_встречи": [
+      { en: "conference", ru: "конференция" },
+      { en: "attendee", ru: "участник" },
+    ],
+    "деловой_проекты": [
+      { en: "deploy", ru: "развернуть (= не фразовый\\но рядом)\\деплой" },
+      { en: "release", ru: "релиз" },
+      { en: "risk", ru: "риск" },
+    ],
+    "деловой_маркетинг": [
+      { en: "advertising (ads)", ru: "реклама" },
+      { en: "after-sales service", ru: "служба послепродажного\\гарантийного обслуживания\\послепродажное обслуживание" },
+      { en: "brand", ru: "торговая марка\\бренд" },
+      { en: "content", ru: "содержание" },
+      { en: "customer service", ru: "клиентская служба\\обслуживание потребителей" },
+      { en: "deal", ru: "сделка" },
+      { en: "demand", ru: "спрос" },
+      { en: "discount", ru: "скидка\\дисконт" },
+      { en: "marketing", ru: "маркетинг" },
+      { en: "marketing research", ru: "изучение рынка" },
+      { en: "proposal", ru: "предложение" },
+      { en: "sale", ru: "распродажа" },
+      { en: "campaign", ru: "компания (рекламная)" },
+      { en: "prospect", ru: "потенциальный" },
+      { en: "quote", ru: "назначенная цена" },
+    ],
+    "деловой_финансы": [
+      { en: "budget", ru: "бюджет" },
+      { en: "cash", ru: "наличные\\наличная валюта" },
+      { en: "debt", ru: "долг" },
+      { en: "fee", ru: "гонорар\\вознаграждение\\цена услуг" },
+      { en: "income", ru: "доход\\прибыль" },
+      { en: "loan", ru: "заем" },
+      { en: "profit", ru: "выгода" },
+      { en: "share", ru: "акция\\делиться" },
+      { en: "tax", ru: "налог" },
+      { en: "equity", ru: "капитал\\акция\\доля в бизнесе" },
+      { en: "insurance", ru: "страховка" },
+      { en: "loss", ru: "потеря" },
+      { en: "payment", ru: "оплата" },
+      { en: "revenue", ru: "оборот" },
+      { en: "stock", ru: "фонд\\биржа" },
+      { en: "yield", ru: "уступать\\выход\\результат\\прибыль" },
+    ],
+    "деловой_поставки": [
+      { en: "delivery", ru: "доставка" },
+      { en: "logistics", ru: "логистика" },
+      { en: "production", ru: "производство\\продакшн" },
+      { en: "supplier", ru: "поставщик" },
+      { en: "supply", ru: "поставка" },
+      { en: "warehouse", ru: "склад" },
+    ],
+    "деловой_право": [
+      { en: "agreement", ru: "договор\\соглашение" },
+      { en: "contract", ru: "контракт\\договор" },
+      { en: "legal tender", ru: "законное платежное средство" },
+      { en: "clause", ru: "пункт\\условие" },
+      { en: "legal", ru: "юридический отдел" },
+      { en: "policy", ru: "страховой полис" },
+    ],
+    "деловой_переговоры": [
+      { en: "compromise", ru: "компромисс\\идти на копромисс" },
+      { en: "goal", ru: "цель" },
+      { en: "negotiate", ru: "вести переговоры" },
+      { en: "objective", ru: "цель\\задача" },
+      { en: "ownership", ru: "владение" },
+      { en: "scale", ru: "масштабировать" },
+      { en: "strategy", ru: "стратегия" },
+      { en: "decision", ru: "решение" },
+    ],
+    "деловой_глаголы": [
+      { en: "accept", ru: "принять (предложение)" },
+      { en: "achieve", ru: "достичь" },
+      { en: "action", ru: "действие" },
+      { en: "administration", ru: "администрация" },
+      { en: "afford", ru: "позволять" },
+      { en: "any ideas?", ru: "есть идеи?" },
+      { en: "application", ru: "заявление" },
+      { en: "apply", ru: "подавать заявку" },
+      { en: "approach", ru: "подход" },
+      { en: "assembly shop", ru: "сборочный цех" },
+      { en: "be broke", ru: "быть на мели\\не иметь денег" },
+      { en: "because", ru: "потому что" },
+      { en: "benefit", ru: "польза\\выгода" },
+      { en: "billboard", ru: "рекламный щит" },
+      { en: "borrow", ru: "занимать\\одалживать\\одалживать у кого-то" },
+      { en: "brief", ru: "резюмировать\\краткое письменное изложение дела" },
+      { en: "bring", ru: "приносить" },
+      { en: "cashier", ru: "касса\\кассир" },
+      { en: "charge for", ru: "взимать плату" },
+      { en: "choose", ru: "выбирать" },
+      { en: "clear", ru: "понятный\\ясный" },
+      { en: "coin", ru: "монета" },
+      { en: "commercial", ru: "коммерческий\\торговый (прил.)\\реклама на радио или tv (сущ.)\\реклама (рекламный ролик) на телевидении или радио" },
+      { en: "commission", ru: "комиссионный сбор\\комиссия" },
+      { en: "commitment", ru: "обязательство" },
+      { en: "competition", ru: "конкуренция" },
+      { en: "condition", ru: "условие" },
+      { en: "confirm", ru: "подтверждать" },
+      { en: "confirmation", ru: "подтверждение" },
+      { en: "consumption", ru: "потребление" },
+      { en: "counter-offer", ru: "встречное предложение\\ответное предложение" },
+      { en: "coverage", ru: "покрытие" },
+      { en: "curious", ru: "любознательный" },
+      { en: "currency", ru: "валюта" },
+      { en: "currently", ru: "сейчас (формально)" },
+      { en: "database", ru: "бд" },
+      { en: "deliver", ru: "выдавать" },
+      { en: "deposit", ru: "депозит\\вклад" },
+      { en: "develop", ru: "разрабатывать" },
+      { en: "dispatch service", ru: "экспедиция\\служба рассылки" },
+      { en: "distribution", ru: "дистрибуция\\сбыт" },
+      { en: "diversify", ru: "разнообразить" },
+      { en: "donate", ru: "пожертвовать\\давать на благотворительность\\дарить" },
+      { en: "edge case", ru: "эдж-кейс" },
+      { en: "endpoint", ru: "эндпоинт" },
+      { en: "enjoy", ru: "получать удовольствие" },
+      { en: "environment", ru: "окружение" },
+      { en: "event", ru: "событие" },
+      { en: "exchange rate", ru: "обменный курс\\курс обмена\\валютный курс" },
+      { en: "factory", ru: "фабрика\\завод" },
+      { en: "feature", ru: "фича" },
+      { en: "fire", ru: "уволить с работы (гл.)" },
+      { en: "fit", ru: "подходить" },
+      { en: "flexible", ru: "гибкий" },
+      { en: "flow", ru: "флоу\\процесс" },
+      { en: "focus", ru: "фокусироваться" },
+      { en: "for example..", ru: "например.." },
+      { en: "framework", ru: "фреймворк" },
+      { en: "goods", ru: "товары\\товар" },
+      { en: "half", ru: "половина" },
+      { en: "hands-on", ru: "практический" },
+      { en: "honest", ru: "честный" },
+      { en: "however", ru: "однако" },
+      { en: "i disagree", ru: "я не согласен" },
+      { en: "i think..", ru: "я думаю.." },
+      { en: "impact", ru: "влияние\\эффект" },
+      { en: "improve", ru: "улучшать" },
+      { en: "in short..", ru: "короче говоря.." },
+      { en: "in summary,…", ru: "в итоге…" },
+      { en: "increase", ru: "увеличить" },
+      { en: "inflation", ru: "инфляция" },
+      { en: "integration", ru: "интеграция" },
+      { en: "interest", ru: "проценты\\процентная ставка\\процент" },
+      { en: "invest", ru: "инвестировать\\вкладывать" },
+      { en: "issue", ru: "проблема\\выпуск\\издание (печатной продукции)" },
+      { en: "key factor", ru: "ключевой показатель" },
+      { en: "labour", ru: "труд" },
+      { en: "launch", ru: "выпускать\\запускать (новые товары)\\запуск\\начало" },
+      { en: "layout", ru: "схема\\планировка" },
+      { en: "lend", ru: "давать взаймы\\одалживать\\одалживать кому-то" },
+      { en: "load", ru: "нагрузка" },
+      { en: "log", ru: "лог" },
+      { en: "match", ru: "подходить" },
+      { en: "mentor", ru: "ментор" },
+      { en: "merge", ru: "мёрж" },
+      { en: "microservice", ru: "микросервис" },
+      { en: "mock", ru: "мок" },
+      { en: "most", ru: "большинство" },
+      { en: "move", ru: "двигаться\\переехать" },
+      { en: "notice period", ru: "срок отработки" },
+      { en: "offer", ru: "оффер" },
+      { en: "onboard", ru: "онбордить" },
+      { en: "open", ru: "открытый" },
+      { en: "orders", ru: "отдел заказов" },
+      { en: "owe", ru: "быть должным" },
+      { en: "own", ru: "владеть" },
+      { en: "pension benefit", ru: "пенсионное пособие" },
+      { en: "percent", ru: "процент" },
+      { en: "permission", ru: "разрешение" },
+      { en: "pipeline", ru: "пайплайн" },
+      { en: "possibility", ru: "возможность" },
+      { en: "previously", ru: "раньше" },
+      { en: "proactive", ru: "проактивный" },
+      { en: "public relations", ru: "связи с общественностью" },
+      { en: "pull request", ru: "пул-реквест" },
+      { en: "purchase", ru: "покупка" },
+      { en: "query", ru: "запрос (sql)" },
+      { en: "receipt", ru: "чек\\квитанция\\чек об оплате" },
+      { en: "recently", ru: "недавно" },
+      { en: "reduce", ru: "сократить" },
+      { en: "refund", ru: "возврат\\возвращать\\возмещать\\возмещение\\компенсация" },
+      { en: "regression", ru: "регрессия" },
+      { en: "reliable", ru: "надёжный" },
+      { en: "relocate", ru: "релоцироваться" },
+      { en: "remote", ru: "удалённо" },
+      { en: "reproduce", ru: "воспроизводить" },
+      { en: "request", ru: "запрос" },
+      { en: "response", ru: "ответ" },
+      { en: "responsibility", ru: "ответственность" },
+      { en: "result", ru: "результат" },
+      { en: "review", ru: "обзор\\обозрение\\ревью" },
+      { en: "rise", ru: "рост" },
+      { en: "save", ru: "экономить" },
+      { en: "scenario", ru: "сценарий" },
+      { en: "security", ru: "охрана" },
+      { en: "serial number", ru: "серийный номер" },
+      { en: "severity", ru: "серьёзность" },
+      { en: "smoke test", ru: "смоук-тест" },
+      { en: "speed up", ru: "ускорять" },
+      { en: "staging", ru: "стейджинг" },
+      { en: "strong", ru: "сильный" },
+      { en: "suggest", ru: "предлагать" },
+      { en: "summary", ru: "краткое изложение\\сводка" },
+      { en: "support", ru: "поддержка" },
+      { en: "target", ru: "цель" },
+      { en: "tender", ru: "письменное предложение\\заявка\\тендер" },
+      { en: "test case", ru: "тест-кейс" },
+      { en: "trade", ru: "торговля" },
+      { en: "trademark", ru: "торговая марка" },
+      { en: "training", ru: "обучение" },
+      { en: "trigger", ru: "триггер" },
+      { en: "unit test", ru: "юнит-тест" },
+      { en: "we could..", ru: "мы могли бы.." },
+      { en: "we should..", ru: "нам следует…" },
+      { en: "withdraw", ru: "снимать средства со счета\\извлекать\\снимать деньги с счета" },
+      { en: "workplace", ru: "рабочее место" },
+      { en: "accident", ru: "происшествие" },
+      { en: "accuse", ru: "обвинять" },
+      { en: "actuary", ru: "регистратор\\оценщик риска" },
+      { en: "adjuster", ru: "установщик" },
+      { en: "agent", ru: "агент\\представитель" },
+      { en: "allege", ru: "утверждать\\заявлять" },
+      { en: "announce", ru: "объявлять\\сообщать\\анонсировать\\оповещать\\извещать\\заявлять\\давать знать" },
+      { en: "annuity", ru: "рента" },
+      { en: "appeal", ru: "призыв\\обращение\\воззвание (к кому-л.)" },
+      { en: "appendix", ru: "приложение" },
+      { en: "applicant", ru: "кандидат" },
+      { en: "appraisal", ru: "оценка работы" },
+      { en: "article", ru: "пункт\\параграф" },
+      { en: "assembly", ru: "сборка" },
+      { en: "assessor", ru: "оценщик" },
+      { en: "asset", ru: "актив" },
+      { en: "bailiff", ru: "судебный исполнитель" },
+      { en: "ballot", ru: "голосование" },
+      { en: "ban", ru: "запрет" },
+      { en: "banner", ru: "баннер" },
+      { en: "bargain", ru: "торговаться\\выгодная покупка" },
+      { en: "barrel", ru: "баррель" },
+      { en: "bid", ru: "предлагаемая цена" },
+      { en: "bitcoin", ru: "цифровая валюта" },
+      { en: "bond", ru: "облигация" },
+      { en: "bonus", ru: "бонус\\поощрение" },
+      { en: "brochures", ru: "брошюры" },
+      { en: "buyer", ru: "покупатель" },
+      { en: "capital", ru: "капитал" },
+      { en: "carriage", ru: "перевозка" },
+      { en: "carrier", ru: "перевозчик" },
+      { en: "case", ru: "дело" },
+      { en: "catchy", ru: "навязчивый" },
+      { en: "change", ru: "сдача" },
+      { en: "charges", ru: "официальные обвинения" },
+      { en: "claim", ru: "требовать" },
+      { en: "clearance", ru: "разрешение" },
+      { en: "clever", ru: "умный" },
+      { en: "close", ru: "подписание сделки" },
+      { en: "commuter", ru: "лицо\\совершающее регулярные поездки (в пределах населённого пункта или района)" },
+      { en: "complaint", ru: "жалоба" },
+      { en: "comply", ru: "соглашаться\\уступать" },
+      { en: "condemn", ru: "приговаривать\\осуждать" },
+      { en: "confront", ru: "противостоять" },
+      { en: "consignee", ru: "грузополучатель" },
+      { en: "consumer", ru: "потребитель" },
+      { en: "container", ru: "контейнер" },
+      { en: "convict", ru: "осужденный" },
+      { en: "cordially", ru: "вежливо\\обходительно" },
+      { en: "coupon", ru: "купон" },
+      { en: "covenant", ru: "пакт" },
+      { en: "cover", ru: "покрывать" },
+      { en: "creative", ru: "творческий" },
+      { en: "custody", ru: "заключение\\арест" },
+      { en: "customs", ru: "таможня" },
+      { en: "deadlock", ru: "тупик" },
+      { en: "deck", ru: "палуба" },
+      { en: "defect", ru: "брак" },
+      { en: "defendant", ru: "подзащитный" },
+      { en: "demands", ru: "требования" },
+      { en: "departure", ru: "отправление" },
+      { en: "dispute", ru: "спор\\конфликт" },
+      { en: "dividend", ru: "дивиденд" },
+      { en: "dock", ru: "док" },
+      { en: "dumping", ru: "демпинг\\продажа товаров по искусственно заниженным ценам" },
+      { en: "duty", ru: "сбор" },
+      { en: "earn", ru: "зарабатывать" },
+      { en: "editor", ru: "редактор" },
+      { en: "effective", ru: "эффективный" },
+      { en: "elaborate", ru: "тщательно разработанный" },
+      { en: "enact", ru: "предписывать" },
+      { en: "equities", ru: "акции" },
+      { en: "estimate", ru: "приблизительная цена" },
+      { en: "evidence", ru: "доказательства\\улики" },
+      { en: "exotic", ru: "экзотичный" },
+      { en: "exports", ru: "экспорт" },
+      { en: "extranet", ru: "экстрасеть" },
+      { en: "feasible", ru: "реализуемый\\возможный\\выполнимый" },
+      { en: "features", ru: "характеристики\\черты\\особенности" },
+      { en: "felony", ru: "тяжкое уголовное преступление" },
+      { en: "fine", ru: "штраф" },
+      { en: "fiver", ru: "пятёрик" },
+      { en: "flexitime", ru: "гибкий график" },
+      { en: "franchise", ru: "франшиза" },
+      { en: "freelance", ru: "фрилансер\\самозанятый" },
+      { en: "freight", ru: "груз" },
+      { en: "fulfil", ru: "выполнять" },
+      { en: "funny", ru: "забавный" },
+      { en: "futures", ru: "фьючерсы\\сделки на срок" },
+      { en: "guarantee", ru: "гарантия" },
+      { en: "guilty", ru: "виновен" },
+      { en: "haggle", ru: "торговаться" },
+      { en: "handbills", ru: "раздаточный материал" },
+      { en: "handouts", ru: "раздаточный материал" },
+      { en: "hearing", ru: "слушание" },
+      { en: "herein", ru: "здесь\\при этом" },
+      { en: "hereto", ru: "к этому" },
+      { en: "higgle", ru: "торговаться" },
+      { en: "humorous", ru: "смешной" },
+      { en: "hype", ru: "усиленная реклама" },
+      { en: "imports", ru: "импорт" },
+      { en: "imprison", ru: "тюремное заключение" },
+      { en: "indemnity", ru: "возмещение" },
+      { en: "indict", ru: "обвинять" },
+      { en: "infringe", ru: "нарушать" },
+      { en: "injury", ru: "травма" },
+      { en: "innocent", ru: "невиновен" },
+      { en: "input", ru: "вклад" },
+      { en: "insider", ru: "инсайдер\\свой человек" },
+      { en: "investor", ru: "инвестор" },
+      { en: "ipo", ru: "первичное публичное размещение" },
+      { en: "item", ru: "пункт\\новость\\сообщение в газете" },
+      { en: "jingle", ru: "легкий для запоминания рингтон" },
+      { en: "judge", ru: "судья" },
+      { en: "jury", ru: "присяжные" },
+      { en: "justice", ru: "правосудие" },
+      { en: "leaflets", ru: "листовки" },
+      { en: "liaise", ru: "договариваться" },
+      { en: "magazine", ru: "журнал" },
+      { en: "monopoly", ru: "монополия" },
+      { en: "moorage", ru: "причал" },
+      { en: "morale", ru: "мотивация" },
+      { en: "mortgage", ru: "ипотека" },
+      { en: "motto", ru: "девиз" },
+      { en: "mutual", ru: "обоюдный" },
+      { en: "newspaper", ru: "газета" },
+      { en: "objection", ru: "препятствие\\преграда\\трудность" },
+      { en: "option", ru: "вариант" },
+      { en: "original", ru: "оригинальный" },
+      { en: "outdoors", ru: "внешняя реклама" },
+      { en: "outlet", ru: "магазин\\точка продаж" },
+      { en: "output", ru: "результат" },
+      { en: "overcome", ru: "преодолеть" },
+      { en: "overheads", ru: "накладные расходы" },
+      { en: "overload", ru: "перегруженность" },
+      { en: "overrule", ru: "отклонить" },
+      { en: "packaging", ru: "упаковка" },
+      { en: "party", ru: "сторона" },
+      { en: "payee", ru: "получатель платежа\\выгооприобретатель" },
+      { en: "payload", ru: "полезная нагрузка" },
+      { en: "payroll", ru: "начисление заработной платы" },
+      { en: "pension", ru: "пенсия" },
+      { en: "plaintiff", ru: "обвинитель" },
+      { en: "plant", ru: "завод" },
+      { en: "plead", ru: "ходатайствовать" },
+      { en: "pop-up", ru: "всплывающее окно (на компьютере)" },
+      { en: "porterage", ru: "переноска груза" },
+      { en: "portfolio", ru: "портфель" },
+      { en: "poster", ru: "плакат" },
+      { en: "powerful", ru: "мощный" },
+      { en: "probate", ru: "утверждение завещания" },
+      { en: "prosecute", ru: "преследовать в судебном порядке" },
+      { en: "prospects", ru: "перспективы" },
+      { en: "range", ru: "ассортимент" },
+      { en: "rebate", ru: "скидка" },
+      { en: "receptive", ru: "открытый\\восприимчивый" },
+      { en: "recession", ru: "рецессия" },
+      { en: "recipient", ru: "получатель" },
+      { en: "resolve", ru: "разрешать" },
+      { en: "retail", ru: "розничная продажа" },
+      { en: "revocable", ru: "отзывный" },
+      { en: "romantic", ru: "романтичный" },
+      { en: "round-up", ru: "сводка новостей в газете\\по радио" },
+      { en: "sample", ru: "образец" },
+      { en: "sender", ru: "отправитель" },
+      { en: "sentence", ru: "приговор" },
+      { en: "shipment", ru: "перевозка" },
+      { en: "slogan", ru: "слоган" },
+      { en: "solicitor", ru: "юрисконсульт" },
+      { en: "speculate", ru: "спекулировать" },
+      { en: "statement", ru: "выписка" },
+      { en: "stipulate", ru: "ставить условием" },
+      { en: "subsidy", ru: "дотация" },
+      { en: "sue", ru: "предъявлять иск" },
+      { en: "surcharge", ru: "доплата" },
+      { en: "tactics", ru: "тактика" },
+      { en: "tagline", ru: "девиз" },
+      { en: "tare", ru: "тара" },
+      { en: "tenant", ru: "арендатор" },
+      { en: "tenner", ru: "червонец" },
+      { en: "tension", ru: "напряжение" },
+      { en: "tester", ru: "тестер" },
+      { en: "testify", ru: "свидетельствовать" },
+      { en: "tip", ru: "чаевые" },
+      { en: "toll-free", ru: "беспошлинный" },
+      { en: "trader", ru: "торговец" },
+      { en: "trainee", ru: "тренируемый" },
+      { en: "trainer", ru: "тренер" },
+      { en: "trial", ru: "судебное разбирательство" },
+      { en: "turnover", ru: "оборот" },
+      { en: "ultimatum", ru: "ультиматум" },
+      { en: "unpack", ru: "распаковать" },
+      { en: "unpaid", ru: "неоплаченный" },
+      { en: "verdict", ru: "вердикт" },
+      { en: "victory", ru: "победа" },
+      { en: "vote", ru: "голосовать" },
+      { en: "wages", ru: "заработная плата" },
+      { en: "warrant", ru: "гарантировать" },
+      { en: "waste", ru: "отходы" },
+      { en: "weight", ru: "вес" },
+      { en: "whereas", ru: "тогда как" },
+      { en: "wholesale", ru: "оптовая продажа" },
+      { en: "witness", ru: "свидетель" },
+      { en: "witty", ru: "остроумный" },
+    ],
+  },
+};
+
+const SEED_SHARED_LIBRARY_BIZ_B1 = {
+  difficulty: "B1",
+  topics: {
+    "деловой_компания": [
+      { en: "cae (chief audit executive)", ru: "директор по аудиту" },
+      { en: "ceo (chief executive officer)", ru: "генеральный директор\\главное должностное лицо компании" },
+      { en: "ctl (country team leader)", ru: "заведующий территориальным отделом (в международных организациях)" },
+      { en: "eam (external asset manager)", ru: "независимый распорядитель активами" },
+      { en: "ed (executive director)", ru: "исполнительный директор" },
+      { en: "let's get down to business", ru: "давайте приступим к делу" },
+      { en: "sales & distribution department", ru: "отдел сбыта" },
+      { en: "tl (team leader)", ru: "заведующий отделом\\руководитель проекта" },
+      { en: "department heads", ru: "главы отделов" },
+      { en: "department store", ru: "универсальный магазин" },
+      { en: "exchange office / bureau de change", ru: "обменный пункт" },
+      { en: "executive management", ru: "исполнительное руководство" },
+      { en: "i am a team player", ru: "я командный игрок" },
+      { en: "permanent staff", ru: "постоянные сотрудники" },
+      { en: "personnel, staff", ru: "персонал" },
+      { en: "typical departments of a company", ru: "наименование отделов компании" },
+    ],
+    "деловой_карьера": [
+      { en: "a full-time job", ru: "полная занятость" },
+      { en: "a part-time job", ru: "частичная занятость" },
+      { en: "basic salary", ru: "базовая\\основная заработная плата" },
+      { en: "curriculum vitae (cv), resume", ru: "резюме" },
+      { en: "hire, employ, take on", ru: "нанимать на работу" },
+      { en: "in my experience… / i find that…", ru: "по моему опыту…\\я считаю\\что…" },
+      { en: "interview smb", ru: "брать интервью у кого-либо" },
+      { en: "job evaluation", ru: "оценка работы" },
+      { en: "job profile", ru: "профиль\\описание работы\\занимаемой должности" },
+      { en: "job satisfaction", ru: "удовлетворенность работой" },
+      { en: "job security", ru: "гарантии занятости" },
+      { en: "resign, quit", ru: "увольняться по собственному желанию" },
+      { en: "to apply for a job", ru: "подать документы на работу" },
+      { en: "to fill a vacancy", ru: "заполнить вакансию" },
+    ],
+    "деловой_задачи": [
+      { en: "deadline", ru: "срок\\конечный срок\\крайний срок исполнения\\крайний срок\\дедлайн" },
+      { en: "priority", ru: "приоритет" },
+      { en: "thank you for your time", ru: "спасибо за уделенное время" },
+      { en: "we're behind schedule", ru: "мы отстаем от графика" },
+      { en: "a daily political commentary", ru: "ежедневный политический комментарий" },
+      { en: "actually, if you could just let me finish…", ru: "если вы дадите мне закончить\\то…" },
+      { en: "day shift", ru: "дневная смена" },
+      { en: "full-time employment", ru: "полная занятость" },
+      { en: "just-in-time", ru: "своевременный" },
+      { en: "maternity leave", ru: "декретный отпуск" },
+      { en: "part-time employment", ru: "неполная занятость" },
+      { en: "please let him finish what he was saying", ru: "пожалуйста\\дайте ему закончить" },
+      { en: "put off, postpone (meeting)", ru: "отложить" },
+      { en: "sick leave", ru: "отсутствовать по болезни" },
+      { en: "to be on sick leave", ru: "отсутствие по болезни" },
+      { en: "weekly magazine", ru: "еженедельный журнал" },
+    ],
+    "деловой_переписка": [
+      { en: "could you clarify that?", ru: "не могли бы вы прояснить (объяснить) это?" },
+      { en: "direct report", ru: "подчиненный" },
+      { en: "happy to jump on a call", ru: "готов позвонить" },
+      { en: "i'll give you a call", ru: "я вам позвоню" },
+      { en: "i'll keep you posted", ru: "буду держать в курсе" },
+      { en: "i'll send you an e-mail", ru: "я пошлю вам электронное письмо" },
+      { en: "incident report", ru: "отчет об инциденте" },
+      { en: "let's keep in touch by e-mail", ru: "будем держать связь по электронной почте" },
+      { en: "loop in", ru: "включить в переписку" },
+      { en: "on-call", ru: "дежурство" },
+      { en: "poc (point of contact)", ru: "ответственный" },
+      { en: "reach out", ru: "связаться" },
+      { en: "we need to discuss..", ru: "нам нужно обсудить.." },
+      { en: "call off, cancel (meeting)", ru: "отменить" },
+      { en: "call to action", ru: "призыв к действию" },
+      { en: "email marketing", ru: "email-маркетинг" },
+      { en: "follow up", ru: "завершать\\последовать\\уточнить" },
+      { en: "i'd like to get your feedback on…", ru: "я хотел бы узнать ваше мнение о…" },
+      { en: "in reply to your request, …", ru: "в ответ на ваш запрос\\…" },
+      { en: "key message", ru: "ключевое сообщение" },
+      { en: "report on", ru: "оповещать о…" },
+      { en: "to follow up on my previous email..", ru: "по поводу предыдущего письма.." },
+      { en: "to inform of", ru: "сообщать о" },
+    ],
+    "деловой_встречи": [
+      { en: "agenda", ru: "повестка дня" },
+      { en: "i really enjoyed meeting you", ru: "я был очень рад нашей встрече" },
+      { en: "minutes", ru: "протокол совещания\\протокол" },
+      { en: "our next meeting will be…", ru: "следующее совещание состоится…" },
+      { en: "retrospective / retro", ru: "ретроспектива" },
+      { en: "stand-up", ru: "ежедневный статус\\стендап" },
+      { en: "this is out of the question", ru: "об этом не может быть и речи" },
+      { en: "this question is off the point", ru: "этот вопрос не по существу" },
+      { en: "what's next on the agenda?", ru: "что у нас далее на повестке дня?" },
+      { en: "a comment on the international situation", ru: "комментарий по поводу международной ситуации" },
+      { en: "a disputable question", ru: "спорный вопрос" },
+      { en: "adjourn (meeting)", ru: "временно прервать" },
+      { en: "annual general meeting (a.g.m.)", ru: "годовое общее собрание" },
+      { en: "attend (meeting)", ru: "посещать" },
+      { en: "bring forward", ru: "перенести (meeting) на более раннюю дату" },
+      { en: "chair, lead (meeting)", ru: "вести" },
+      { en: "chairman chairperson; chair", ru: "председатель совещания" },
+      { en: "circulate (agenda)", ru: "передавать" },
+      { en: "i've called this meeting in order to…", ru: "я созвал это совещание\\чтобы…" },
+      { en: "interrupt (meeting)", ru: "прервать\\перебить" },
+      { en: "set up (meeting)", ru: "созвать" },
+      { en: "skip (meeting)", ru: "пропустить\\прогулять" },
+    ],
+    "деловой_проекты": [
+      { en: "backlog", ru: "очередь задач" },
+      { en: "bottleneck", ru: "узкое место" },
+      { en: "capacity", ru: "мощность" },
+      { en: "cqo (chief quality officer)", ru: "начальник отк" },
+      { en: "crmo (chief risk management officer)", ru: "директор по управлению рисками" },
+      { en: "deliverable", ru: "результат\\выход" },
+      { en: "how is the project coming along?", ru: "как обстоят дела с проектом?" },
+      { en: "i take ownership of quality", ru: "я беру ответственность за качество" },
+      { en: "kpi", ru: "ключевой показатель" },
+      { en: "milestone", ru: "контрольная точка" },
+      { en: "scope", ru: "объем\\границы" },
+      { en: "scope creep", ru: "неконтролируемое расширение" },
+      { en: "sprint", ru: "спринт (agile)\\спринт" },
+      { en: "timeline", ru: "график\\план" },
+      { en: "full capacity", ru: "полная мощность" },
+      { en: "owner's risk", ru: "риск владельца" },
+      { en: "production process", ru: "производственный процесс" },
+      { en: "spare capacity", ru: "резервная мощность" },
+      { en: "to issue/release a statement", ru: "опубликовать заявление" },
+    ],
+    "деловой_маркетинг": [
+      { en: "brand awareness", ru: "уровень узнаваемости бренда\\узнаваемость бренда" },
+      { en: "client / customer", ru: "клиент" },
+      { en: "lead", ru: "лид\\ответственный" },
+      { en: "advertisement (ad, advert)", ru: "реклама" },
+      { en: "at a discount", ru: "по скидке" },
+      { en: "banner ads", ru: "баннерная реклама" },
+      { en: "be out of order", ru: "быть неисправным\\не работать" },
+      { en: "bear market", ru: "рынок с понижательной тенденцией" },
+      { en: "black market", ru: "теневой рынок" },
+      { en: "brand lift", ru: "рост метрик бренда" },
+      { en: "bull market", ru: "рынок\\характеризующийся тенденцией роста цен" },
+      { en: "cash market", ru: "наличный рынок" },
+      { en: "content strategy", ru: "контент-стратегия" },
+      { en: "conversion", ru: "конверсия" },
+      { en: "cost per acquisition", ru: "стоимость привлечения" },
+      { en: "direct sales", ru: "прямые продажи" },
+      { en: "door-to-door sales", ru: "прямые продажи" },
+      { en: "forward market", ru: "срочный рынок" },
+      { en: "in-app content", ru: "контент внутри приложения" },
+      { en: "influencer marketing", ru: "маркетинг влияния" },
+      { en: "market share", ru: "доля рынка" },
+      { en: "paid ads", ru: "платная реклама" },
+      { en: "payment order", ru: "платежное поручение" },
+      { en: "performance ads", ru: "перформанс-реклама" },
+      { en: "run a campaign", ru: "запустить кампанию" },
+      { en: "social media", ru: "социальные сети" },
+      { en: "target audience", ru: "целевая аудитория" },
+      { en: "trial order", ru: "пробный заказ" },
+      { en: "video content", ru: "видеоконтент" },
+    ],
+    "деловой_финансы": [
+      { en: "bank note / bill", ru: "банкнота" },
+      { en: "can i share an idea?", ru: "могу я поделиться идеей?" },
+      { en: "cfo (chief financial officer)", ru: "финансовый директор" },
+      { en: "cfs (credit file supervisor)", ru: "старший кредитный инспектор" },
+      { en: "cost-effective", ru: "экономично эффективный" },
+      { en: "roi", ru: "окупаемость" },
+      { en: "account overdraft", ru: "задолженность банку" },
+      { en: "bank account", ru: "банковский счет" },
+      { en: "bank charges", ru: "банковская комиссия" },
+      { en: "bank clearance", ru: "банковское оформление" },
+      { en: "bargain price", ru: "цена с уступкой" },
+      { en: "bedrock price", ru: "наименьшая возможная цена" },
+      { en: "budget deficit", ru: "дефицит бюджета" },
+      { en: "budget surplus", ru: "бюджетный избыток" },
+      { en: "capital gain, loss", ru: "капитальная прибыль\\убыль" },
+      { en: "cash machine / dispenser (uk)", ru: "банкомат" },
+      { en: "commercial bank", ru: "коммерческий банк" },
+      { en: "consular invoice", ru: "консульский счет" },
+      { en: "current account (gb), checking account (us)", ru: "текущий счет" },
+      { en: "income tax", ru: "подоходный налог" },
+      { en: "merchant bank", ru: "торгово-финансовый банк" },
+      { en: "mutual fund", ru: "взаимный\\общий фонд" },
+      { en: "petty cash", ru: "деньги на мелкие расходы" },
+      { en: "price fixing", ru: "фиксация цен" },
+      { en: "price list", ru: "наименование цен" },
+      { en: "price tag", ru: "ценник" },
+      { en: "redundancy payment", ru: "пособие по увольнению\\безработице" },
+      { en: "to bank", ru: "класть в банк" },
+      { en: "to cash a cheque", ru: "обналичить чек" },
+      { en: "to grant a loan", ru: "предоставить кредит" },
+      { en: "to refund for a loss", ru: "компенсация\\возмещение потери" },
+    ],
+    "деловой_поставки": [
+      { en: "vendor", ru: "вендор" },
+      { en: "chain of production", ru: "производственная цепь" },
+      { en: "large scale production", ru: "крупномасштабное производство" },
+      { en: "lean production", ru: "бережное (безотходное) производство" },
+      { en: "maintenance", ru: "обслуживание" },
+      { en: "operations or production", ru: "операции и производство" },
+      { en: "store, warehouse", ru: "склад" },
+    ],
+    "деловой_право": [
+      { en: "clo (chief legal officer)", ru: "руководитель юридического отдела" },
+      { en: "nda", ru: "соглашение о неразглашке" },
+      { en: "bilateral agreement", ru: "двухстороннее соглашение" },
+      { en: "come to terms with", ru: "примириться" },
+      { en: "conditions, terms", ru: "условия" },
+      { en: "fiscal policy", ru: "финансово-бюджетная политика" },
+      { en: "implied terms", ru: "подразумеваемые условия" },
+    ],
+    "деловой_переговоры": [
+      { en: "accountability", ru: "ответственность" },
+      { en: "alignment", ru: "согласованность" },
+      { en: "consensus", ru: "консенсус\\согласие\\общее\\совместное соглашение" },
+      { en: "cspo (chief strategic planning officer)", ru: "директор по стратегическому развитию" },
+      { en: "our main goal today is to…", ru: "наша главная цель сегодня…" },
+      { en: "trade-off", ru: "компромисс\\взаимные уступки" },
+      { en: "board of directors", ru: "совет директоров" },
+    ],
+    "деловой_глаголы": [
+      { en: "action item", ru: "задача для выполнения" },
+      { en: "actually, i've nearly finished", ru: "я почти закончил" },
+      { en: "all-hands", ru: "общее собрание" },
+      { en: "as discussed", ru: "как обсуждалось" },
+      { en: "asap", ru: "как можно быстрее" },
+      { en: "bandwidth", ru: "нагрузка\\возможность" },
+      { en: "briefing", ru: "информирование" },
+      { en: "buy-in", ru: "поддержка" },
+      { en: "can i raise a point here?", ru: "могу я высказать свое мнение?" },
+      { en: "can we sync on this?", ru: "можем обсудить?" },
+      { en: "cc / copy in", ru: "поставить в копию" },
+      { en: "cdo (chief data officer)", ru: "директор по обработке и анализу данных" },
+      { en: "cheque / check / bill", ru: "чек" },
+      { en: "chro (chief human resources officer)", ru: "руководитель отдела подбора персонала" },
+      { en: "cio (chief information officer)", ru: "директор ит-отдела" },
+      { en: "circle back", ru: "вернуться к вопросу" },
+      { en: "ciso", ru: "директор инф. безопасности" },
+      { en: "cko (chief knowledge officer)", ru: "директор по управлению интеллектуальными ресурсами" },
+      { en: "coo (chief operating officer)", ru: "исполнительный директор\\главный инженер (на предприятии)" },
+      { en: "could i add something here?", ru: "могу я кое-что добавить?" },
+      { en: "could you repeat, please?", ru: "повторите\\пожалуйста" },
+      { en: "cpa (certified public accountant)", ru: "дипломированный бухгалтер-аудитор" },
+      { en: "cpc (chief professional consultant)", ru: "главный специалист-консультант" },
+      { en: "critical", ru: "критический" },
+      { en: "cro (chief research officer)", ru: "директор по научным исследованиям\\научный руководитель" },
+      { en: "cross-functional", ru: "межфункциональный" },
+      { en: "csa (chief software architect)", ru: "главный архитектор программного обеспечения" },
+      { en: "cso (chief security officer)", ru: "директор по обеспечению безопасности\\начальник службы безопасности" },
+      { en: "cto", ru: "технический директор" },
+      { en: "cto (chief technical officer)", ru: "главный инженер\\технический директор" },
+      { en: "debrief", ru: "разбор после инцидента" },
+      { en: "do you have any suggestions?", ru: "у вас есть предложения?" },
+      { en: "does anyone have any comments?", ru: "у кого-нибудь есть комментарии?" },
+      { en: "does everyone agree on that?", ru: "все с этим согласны?" },
+      { en: "downtime", ru: "простой" },
+      { en: "eod", ru: "к концу дня" },
+      { en: "escalate", ru: "эскалировать" },
+      { en: "eta", ru: "примерное время" },
+      { en: "first... second... third..", ru: "во-первых... во-вторых.." },
+      { en: "follow-up", ru: "последующий шаг" },
+      { en: "from my point of view…", ru: "с моей точки зрения…" },
+      { en: "fyi", ru: "для сведения" },
+      { en: "go ahead", ru: "продолжайте\\продолжать\\приступать" },
+      { en: "going forward", ru: "в дальнейшем" },
+      { en: "good point!", ru: "хорошо сказано!" },
+      { en: "greenlight", ru: "дать добро" },
+      { en: "hand-off", ru: "передача" },
+      { en: "headcount", ru: "штатная численность" },
+      { en: "heads-up", ru: "предупреждение" },
+      { en: "how do you say... in english?", ru: "как сказать... по-английски?" },
+      { en: "human resources (hr)", ru: "отдел персонала" },
+      { en: "i agree", ru: "я согласен" },
+      { en: "i am a hands-on engineer", ru: "я практический инженер" },
+      { en: "i am flexible with the format", ru: "я гибкий по формату" },
+      { en: "i built a framework from zero", ru: "я построил фреймворк с нуля" },
+      { en: "i don't mean to interrupt, but…", ru: "не хотелось бы прерывать\\но…" },
+      { en: "i enjoy hard problems", ru: "мне нравятся трудные задачи" },
+      { en: "i have no objection to that", ru: "у меня нет возражений против этого" },
+      { en: "i mentored junior engineers", ru: "я менторил джуниоров" },
+      { en: "i recommend that..", ru: "я рекомендую.." },
+      { en: "i strongly believe that…", ru: "я твердо уверен\\что…" },
+      { en: "i suggest that..", ru: "я предлагаю.." },
+      { en: "i tend to think that…", ru: "я склонен думать\\что…" },
+      { en: "i think that's a good idea", ru: "думаю\\это хорошая идея" },
+      { en: "i want to grow in fintech", ru: "я хочу расти в финтехе" },
+      { en: "i wanted to flag..", ru: "хотел обратить внимание на.." },
+      { en: "i would like to introduce…", ru: "я хотел бы представить…" },
+      { en: "i would like to propose that..", ru: "я хотел бы предложить.." },
+      { en: "i'll circle back by eod", ru: "вернусь к этому к концу дня" },
+      { en: "i'll defer to you on that", ru: "в этом полагаюсь на тебя" },
+      { en: "i'll take it from here", ru: "дальше занимаюсь я" },
+      { en: "i'm convinced that…", ru: "я убежден\\что…" },
+      { en: "i'm positive that…", ru: "я уверен\\что…" },
+      { en: "i'm sorry, but i completely disagree", ru: "простите\\но я совершенно не согласен" },
+      { en: "in-house", ru: "своими силами" },
+      { en: "information technology (it)", ru: "отдел информационных технологий" },
+      { en: "it seems to me that…", ru: "мне кажется\\что…" },
+      { en: "it's a pleasure to welcome…", ru: "рад приветствовать…" },
+      { en: "it's been nice talking to you", ru: "было приятно с вами пообщаться" },
+      { en: "it's possible that…", ru: "возможно\\что…" },
+      { en: "just to confirm..", ru: "хочу подтвердить.." },
+      { en: "kick-off", ru: "стартовое совещание" },
+      { en: "lessons learned", ru: "выводы\\уроки" },
+      { en: "let me loop you in", ru: "включу тебя в переписку" },
+      { en: "let's get started", ru: "давайте начнем" },
+      { en: "let's get to the point", ru: "давайте перейдем к сути" },
+      { en: "managed service", ru: "управляемый сервис" },
+      { en: "ofs (operations file supervisor)", ru: "кредитный инспектор" },
+      { en: "okr", ru: "цели и результаты" },
+      { en: "ol (operation leader)", ru: "руководитель проектной группы" },
+      { en: "on the same page", ru: "понимать одинаково" },
+      { en: "onboarding", ru: "ввод" },
+      { en: "one moment, please", ru: "минутку" },
+      { en: "one-on-one / 1:1", ru: "индивидуальная встреча" },
+      { en: "outsource", ru: "отдать на аутсорсинг" },
+      { en: "overhead", ru: "накладные расходы" },
+      { en: "owner", ru: "ответственный" },
+      { en: "p0 / p1 / p2", ru: "уровень приоритета" },
+      { en: "per (your request)", ru: "согласно" },
+      { en: "performance review", ru: "оценка эффективности" },
+      { en: "ping", ru: "написать\\сообщить" },
+      { en: "please find attached..", ru: "во вложении.." },
+      { en: "please join me in welcoming…", ru: "давайте поприветствуем…" },
+      { en: "post-mortem", ru: "разбор после инцидента" },
+      { en: "public relations (pr)", ru: "отдел связей с общественностью" },
+      { en: "pushback", ru: "отпор\\несогласие" },
+      { en: "research & development (r&d)", ru: "научно-исследовательский отдел" },
+      { en: "rfp", ru: "запрос предложений" },
+      { en: "root cause", ru: "первопричина" },
+      { en: "rpo", ru: "целевая точка восстановления" },
+      { en: "rto", ru: "целевое время восстановления" },
+      { en: "sign-off", ru: "одобрение" },
+      { en: "sla", ru: "соглашение об уровне" },
+      { en: "so, we've decided to…", ru: "итак\\мы решили.." },
+      { en: "so, what you are saying is…", ru: "итак\\вы хотите сказать\\что…" },
+      { en: "sorry, could you repeat that please?", ru: "извините\\не могли бы вы повторить\\пожалуйста?" },
+      { en: "sorry. i don't agree with you", ru: "извините\\я не согласен с вами" },
+      { en: "sow", ru: "техническое задание" },
+      { en: "stakeholder", ru: "заинтересованная сторона" },
+      { en: "svp (senior vice-president)", ru: "первый вице-президент" },
+      { en: "sync", ru: "обсудить\\согласовать" },
+      { en: "take offline", ru: "обсудить отдельно" },
+      { en: "tbd", ru: "еще не решено" },
+      { en: "thank you for your participation", ru: "спасибо за ваше участие" },
+      { en: "that covers my main points", ru: "это основное от меня" },
+      { en: "that will be all for today", ru: "на сегодня это все" },
+      { en: "that's a fair point", ru: "разумное замечание" },
+      { en: "that's exactly how i see it", ru: "именно так я это и вижу" },
+      { en: "the conclusion is…", ru: "вывод таков…" },
+      { en: "third party", ru: "третья сторона" },
+      { en: "to sum up…", ru: "подводя итоги…" },
+      { en: "touch base", ru: "связаться\\обменяться" },
+      { en: "unfortunately, i see it differently", ru: "к сожалению\\я вижу это по-другому" },
+      { en: "uptime", ru: "время работы" },
+      { en: "vp (vice president)", ru: "вице-президент" },
+      { en: "wait a minute. we haven't discussed…", ru: "подождите\\мы еще не обсудили.." },
+      { en: "walkthrough", ru: "пошаговый разбор" },
+      { en: "war room", ru: "оперативный штаб" },
+      { en: "we'll be in touch", ru: "мы будем на связи" },
+      { en: "we're going to…", ru: "мы собираемся.." },
+      { en: "we're on track", ru: "мы идем по плану" },
+      { en: "what are your thoughts about… ?", ru: "что вы думаете о…?" },
+      { en: "what are your views on… ?", ru: "каковы ваши взгляды на… ?" },
+      { en: "what does everyone think about…?", ru: "что все думают о…?" },
+      { en: "what needs to be done?", ru: "что необходимо сделать?" },
+      { en: "what should we do about it?", ru: "как нам следует с этим поступить?" },
+      { en: "what's the status on x?", ru: "как дела с x?" },
+      { en: "workaround", ru: "обходное решение" },
+      { en: "you're absolutely right", ru: "вы абсолютно правы" },
+      { en: "a leading article", ru: "передовая статья" },
+      { en: "a tass statement", ru: "заявление тасс" },
+      { en: "ab initio (ab init)", ru: "сначала" },
+      { en: "absenteeism", ru: "отсутствие на работе" },
+      { en: "accident at work", ru: "происшествие на работе" },
+      { en: "actually, while we are on the subject of…", ru: "вообще-то\\раз уж мы затронули тему…" },
+      { en: "ad recall", ru: "запоминаемость рекламы" },
+      { en: "agribusiness", ru: "агробизнес" },
+      { en: "alternatives", ru: "альтернатива" },
+      { en: "an article on jazz music", ru: "статья о джазовой музыке" },
+      { en: "an economic/political article", ru: "экономическая\\политическая статья" },
+      { en: "an editorial", ru: "передовая статья" },
+      { en: "announcement", ru: "объявление\\сообщение\\извещение\\уведомление" },
+      { en: "antitrust law", ru: "антитрестовский закон" },
+      { en: "application form", ru: "аппликационная форма" },
+      { en: "apply for", ru: "подать документы на" },
+      { en: "apprenticeship", ru: "ученичество\\курс подмастерья" },
+      { en: "arbitration", ru: "арбитраж" },
+      { en: "article on", ru: "статья о…" },
+      { en: "assess a damage", ru: "оценка повреждения" },
+      { en: "assessment", ru: "оценка" },
+      { en: "assessment of applicants", ru: "оценка кандидатов" },
+      { en: "at 30 days after sight", ru: "в течение 30 дней после предъявления" },
+      { en: "at par", ru: "по номиналу" },
+      { en: "at sight", ru: "по востребованию" },
+      { en: "attention-grabbing", ru: "захватывающий внимание" },
+      { en: "attorney, lawyer, barrister", ru: "адвокат" },
+      { en: "automated teller machine (a.t.m.)", ru: "банкомат" },
+      { en: "automation", ru: "автоматизация" },
+      { en: "back down", ru: "отступаться" },
+      { en: "back up", ru: "сделать резервную копию\\поддержать" },
+      { en: "background", ru: "прошлое (обучение\\опыт)" },
+      { en: "balance of payments", ru: "платежный баланс" },
+      { en: "balance of trade", ru: "торговый баланс" },
+      { en: "banknote (gb), bill (us)", ru: "банкнота" },
+      { en: "banknote, bill", ru: "банкнота" },
+      { en: "bar code", ru: "штрих код" },
+      { en: "batch number", ru: "серийный номер" },
+      { en: "be absent", ru: "отсутствовать" },
+      { en: "beforehand, in advance", ru: "заблаговременно" },
+      { en: "bill of entry", ru: "ввозная таможенная декларация" },
+      { en: "billboard (us)", ru: "билборд" },
+      { en: "bona fide", ru: "по-настоящему\\подлинно" },
+      { en: "bona vacantia", ru: "брошенное имущество" },
+      { en: "bond holder", ru: "держатель облигаций" },
+      { en: "boot up", ru: "запустить систему" },
+      { en: "borrowing rate", ru: "ссудный процент" },
+      { en: "bottom-line", ru: "наименьший желаемый минимум" },
+      { en: "break down", ru: "разбить на части\\проанализировать" },
+      { en: "bring in", ru: "привлечь (специалиста)\\вводить" },
+      { en: "brokerage service", ru: "брокерское обслуживание" },
+      { en: "build up", ru: "накапливать\\наращивать" },
+      { en: "bulk cargo", ru: "насыпной груз" },
+      { en: "by mail, by post", ru: "почтой" },
+      { en: "capital punishment", ru: "высшая мера наказания" },
+      { en: "cardboard box", ru: "картонная коробка" },
+      { en: "cargo, load", ru: "груз" },
+      { en: "carry on", ru: "продолжать" },
+      { en: "catch up", ru: "наверстать\\быть в курсе" },
+      { en: "caveat emptor", ru: "пусть покупатель будет бдителен" },
+      { en: "certificate of origin", ru: "сертификат происхождения" },
+      { en: "chain store", ru: "сеть магазинов" },
+      { en: "cheque (gb), check (us)", ru: "чек" },
+      { en: "cheque, check", ru: "чек" },
+      { en: "circulation", ru: "тираж" },
+      { en: "classified", ru: "объявления в газете или журнале" },
+      { en: "clear up", ru: "разъяснить\\устранить" },
+      { en: "clearance duty", ru: "стоимость разрешения (сбор)" },
+      { en: "click-through rate", ru: "кликабельность" },
+      { en: "cold calling", ru: "телефонные продажи" },
+      { en: "come across", ru: "производить впечатление" },
+      { en: "come into", ru: "вступать в силу\\получать" },
+      { en: "come into force", ru: "вступить в силу" },
+      { en: "come up", ru: "возникнуть (проблема)" },
+      { en: "come up with", ru: "придумать" },
+      { en: "commentary on", ru: "комментарий по поводу чего-либо" },
+      { en: "commit a crime", ru: "совершить преступление" },
+      { en: "commodities", ru: "предмет потребления" },
+      { en: "communique", ru: "официальное сообщение\\коммюнике" },
+      { en: "compensate", ru: "компенсировать" },
+      { en: "concession", ru: "уступка" },
+      { en: "configure", ru: "настроить" },
+      { en: "consideration", ru: "рассмотрение" },
+      { en: "constructive dismissal", ru: "конструктивная причина для увольнения" },
+      { en: "convenience store", ru: "круглосуточный магазин" },
+      { en: "convertible", ru: "конвертируемый" },
+      { en: "counter-productive", ru: "приводящий к обратным результатам" },
+      { en: "country-wide paper", ru: "газета\\циркулирующая по всей стране" },
+      { en: "court, courtroom", ru: "суд" },
+      { en: "cover up", ru: "замалчивать" },
+      { en: "cut off", ru: "отрезать доступ" },
+      { en: "de facto", ru: "фактически\\в реальности" },
+      { en: "de jure", ru: "юридический\\законный" },
+      { en: "de minimis", ru: "малозначительным" },
+      { en: "de novo", ru: "снова\\вновь" },
+      { en: "dear mr (ms)…", ru: "уважаемый(ая) мистер (мисс) …" },
+      { en: "dear sir/madam", ru: "обращение в случае\\если вы не знаете имени и пола адресата" },
+      { en: "declaration", ru: "декларация\\объявление\\заявление" },
+      { en: "declared value", ru: "заявленная ценность" },
+      { en: "defective, faulty", ru: "бракованный" },
+      { en: "deliver to/at", ru: "доставлять" },
+      { en: "depression", ru: "спад\\застой\\депрессия" },
+      { en: "destination", ru: "пункт назначения" },
+      { en: "developments", ru: "события" },
+      { en: "devote to", ru: "посвящать\\уделять внимание" },
+      { en: "direct mail", ru: "почтовая рассылка" },
+      { en: "disciplinary measure", ru: "дисциплинарная мера\\взыскание" },
+      { en: "discrimination", ru: "дискриминация" },
+      { en: "dismiss, fire", ru: "увольнять" },
+      { en: "display advertising", ru: "дисплейная реклама" },
+      { en: "domiciled bill", ru: "домицилированный вексель" },
+      { en: "draw up", ru: "составить (план\\документ)" },
+      { en: "easily remembered", ru: "легко запоминающийся" },
+      { en: "economic growth", ru: "экономический рост" },
+      { en: "engagement rate", ru: "уровень вовлечённости" },
+      { en: "ex parte", ru: "в пользу одной стороны" },
+      { en: "ex post facto", ru: "имеющий обратную силу" },
+      { en: "exclusion clauses", ru: "исключения" },
+      { en: "exempli gratia (eg)", ru: "например" },
+      { en: "exit permit", ru: "разрешение на выезд" },
+      { en: "expiration", ru: "истечение" },
+      { en: "expiry date", ru: "дата истечения срока действия" },
+      { en: "extended guarantee", ru: "продленная гарантия" },
+      { en: "external affairs", ru: "события зарубежом" },
+      { en: "eye-catching", ru: "захватывающий внимание" },
+      { en: "face up to", ru: "признать (проблему)" },
+      { en: "facilities", ru: "оборудование" },
+      { en: "failure, damage", ru: "повреждение" },
+      { en: "fall behind", ru: "отставать" },
+      { en: "fall through", ru: "сорваться (план)" },
+      { en: "fast-moving consumer goods (fmcg)", ru: "товары повседневного спроса" },
+      { en: "faulty, flawed", ru: "брак" },
+      { en: "feasibility", ru: "осуществимость\\реализуемость" },
+      { en: "figure out", ru: "найти решение\\разобраться\\понять" },
+      { en: "find out", ru: "выяснить" },
+      { en: "first, i'd like to welcome you all", ru: "прежде всего хотел бы всех поприветствовать" },
+      { en: "flag up", ru: "отметить\\указать на" },
+      { en: "force majeure", ru: "форс мажор" },
+      { en: "foreign currency", ru: "иностранная валюта" },
+      { en: "free trade", ru: "свободная торговля" },
+      { en: "fringe benefits, perquisites (perks)", ru: "дополнительные к зарплате бонусы и поощрения" },
+      { en: "fundamentals", ru: "основы" },
+      { en: "get across", ru: "донести (мысль)" },
+      { en: "get around", ru: "обойти (ограничение)" },
+      { en: "get back to", ru: "вернуться с ответом" },
+      { en: "get through", ru: "донести (сообщение)\\справиться" },
+      { en: "go back on", ru: "нарушить (обещание)" },
+      { en: "go into", ru: "углубляться\\обсуждать подробно" },
+      { en: "go on strike", ru: "бастовать" },
+      { en: "go over", ru: "пересмотреть\\пройтись по" },
+      { en: "go with", ru: "остановиться на" },
+      { en: "going concern", ru: "непрерывность\\действующее предприятие" },
+      { en: "golden handshake", ru: "значительное финансовое вознаграждение при увольнении" },
+      { en: "goods in transit", ru: "товар в пути" },
+      { en: "gross domestic product", ru: "валовый внутренний продукт" },
+      { en: "gross weight", ru: "вес брутто" },
+      { en: "grow into", ru: "вырасти до" },
+      { en: "hand over", ru: "передать" },
+      { en: "hard currency", ru: "устойчивая валюта" },
+      { en: "head line/heading", ru: "газетный заголовок" },
+      { en: "heavy traffic", ru: "интенсивное движение" },
+      { en: "hello, everyone. thank you for coming today", ru: "приветствую всех. спасибо\\что пришли сегодня" },
+      { en: "hereinafter", ru: "в дальнейшем" },
+      { en: "heretofore", ru: "ранее\\до этого" },
+      { en: "hoarding (uk)", ru: "билборд" },
+      { en: "hold back", ru: "сдерживаться\\не раскрывать" },
+      { en: "hold off", ru: "отложить\\воздержаться" },
+      { en: "human resources", ru: "трудовые ресурсы" },
+      { en: "i agree with you in principle, but…", ru: "я в целом согласен с вами\\но…" },
+      { en: "i am afraid i didn't quite catch that", ru: "боюсь\\я не совсем понял" },
+      { en: "i am good at multitasking", ru: "я хорошо работаю в условиях многозадачности" },
+      { en: "i handle stress easily", ru: "я легко справляюсь со стрессом" },
+      { en: "i'm sorry but i don't agree with that", ru: "простите\\но я с этим не согласен" },
+      { en: "i'm very attentive to detail", ru: "я уделяю много внимания деталям" },
+      { en: "id est (ie)", ru: "то есть" },
+      { en: "impressions", ru: "показы" },
+      { en: "in behalf of", ru: "от лица" },
+      { en: "in bond", ru: "в ожидании разрешения" },
+      { en: "in bulk", ru: "оптом" },
+      { en: "in conclusion/to conclude, we have decided to…", ru: "подводя итоги\\мы решили\\что…" },
+      { en: "in the black", ru: "в плюсе" },
+      { en: "in the red", ru: "в долгу" },
+      { en: "in transit", ru: "транзитом" },
+      { en: "information on", ru: "информация о" },
+      { en: "information technology", ru: "информационные технологии" },
+      { en: "informative", ru: "информативный" },
+      { en: "injunction", ru: "предписание\\судебное постановление" },
+      { en: "innovation", ru: "инновация" },
+      { en: "insider dealing, trading", ru: "инсайдерские сделки" },
+      { en: "insolvency", ru: "неплатежеспособность" },
+      { en: "inspirational", ru: "вдохновляющий" },
+      { en: "instantly recognizable", ru: "легко узнаваемый" },
+      { en: "interest accrual", ru: "начисление процентов" },
+      { en: "interesting", ru: "интересный" },
+      { en: "internal regulations", ru: "внутренний правила компании" },
+      { en: "internship", ru: "интернатура" },
+      { en: "intriguing", ru: "интригующий" },
+      { en: "iron out", ru: "устранить (недоразумения)" },
+      { en: "irrevocable", ru: "безвозвратный" },
+      { en: "issue, matter", ru: "вопрос\\проблема" },
+      { en: "it is reported that", ru: "сообщают\\что" },
+      { en: "it is stated that", ru: "утверждают что" },
+      { en: "junk bond", ru: "бросовые облигации" },
+      { en: "key-note/the main idea", ru: "главная идея" },
+      { en: "labor force", ru: "рабочая сила" },
+      { en: "laboratory", ru: "лаборатория" },
+      { en: "laissez-faire", ru: "невмешательство" },
+      { en: "launch a product", ru: "запустить продукт" },
+      { en: "lay off", ru: "увольнение" },
+      { en: "let down", ru: "подвести" },
+      { en: "liabilities", ru: "обязательства" },
+      { en: "local paper", ru: "местная газета" },
+      { en: "local/home news", ru: "новости в стране" },
+      { en: "lock out", ru: "заблокировать доступ" },
+      { en: "log in / out", ru: "войти\\выйти из системы" },
+      { en: "look down on", ru: "смотреть свысока" },
+      { en: "look into", ru: "расследовать\\изучить" },
+      { en: "lorry (gb), truck (us)", ru: "грузовик" },
+      { en: "luggage (gb), baggage (us)", ru: "багаж" },
+      { en: "main point", ru: "основной пункт" },
+      { en: "manufacturer", ru: "производитель" },
+      { en: "manufacturing facility", ru: "производственное оборудование" },
+      { en: "merchandise", ru: "товар" },
+      { en: "misdemeanor", ru: "проступок\\преступление" },
+      { en: "misrepresentation", ru: "искажение\\введение в заблуждение" },
+      { en: "money laundering", ru: "отмывка денег" },
+      { en: "motivating", ru: "мотивирующий" },
+      { en: "move on", ru: "двигаться дальше" },
+      { en: "move up", ru: "продвигаться по карьерной лестнице" },
+      { en: "narrow down", ru: "сузить (список)" },
+      { en: "national paper", ru: "газета (распространяется в одной стране)" },
+      { en: "negligence", ru: "халатность" },
+      { en: "negotiable", ru: "договорной" },
+      { en: "net weight", ru: "чистый вес" },
+      { en: "null and void", ru: "недействительный" },
+      { en: "occupation", ru: "позиция" },
+      { en: "ok, let's summarize/sum up. we have agreed to…", ru: "хорошо\\давайте подытожим. мы договорились\\что…" },
+      { en: "on arrival", ru: "по прибытию" },
+      { en: "on deck", ru: "на палубе" },
+      { en: "on deposit", ru: "на депозит" },
+      { en: "operational management", ru: "операционное управление" },
+      { en: "opt for", ru: "выбрать" },
+      { en: "opt out (of)", ru: "отказаться" },
+      { en: "organic reach", ru: "органический охват" },
+      { en: "overtime work", ru: "работа сверхурочно" },
+      { en: "own up (to)", ru: "признаться" },
+      { en: "par value", ru: "номинальная стоимость" },
+      { en: "pass on", ru: "передать (информацию)" },
+      { en: "pay slip", ru: "выписка из платежной ведомости на выдачу зарплаты" },
+      { en: "payable at sight", ru: "оплачивается по востребованию" },
+      { en: "performance-related pay", ru: "оплата по производительности" },
+      { en: "periodical", ru: "периодическое издание" },
+      { en: "persuasive", ru: "убедительный" },
+      { en: "pick up on", ru: "заметить\\уловить" },
+      { en: "point out", ru: "выделить\\отметить\\указать" },
+      { en: "power up / down", ru: "включить\\выключить питание" },
+      { en: "preliminary inspection", ru: "предварительный осмотр" },
+      { en: "president and vice presidents", ru: "президент и вице-президенты" },
+      { en: "press round-up", ru: "обзор печати" },
+      { en: "privatization", ru: "приватизация" },
+      { en: "product line", ru: "линия продукции" },
+      { en: "product range", ru: "ассортимент товара" },
+      { en: "product-led / oriented", ru: "ведомый\\ориентированный на продукт" },
+      { en: "productivity", ru: "продуктивность" },
+      { en: "professional qualifications", ru: "профессиональные качества" },
+      { en: "professional training", ru: "профессиональный тренинг" },
+      { en: "prosecutor", ru: "прокурор" },
+      { en: "protectionism", ru: "протекционизм\\покровительство" },
+      { en: "public relation", ru: "связь с общественностью" },
+      { en: "publish, carry", ru: "публиковать" },
+      { en: "purchase intent", ru: "намерение купить" },
+      { en: "purchasing", ru: "закупки" },
+      { en: "put across", ru: "донести (взгляд)" },
+      { en: "put forward", ru: "предложить (plan\\idea)" },
+      { en: "put in", ru: "вложить (усилия\\время)" },
+      { en: "put together", ru: "собрать\\подготовить" },
+      { en: "ratification", ru: "разрешение" },
+      { en: "re-employment", ru: "повторное трудоустройство" },
+      { en: "reach", ru: "охват" },
+      { en: "reboot / restart", ru: "перезагрузить" },
+      { en: "receivership", ru: "банкротство" },
+      { en: "refresher course", ru: "курсы повышения квалификации" },
+      { en: "remuneration", ru: "вознаграждение" },
+      { en: "representative", ru: "представитель" },
+      { en: "research and development", ru: "исследования и разработки" },
+      { en: "research and development (r&d)", ru: "исследование и разработка" },
+      { en: "resentment", ru: "негодование" },
+      { en: "resistance", ru: "сопротивление" },
+      { en: "reverse engineering", ru: "обратная разработка" },
+      { en: "roadside signs", ru: "придорожная реклама" },
+      { en: "roll back", ru: "откатить изменения" },
+      { en: "roll out", ru: "развернуть постепенно" },
+      { en: "rule out", ru: "исключить" },
+      { en: "run into", ru: "столкнуться с (проблемой)" },
+      { en: "run through", ru: "быстро пройтись" },
+      { en: "search volume", ru: "объём поиска" },
+      { en: "securities", ru: "ценные бумаги" },
+      { en: "securities and exchange commission (sec)", ru: "комиссия по ценным бумагам и биржам" },
+      { en: "senior management", ru: "старшее руководство" },
+      { en: "severance pack", ru: "пакет по выходному пособию" },
+      { en: "severance pay", ru: "выходное пособие" },
+      { en: "severance pay, dismissal pay", ru: "выходное пособие" },
+      { en: "shopping centre", ru: "торговый центр" },
+      { en: "shut down", ru: "выключить (систему)" },
+      { en: "sign off on", ru: "одобрить" },
+      { en: "since everyone is here, let's get started", ru: "поскольку все собрались\\давайте начнем" },
+      { en: "soft currency", ru: "нестабильная валюта" },
+      { en: "sophisticated", ru: "утонченный" },
+      { en: "speculator", ru: "биржевик" },
+      { en: "stagflation", ru: "стагфляция" },
+      { en: "stand by", ru: "придерживаться" },
+      { en: "stand up for", ru: "защищать" },
+      { en: "standard of living", ru: "уровень жизни" },
+      { en: "step down", ru: "покинуть пост" },
+      { en: "step up", ru: "повысить\\взять на себя" },
+      { en: "subscription", ru: "подписка" },
+      { en: "substandard", ru: "ниже установленного стандарта" },
+      { en: "supervisor", ru: "наблюдатель\\прямой менеджер" },
+      { en: "supplement", ru: "дополнение\\приложение" },
+      { en: "suretyship", ru: "поручительство" },
+      { en: "switch on / off", ru: "включить\\выключить (переключатель)" },
+      { en: "take down", ru: "вывести из строя\\остановить" },
+      { en: "take over", ru: "перехватить\\принять управление" },
+      { en: "talk over", ru: "обсудить (принять решение)" },
+      { en: "talk through", ru: "обсудить детально" },
+      { en: "thank you for contacting us", ru: "спасибо\\что вы с нами связались" },
+      { en: "the article reports on new films", ru: "в статье идет речь о новых фильмах" },
+      { en: "the events at home/abroad", ru: "события в стране и зарубежом" },
+      { en: "the latest events (developments)", ru: "последние события" },
+      { en: "to appoint a person", ru: "назначить человека" },
+      { en: "to ask for a rise", ru: "просить о повышении зарабjтной платы" },
+      { en: "to be addressed to", ru: "адресовать кому-либо" },
+      { en: "to bear all risks", ru: "нести риски" },
+      { en: "to buy back", ru: "выкупать" },
+      { en: "to declare", ru: "заявлять\\объявлять" },
+      { en: "to edit", ru: "редактировать" },
+      { en: "to feature", ru: "описывать" },
+      { en: "to follow the events", ru: "следить за событиями" },
+      { en: "to handle with care", ru: "обращаться осторожно" },
+      { en: "to issue, come out", ru: "выходить\\выпускать (журнал\\газета)" },
+      { en: "to make redundant", ru: "сократить" },
+      { en: "to picture", ru: "описывать" },
+      { en: "to print", ru: "печатать" },
+      { en: "to refuse to settle a claim", ru: "отказ в урегулировании иска" },
+      { en: "to state", ru: "заявлять" },
+      { en: "to store", ru: "для хранения" },
+      { en: "to subscribe to", ru: "подписатся на" },
+      { en: "to work in shifts", ru: "сменная работа" },
+      { en: "to work overtime", ru: "работа сверхурочно" },
+      { en: "touch on", ru: "коснуться (темы)" },
+      { en: "touch upon", ru: "затрагивать" },
+      { en: "trade deficit", ru: "внешнеторговый дефицит" },
+      { en: "trade fair", ru: "торговая ярмарка" },
+      { en: "trade surplus", ru: "активный торговый баланс" },
+      { en: "trade union", ru: "профсоюз" },
+      { en: "trading session", ru: "торговая сессия" },
+      { en: "transaction", ru: "транзакции" },
+      { en: "transferable", ru: "переводный" },
+      { en: "treasury securities", ru: "казначейские ценные бумаги" },
+      { en: "trial period", ru: "испытательный срок" },
+      { en: "turn on / off", ru: "включить\\выключить" },
+      { en: "u.s.p. - unique selling points", ru: "утп - уникальное торговое предложение" },
+      { en: "uberrima fides", ru: "наивысшая добросовестность" },
+      { en: "underestimate", ru: "недооценивать\\занижать" },
+      { en: "underproductive", ru: "малопродуктивный" },
+      { en: "underwriter", ru: "гарант" },
+      { en: "unemployment", ru: "безработица" },
+      { en: "unfair dismissal", ru: "несправедливое увольнение" },
+      { en: "venture capital", ru: "венчурный капитал\\вложение капитала с риском" },
+      { en: "warm up to", ru: "проникнуться симпатией" },
+      { en: "wipe out", ru: "уничтожить полностью" },
+      { en: "with reference to your letter …", ru: "относительно вашего письма…" },
+      { en: "without prejudice", ru: "без ущерба\\предубеждения" },
+      { en: "work around", ru: "найти обходной путь" },
+      { en: "work on", ru: "работать над" },
+      { en: "working conditions", ru: "рабочие условия" },
+      { en: "workstation", ru: "рабочее место" },
+      { en: "write up", ru: "подготовить (документ)" },
+      { en: "yours faithfully …", ru: "с уважением … (в том случае\\если вам неизвестно имя адресата)" },
+      { en: "yours sincerely …", ru: "с уважением …" },
+      { en: "zero in on", ru: "сосредоточиться на" },
+    ],
+  },
+};
+
+const SEED_SHARED_LIBRARY_BIZ_B2 = {
+  difficulty: "B2",
+  topics: {
+    "деловой_компания": [
+      { en: "adapt leadership style to team needs", ru: "адаптировать стиль управления под потребности команды" },
+      { en: "align team efforts with customer needs", ru: "направлять работу команды на удовлетворение потребностей клиента" },
+      { en: "align technical and business priorities", ru: "согласовывать технические и бизнес-приоритеты" },
+      { en: "celebrate team achievements", ru: "отмечать достижения команды" },
+      { en: "create a psychologically safe team environment", ru: "создавать атмосферу психологической безопасности в команде" },
+      { en: "ensure alignment with business goals", ru: "обеспечивать соответствие проекта целям бизнеса" },
+      { en: "facilitate effective team communication", ru: "выстраивать эффективную коммуникацию внутри команды" },
+      { en: "inspire team ownership and accountability", ru: "вдохновлять команду на ответственность за результат" },
+      { en: "keep team motivated during crunch time", ru: "поддерживать мотивацию команды в период повышенной нагрузки" },
+      { en: "keep the team informed and engaged", ru: "поддерживать информированность и вовлечённость команды" },
+      { en: "mentor junior team members", ru: "менторить младших специалистов" },
+      { en: "monitor team's sprint velocity", ru: "отслеживать динамику скорости команды" },
+      { en: "prioritize tasks based on business impact", ru: "расставлять приоритеты задач с учётом влияния на бизнес" },
+      { en: "provide constructive feedback to team members", ru: "давать команде конструктивную обратную связь" },
+      { en: "reduce context switching for the team", ru: "снижать количество переключений контекста внутри команды" },
+      { en: "resolve conflicts within the team", ru: "урегулировать конфликты внутри команды" },
+      { en: "speak both tech and business languages", ru: "одинаково уверенно общаться на языке технологий и бизнеса" },
+      { en: "track team workload and capacity", ru: "отслеживать загрузку команды и её ресурсную доступность" },
+      { en: "translate business needs into technical requirements", ru: "переводить бизнес-потребности в технические требования" },
+      { en: "act as a liaison between business and tech teams", ru: "быть связующим звеном между бизнес-командой и разработкой" },
+      { en: "cbo / cbdo (chief business officer / chief business development officer)", ru: "директор по развитию бизнеса" },
+      { en: "cross-functional team", ru: "кросс-функциональная команда" },
+      { en: "let me give you my business card", ru: "позвольте оставить вам свою визитку" },
+    ],
+    "деловой_карьера": [
+      { en: "support work-life balance", ru: "поддерживать здоровый баланс между работой и личной жизнью" },
+      { en: "i have … years' experience in the field", ru: "у меня … лет опыта работы в этой сфере" },
+      { en: "i have 6 years of experience in qa", ru: "у меня 6 лет опыта в qa" },
+      { en: "i want to further my career in …", ru: "я хочу развивать свою карьеру в сфере …" },
+    ],
+    "деловой_задачи": [
+      { en: "ensure qa involvement from the start", ru: "привлекать qa на ранних этапах проекта" },
+      { en: "facilitate daily stand-ups and retrospectives", ru: "проводить ежедневные стендапы и ретроспективы" },
+      { en: "deliver projects on time and within budget", ru: "сдавать проекты в срок и в рамках бюджета" },
+      { en: "i manage my time well by planning out …", ru: "я умею хорошо распределять время\\планируя …" },
+      { en: "i'll have my secretary schedule an appointment", ru: "я попрошу своего секретаря назначить время встречи" },
+      { en: "i'm afraid i have to leave now", ru: "боюсь\\я вынужден уйти" },
+      { en: "perception shift", ru: "изменение восприятия" },
+      { en: "use jira for task and sprint management", ru: "использовать jira для управления задачами и спринтами" },
+      { en: "when do you want me to start?", ru: "когда мне начинать?" },
+    ],
+    "деловой_переписка": [
+      { en: "clarify roles and responsibilities", ru: "уточнять роли и зоны ответственности участников команды" },
+      { en: "collect and process feedback", ru: "собирать и обрабатывать обратную связь" },
+      { en: "manage performance and feedback loops", ru: "управлять результативностью команды и системой обратной связи" },
+      { en: "call me if you have any questions", ru: "позвоните мне\\если возникнут какие-либо вопросы" },
+      { en: "i am writing to inform you that …", ru: "я пишу\\чтобы уведомить вас …" },
+      { en: "we regret to inform you that …", ru: "мы с сожалением сообщаем …" },
+    ],
+    "деловой_встречи": [
+      { en: "present project updates to executives", ru: "представлять обновления по проекту руководству" },
+      { en: "as you can see from the agenda, we'll be talking about…", ru: "как вы видите из повестки дня\\мы будем говорить о…" },
+      { en: "i'll let you know the date of our next meeting", ru: "я сообщу вам о дате следующего совещания" },
+      { en: "the first item on the agenda is…", ru: "первый пункт повестки дня…" },
+      { en: "the next item on the agenda is..", ru: "следующий пункт повестки дня…" },
+    ],
+    "деловой_проекты": [
+      { en: "address scope creep proactively", ru: "проактивно управлять расширением объёма работ" },
+      { en: "balance speed and quality", ru: "поддерживать баланс скорости и качества" },
+      { en: "conduct post-implementation reviews", ru: "проводить анализ результатов после внедрения проекта" },
+      { en: "conduct risk assessment workshops", ru: "проводить воркшопы по оценке рисков" },
+      { en: "define project scope and objectives", ru: "определять границы и цели проекта" },
+      { en: "develop detailed project plans and timelines", ru: "разрабатывать детализированные проектные планы и графики" },
+      { en: "enforce code freeze before release", ru: "вводить режим code-freeze перед релизом" },
+      { en: "ensure customer satisfaction throughout the project", ru: "поддерживать высокий уровень удовлетворённости клиента на протяжении всего проекта" },
+      { en: "generate gantt charts in ms project", ru: "строить диаграммы ганта в ms project" },
+      { en: "handle hotfixes without disrupting roadmap", ru: "устранять критические ошибки без нарушения дорожной карты" },
+      { en: "identify and manage project risks", ru: "выявлять и управлять рисками проекта" },
+      { en: "identify project bottlenecks early", ru: "выявлять узкие места проекта на ранних этапах" },
+      { en: "maintain backlog grooming discipline", ru: "поддерживать регулярную проработку и приоритизацию бэклога" },
+      { en: "maintain quality standards", ru: "поддерживать стандарты качества" },
+      { en: "manage project scope creep", ru: "управлять неконтролируемым расширением объёма проекта" },
+      { en: "monitor post-release bugs", ru: "отслеживать баги после релиза" },
+      { en: "perform quality gates at key phases", ru: "проводить контрольные точки качества на ключевых этапах проекта" },
+      { en: "track kpis and project milestones", ru: "отслеживать kpi и ключевые проектные этапы" },
+      { en: "track project kpis in confluence dashboards", ru: "отслеживать kpi проекта в дашбордах confluence" },
+      { en: "track risk indicators and mitigation plans", ru: "отслеживать рисковые индикаторы и планы их минимизации" },
+      { en: "use agile, scrum, or waterfall methodologies", ru: "применять методологии agile\\scrum или waterfall" },
+      { en: "validate deployment and release plans", ru: "проверять и согласовывать планы релиза и развёртывания" },
+      { en: "ensure project documentation is up to date", ru: "поддерживать актуальность проектной документации" },
+      { en: "reputational risk", ru: "репутационный риск" },
+      { en: "set up sprint goals and velocity tracking", ru: "формулировать цели спринта и отслеживать скорость команды" },
+      { en: "what are your feelings about this project?", ru: "что вы думаете по поводу этого проекта?" },
+    ],
+    "деловой_маркетинг": [
+      { en: "adapt communication style to audience", ru: "адаптировать стиль коммуникации под аудиторию" },
+      { en: "lead by example", ru: "подавать личный пример" },
+      { en: "lead cross-functional teams", ru: "управлять кросс-функциональными командами" },
+      { en: "track and reduce churn rate", ru: "отслеживать и снижать уровень оттока пользователей\\клиентов" },
+      { en: "audience skepticism", ru: "скептицизм аудитории" },
+      { en: "brand architecture", ru: "архитектура бренда" },
+      { en: "brand equity", ru: "капитал бренда" },
+      { en: "brand favorability", ru: "благосклонность к бренду" },
+      { en: "brand lift study", ru: "исследование роста бренда" },
+      { en: "brand narrative", ru: "бренд-нарратив" },
+      { en: "brand positioning", ru: "позиционирование бренда" },
+      { en: "brand trust score", ru: "показатель доверия к бренду" },
+      { en: "campaign execution", ru: "реализация кампании" },
+      { en: "campaign flight", ru: "период активности кампании" },
+      { en: "deal with", ru: "справиться\\заниматься\\разбираться с" },
+      { en: "localized content", ru: "локализованный контент" },
+      { en: "lower funnel", ru: "нижняя часть воронки" },
+      { en: "market penetration", ru: "проникновение на рынок" },
+      { en: "media buying", ru: "закупка медиа" },
+      { en: "media mix", ru: "медиамикс" },
+      { en: "sales and marketing", ru: "продажи и маркетинг" },
+      { en: "upper funnel", ru: "верхняя часть воронки" },
+    ],
+    "деловой_финансы": [
+      { en: "minimize technical debt", ru: "снижать объём технического долга" },
+      { en: "actual yield", ru: "фактическое состояние\\доходность" },
+      { en: "capital stock", ru: "основной капитал" },
+      { en: "casualty insurance", ru: "страхование от несчастных случаев" },
+      { en: "financial or accounting", ru: "финансы и бухгалтерия" },
+      { en: "gross yield", ru: "валовый доход" },
+      { en: "industrial accident insurance", ru: "промышленное страхование от несчастных случаев" },
+      { en: "investment", ru: "инвестиция" },
+      { en: "life insurance", ru: "страхование жизни" },
+      { en: "malpractice insurance", ru: "страхование от случаев халатности" },
+      { en: "obligatory insurance", ru: "обязательное страхование" },
+      { en: "penny stock", ru: "мелкие акции" },
+      { en: "share certificate", ru: "акционерный сертификат" },
+      { en: "share of voice", ru: "доля голоса в рынке" },
+    ],
+    "деловой_поставки": [
+      { en: "use retrospectives to improve delivery", ru: "использовать ретроспективы для повышения эффективности процессов доставки продукта" },
+      { en: "cpo (chief procurement officer / chief product officer)", ru: "директор по закупкам\\директор отдела контроля производства" },
+      { en: "post-production", ru: "пост-продакшен" },
+      { en: "production brief", ru: "продакшен-бриф" },
+      { en: "production efficiency", ru: "эффективность производства" },
+    ],
+    "деловой_право": [
+      { en: "agreement, contract", ru: "договор\\контракт" },
+      { en: "breach of contract", ru: "нарушение контракта\\нарушить контракт" },
+      { en: "employment contract, labour contract", ru: "рабочий контракт" },
+      { en: "latin in legal terms", ru: "латынь в юридическом английском" },
+      { en: "lawsuit, legal action", ru: "судебный процесс" },
+    ],
+    "деловой_переговоры": [
+      { en: "build a culture of accountability", ru: "формировать культуру ответственности и осознанности" },
+      { en: "foster innovation and initiative", ru: "поддерживать инициативность и инновационное мышление" },
+      { en: "flighting strategy", ru: "стратегия запуска волнами" },
+      { en: "stakeholder alignment", ru: "согласование со стейкхолдерами" },
+    ],
+    "деловой_глаголы": [
+      { en: "align stakeholder expectations with reality", ru: "согласовывать ожидания стейкхолдеров с реальными возможностями и ограничениями" },
+      { en: "analyze burndown and velocity charts", ru: "анализировать диаграммы burndown и velocity" },
+      { en: "automate routine tasks where possible", ru: "автоматизировать рутинные процессы\\где это возможно" },
+      { en: "collaborate in slack or microsoft teams", ru: "сотрудничать и обмениваться информацией в slack или microsoft teams" },
+      { en: "communicate timelines and expectations clearly", ru: "чётко доносить сроки и ожидания" },
+      { en: "conduct regular 1-on-1s", ru: "проводить регулярные личные встречи с членами команды" },
+      { en: "conduct uat (user acceptance testing)", ru: "проводить пользовательское приёмочное тестирование" },
+      { en: "configure issue types and workflows", ru: "настраивать типы задач и рабочие процессы" },
+      { en: "coordinate with stakeholders and vendors", ru: "координировать взаимодействие со стейкхолдерами и подрядчиками" },
+      { en: "drive continuous improvement", ru: "продвигать культуру постоянного улучшения" },
+      { en: "encourage knowledge sharing", ru: "поощрять обмен знаниями внутри команды" },
+      { en: "encourage professional development", ru: "поощрять профессиональное развитие сотрудников" },
+      { en: "ensure documentation is test-ready", ru: "обеспечивать готовность документации к тестированию" },
+      { en: "escalate critical blockers", ru: "эскалировать критические блокеры" },
+      { en: "escalate issues when necessary", ru: "эскалировать проблемы при необходимости" },
+      { en: "handle change requests effectively", ru: "эффективно обрабатывать запросы на изменения" },
+      { en: "implement ci/cd best practices", ru: "внедрять лучшие практики ci\\cd" },
+      { en: "integrate tools for seamless collaboration", ru: "интегрировать инструменты для бесшовного взаимодействия команд" },
+      { en: "maintain transparency across all stakeholders", ru: "обеспечивать прозрачность для всех стейкхолдеров" },
+      { en: "manage multiple projects simultaneously", ru: "вести несколько проектов одновременно" },
+      { en: "manage resources using clickup or asana", ru: "управлять ресурсами в clickup или asana" },
+      { en: "monitor progress and adjust as needed", ru: "отслеживать прогресс и при необходимости вносить корректировки" },
+      { en: "perform root cause analysis for delays", ru: "проводить анализ корневых причин задержек" },
+      { en: "promote autonomy and trust", ru: "развивать автономность команды и культуру доверия" },
+      { en: "provide regular status updates to stakeholders", ru: "предоставлять стейкхолдерам регулярные обновления по статусу проекта" },
+      { en: "reflect and evolve as a leader", ru: "развиваться как лидер через регулярную саморефлексию" },
+      { en: "resolve interpersonal conflicts", ru: "урегулировать межличностные конфликты" },
+      { en: "review and approve technical specs", ru: "проверять и утверждать технические спецификации" },
+      { en: "run efficient and focused meetings", ru: "проводить продуктивные и сфокусированные встречи" },
+      { en: "set clear communication channels", ru: "формировать понятные и устойчивые каналы коммуникации" },
+      { en: "set clear performance expectations", ru: "формировать чёткие ожидания по результатам работы" },
+      { en: "set realistic deadlines and buffer times", ru: "устанавливать реалистичные сроки с учётом буферов" },
+      { en: "transparency", ru: "прозрачность" },
+      { en: "use version control tools like git", ru: "использовать системы контроля версий\\такие как git" },
+      { en: "after careful consideration we have decided …", ru: "после тщательной оценки мы приняли решение …" },
+      { en: "agency briefing", ru: "брифинг агентства" },
+      { en: "aida(s) - attention, interest, desire, action, (satisfaction)", ru: "аида(с) - внимание\\интерес\\желание\\действие\\удовлетворение" },
+      { en: "always-on", ru: "постоянное присутствие в медиа" },
+      { en: "art direction", ru: "арт-дирекшен" },
+      { en: "authenticity", ru: "аутентичность" },
+      { en: "before we close, let me just summarize the main points", ru: "прежде чем мы закончим\\позвольте мне подвести итоги" },
+      { en: "break down complex initiatives into actionable steps", ru: "структурировать сложные инициативы на понятные и реализуемые шаги" },
+      { en: "bring up", ru: "поднять (вопрос)\\поднять (тему)\\воспитывать" },
+      { en: "build trust with internal and external partners", ru: "выстраивать доверительные отношения с внутренними и внешними партнёрами" },
+      { en: "can you expand on that? what exactly did you have in mind?", ru: "не могли бы вы пояснить? что именно вы имели в виду?" },
+      { en: "cao (chief administrative officer / chief analytics officer)", ru: "директор административного отдела\\главный аналитик" },
+      { en: "carry out", ru: "выполнять\\выполнять (задачу)" },
+      { en: "competitive differentiation", ru: "конкурентное отличие" },
+      { en: "continue on", ru: "«продолжай»" },
+      { en: "could you be a little more/a bit more precise, please?", ru: "не могли бы вы быть немного более точным\\пожалуйста?" },
+      { en: "could you possibly tell us / let us have …", ru: "не могли бы вы сообщить нам…" },
+      { en: "count on", ru: "полагаться\\рассчитывать на" },
+      { en: "creative brief", ru: "креативный бриф" },
+      { en: "creative concept", ru: "креативная концепция" },
+      { en: "creative consistency", ru: "креативная последовательность" },
+      { en: "creative platform", ru: "креативная платформа" },
+      { en: "credibility gap", ru: "разрыв в доверии\\репутации" },
+      { en: "cut down on", ru: "сокращать (потребление)" },
+      { en: "cut out", ru: "полностью исключить" },
+      { en: "end up", ru: "в итоге оказаться" },
+      { en: "fall out (with)", ru: "поссориться\\поссориться с" },
+      { en: "gain generate get give go grant grow guarantee", ru: "получать генерировать получать давать идти наделять расти гарантировать" },
+      { en: "get on (with)", ru: "ладить (с кем-то)\\ладить с" },
+      { en: "give up", ru: "бросать (привычку)" },
+      { en: "hand in", ru: "сдавать (работу)" },
+      { en: "i agree with you up to a point, but…", ru: "я согласен с вами в определенной степени\\но…" },
+      { en: "i am confident that i will be able to use my skills in … in the advertised post", ru: "я уверен\\что смогу применить мои навыки на этой должности" },
+      { en: "i am interested in (obtaining / receiving) …", ru: "я хотел бы получить …" },
+      { en: "i am not sure i follow your point about…?", ru: "я не уверен\\что понял вашу мысль о…?" },
+      { en: "i am open to relocate to dubai", ru: "я открыт к переезду в дубай" },
+      { en: "i am sorry, could you repeat that please?", ru: "прошу прощения\\вы могли бы повторить это еще раз?" },
+      { en: "i am writing to enquire about …", ru: "я пишу\\чтобы узнать о …" },
+      { en: "i graduated from … university (college) in …", ru: "я окончил … университет (училище) в …" },
+      { en: "i increased coverage from 40 to 75 percent", ru: "я увеличил покрытие с 40 до 75%" },
+      { en: "i look forward to hearing from you", ru: "жду вашего ответа" },
+      { en: "i should be hired because i'm …", ru: "я подхожу на эту должность\\потому что …" },
+      { en: "i think it would be better if..", ru: "думаю\\было бы лучше\\если бы.." },
+      { en: "i will go over the main points, shall i?", ru: "я пройдусь по основным пунктам\\хорошо?" },
+      { en: "i work with api, ui, and mobile testing", ru: "я работаю с api\\ui и мобильным тестированием" },
+      { en: "i would appreciate your immediate attention to this matter", ru: "я был бы очень признателен за ваше неотложное внимание к этому делу" },
+      { en: "i'm afraid i can't agree with you on that", ru: "боюсь\\я не могу согласиться с вами в этом" },
+      { en: "i'm afraid it would not be possible to …", ru: "боюсь\\это невозможно …" },
+      { en: "i'm excited about this opportunity because …", ru: "я очень рад получить эту возможность\\поскольку …" },
+      { en: "i'm sorry, but i have to go now", ru: "простите\\но мне уже пора" },
+      { en: "if no one has anything else to add, then i think we'll wrap this up", ru: "если никто больше ничего не хочет добавить\\то я думаю\\мы на этом закончим" },
+      { en: "internal tender", ru: "внутренний тендер" },
+      { en: "just a moment. i'll come back to you in a minute", ru: "одну минуту. я вернусь к вам через минуту" },
+      { en: "key visual", ru: "ключевой визуал" },
+      { en: "learn from past mistakes and apply insights", ru: "извлекать уроки из прошлых ошибок и применять полученные инсайты на практике" },
+      { en: "look up to", ru: "уважать\\брать пример" },
+      { en: "point of view", ru: "точка зрения бренда" },
+      { en: "prepare reports using excel or google sheets", ru: "готовить отчёты в excel или google sheets" },
+      { en: "put off", ru: "откладывать" },
+      { en: "put up with", ru: "терпеть\\мириться с" },
+      { en: "region-specific casting", ru: "локальный кастинг" },
+      { en: "retargeting", ru: "ретаргетинг" },
+      { en: "set up", ru: "настроить\\развернуть\\организовать\\наладить" },
+      { en: "set up workflows in trello or monday.com", ru: "настраивать рабочие процессы в trello или monday.com" },
+      { en: "shareholder", ru: "акционер" },
+      { en: "sort out", ru: "разобраться\\устранить\\улаживать\\решать" },
+      { en: "stay up to date with industry trends", ru: "оставаться в курсе тенденций и изменений в отрасли" },
+      { en: "stockholder", ru: "акционер\\держатель акций" },
+      { en: "tabby is a great match for me", ru: "tabby отлично мне подходит" },
+      { en: "take on", ru: "браться за (задачу\\ответственность)\\брать (обязанность\\проект)" },
+      { en: "take up", ru: "начать заниматься\\занимать место" },
+      { en: "the article reviews the latest event abroad", ru: "в статье идет обзор последних новостей за рубежом" },
+      { en: "to be on probation, to be on trial", ru: "быть на испытательном сроке" },
+      { en: "to give / hand in one's resignation notice", ru: "подать заявление на увольнение" },
+      { en: "to give a full/wide coverage of/to an event", ru: "широко освещать в печати какое-либо событие" },
+      { en: "to give full attention to some event", ru: "приделить много внимания какому-либо событию" },
+      { en: "to know out", ru: "«выяснить»" },
+      { en: "trust gap", ru: "разрыв в доверии" },
+      { en: "turn off it", ru: "«выключи его» (местоим.)" },
+      { en: "universal creative framework", ru: "универсальный креативный фреймворк" },
+      { en: "value proposition", ru: "ценностное предложение" },
+      { en: "visual identity", ru: "визуальная идентичность" },
+      { en: "we are pleased to announce that …", ru: "мы с удовольствием сообщаем\\что …" },
+      { en: "we'll send out that information right away", ru: "мы немедленно вышлем эту информацию" },
+      { en: "work out", ru: "считать\\рассчитывать\\находить решение\\тренироваться\\разрешаться" },
+    ],
+  },
+};
+
+const SEED_SHARED_LIBRARY_BIZ_C1 = {
+  difficulty: "C1",
+  topics: {
+    "деловой_карьера": [
+      { en: "rather than making claims audiences no longer believe, we invited them to experience the product firsthand", ru: "вместо того чтобы делать заявления\\которым аудитория больше не верит\\мы предложили ей лично познакомиться с продуктом" },
+    ],
+    "деловой_задачи": [
+      { en: "we needed to shift audience perception from scepticism to active consideration within a single campaign cycle", ru: "нам нужно было изменить восприятие аудитории от скептицизма к активному рассмотрению в рамках одного цикла кампании" },
+    ],
+    "деловой_проекты": [
+      { en: "the challenge was to neutralise reputational risk without overpromising on product capabilities", ru: "задача состояла в том\\чтобы нейтрализовать репутационный риск\\не давая завышенных обещаний о возможностях продукта" },
+    ],
+    "деловой_маркетинг": [
+      { en: "brand favorability improved across all campaign markets, with the strongest gains in indonesia", ru: "благосклонность к бренду выросла на всех рынках кампании\\с наибольшим приростом в индонезии" },
+      { en: "in a commoditised market, a strong brand is the only sustainable differentiator", ru: "на однородном рынке сильный бренд — единственный устойчивый источник дифференциации" },
+      { en: "operating without a local licence creates a trust deficit that only brand investment can offset", ru: "работа без местной лицензии создаёт дефицит доверия\\который может компенсировать только инвестиция в бренд" },
+      { en: "the campaign delivered measurable impact across all key brand metrics", ru: "кампания обеспечила измеримый результат по всем ключевым метрикам бренда" },
+      { en: "the creative platform gives us flexibility across formats while maintaining a consistent brand voice", ru: "креативная платформа даёт нам гибкость в форматах при сохранении последовательного голоса бренда" },
+      { en: "to overcome the trust gap, we moved from brand promises to brand proof", ru: "чтобы преодолеть разрыв в доверии\\мы перешли от обещаний бренда к доказательствам бренда" },
+    ],
+    "деловой_финансы": [
+      { en: "appear, prove, constitute, account for, stand for", ru: "публицистика" },
+    ],
+    "деловой_право": [
+      { en: "due diligence", ru: "надлежащая проверка\\должная осмотрительность\\экспертная проверка юридической безопасности" },
+      { en: "cco (chief commercial officer / chief compliance officer)", ru: "коммерческий директор\\главный управляющий по контролю за соблюдением законодательства" },
+      { en: "liability", ru: "обязательство\\ответственность" },
+    ],
+    "деловой_глаголы": [
+      { en: "grow", ru: "расти\\постепенно\\часто негативно или возраст" },
+      { en: "a steep learning curve", ru: "тяжелый старт обучения" },
+      { en: "appear", ru: "более формальный\\часто — внешняя видимость\\которая может обманывать" },
+      { en: "be on the same page", ru: "понимать одинаково" },
+      { en: "be over the moon", ru: "быть на седьмом небе" },
+      { en: "come", ru: "результат процесса — итог" },
+      { en: "come across as", ru: "производить впечатление" },
+      { en: "cut corners", ru: "халтурить\\экономить на качестве" },
+      { en: "fall", ru: "непреднамеренно\\часто негативно" },
+      { en: "feel under the weather", ru: "неважно себя чувствовать" },
+      { en: "get", ru: "разговорный\\процесс" },
+      { en: "get on like a house on fire", ru: "отлично ладить" },
+      { en: "get the ball rolling", ru: "запустить дело" },
+      { en: "get, go, turn, end up, come across as, turn out", ru: "разговорная речь" },
+      { en: "go", ru: "часто негативные изменения — плохое направление" },
+      { en: "have a lot on one's plate", ru: "быть перегруженным" },
+      { en: "i'd strongly advise…", ru: "твердо" },
+      { en: "i'd suggest / i'd recommend…", ru: "нейтрально" },
+      { en: "it would be beneficial to…", ru: "мягко" },
+      { en: "keep", ru: "разговорный\\часто с -ing" },
+      { en: "lie, stand, nestle, fall silent, strike as, grow", ru: "художественный текст" },
+      { en: "look", ru: "зрительное впечатление" },
+      { en: "prove to be, turn out to be, remain, appear", ru: "деловая переписка" },
+      { en: "put things into perspective", ru: "взглянуть трезво" },
+      { en: "remain", ru: "формальный" },
+      { en: "remain, constitute, represent, appear, prove to be", ru: "академический текст" },
+      { en: "run", ru: "исчерпание\\дефицит" },
+      { en: "seem", ru: "общее впечатление\\нейтральный" },
+      { en: "stay", ru: "нейтральный\\разговорный" },
+      { en: "the results exceeded our reach targets by 17%, delivering 557 million impressions", ru: "результаты превысили целевые показатели охвата на 17%\\обеспечив 557 миллионов показов" },
+      { en: "think outside the box", ru: "мыслить нестандартно" },
+      { en: "turn", ru: "резкая смена\\особенно цвет\\состояние" },
+      { en: "we prioritised organic reach through influencer seeding to expand beyond our retargeting pool", ru: "мы сделали ставку на органический охват через посев у инфлюенсеров\\чтобы выйти за пределы ретаргетинговой аудитории" },
+      { en: "we saw significant uplift in branded search volume among exposed users", ru: "мы зафиксировали значительный рост объёма брендового поиска среди охваченной аудитории" },
+      { en: "why don't we…? / how about…?", ru: "неформально" },
+    ],
+  },
+};
+
+const SEED_SHARED_LIBRARY_PHRASES = {
+  difficulty: "B1",
+  topics: {
+    "разговорные_фразы": [
+      { en: "Bored to death", ru: "До смерти скучно / Умираю со скуки" },
+      { en: "You've got to be kidding", ru: "Ты, наверное, шутишь!" },
+      { en: "Sick and tired", ru: "Меня это достало / Надоело" },
+      { en: "Call it a day", ru: "Заканчивать работу / Закругляться" },
+      { en: "Get on one's nerves", ru: "Действовать на нервы" },
+      { en: "Couch potato", ru: "Как овощ / Как комнатное растение" },
+      { en: "Read one's mind", ru: "Читать / угадать чьи-то мысли" },
+      { en: "Feel blue", ru: "Мне грустно / уныло / тоскливо" },
+      { en: "Fender bender", ru: "Небольшое ДТП / Немного помял машину" },
+      { en: "Get foot in the door", ru: "Сделать первый шаг" },
+      { en: "Chicken", ru: "Бояться / быть трусишкой" },
+      { en: "Give somebody a hard time", ru: "Устроить кому-то проблемы / трудные времена" },
+      { en: "Make up one's mind", ru: "Принять решение / определиться" },
+      { en: "Go Dutch", ru: "Платить пополам / вскладчину / каждый за себя" },
+      { en: "Throw in the towel", ru: "Сдаваться" },
+      { en: "Goose bumps", ru: "Мурашки по коже" },
+      { en: "Stay in touch", ru: "Быть на связи / Поддерживать связь" },
+      { en: "Have the guts", ru: "Иметь смелость" },
+      { en: "Rain or shine", ru: "В любую погоду / Не смотря ни на что" },
+      { en: "I'm beat", ru: "Я валюсь с ног от усталости." },
+      { en: "Easier said than done", ru: "Легче сказать, чем сделать / Не всё так просто" },
+      { en: "It's about time", ru: "Наконец-то / Пришло время / Пора (это сделать)" },
+      { en: "Jump to conclusions", ru: "Спешить с выводами" },
+      { en: "Keep an eye on", ru: "Следить / наблюдать / приглядывать" },
+      { en: "Out of the blue", ru: "Неожиданно / Из ниоткуда" },
+      { en: "Know something inside out", ru: "Вдоль и поперек / на зубок / как свои 5 пальцев" },
+      { en: "Give someone a hand", ru: "Помочь / Протянуть руку помощи" },
+      { en: "Every now and then", ru: "Иногда / Время от времени" },
+      { en: "Nuke - Microwave", ru: "Готовить в микроволновке" },
+      { en: "On the dot", ru: "Ровно в это время / Минута в минуту" },
+      { en: "Keeping my fingers crossed", ru: "Держать кулаки на удачу / Скрестить пальцы на удачу" },
+      { en: "Out of this world", ru: "Потрясающе / Невероятно / Будто, не из этого мира" },
+      { en: "Over one's head", ru: "Вне (моего) понимания" },
+      { en: "Pain in the ass", ru: "Заноза в заднице / Достало / Испытание на прочность" },
+      { en: "Piece of cake", ru: "Проще простого / проще пареной репы / легче легкого" },
+      { en: "Sooner or later", ru: "Рано или поздно" },
+      { en: "Pull someone's leg", ru: "Морочить голову / Разыгрывать / Обманывать" },
+      { en: "Put oneself in one's place", ru: "Поставить себя на чье-то место" },
+      { en: "(I'm so hungry) I can eat a horse", ru: "Я голодный, как волк / Умираю с голоду" },
+      { en: "Read between the lines", ru: "Читать между строк / Понимать подтекст" },
+      { en: "Rings a bell", ru: "Что-то знакомое / Всплывает в памяти" },
+      { en: "Bug", ru: "Раздражает / Нервирует" },
+      { en: "Sleep on it", ru: "Утро вечера мудренее / \"Переспать\" с этой мыслью" },
+      { en: "Play it by ear", ru: "Действовать по обстоятельствам / Импровизировать" },
+      { en: "Don't sweat it", ru: "Не парься" },
+      { en: "Speak of the devil", ru: "Помяни чёрта (и он появится) / Легок на помине / О волке помолвка, а волк и тут." },
+      { en: "Grab a bite", ru: "Перекусить" },
+      { en: "Take it easy", ru: "Расслабься / Успокойся" },
+      { en: "Go with the flow", ru: "Плыть по течению / двигаться в потоке / делать, как все" },
+      { en: "Twenty-four seven", ru: "Постоянно / 24 часа в сутки 7 дней в неделю" },
+      { en: "Under the weather", ru: "Нездоровится / плохо себя чувствовать" },
+      { en: "You can say that again", ru: "Полностью согласен / Это точно!" },
+      { en: "Broke", ru: "На мели" },
+      { en: "Beats me", ru: "Ума не приложу / Не понимаю / Не знаю" },
+      { en: "I don't buy it", ru: "Я не верю / Не согласен / Не куплюсь на это" },
+      { en: "Keep your cool", ru: "Успокойся / Держи себя под контролем" },
+      { en: "Sort of", ru: "Как бы / вроде бы" },
+      { en: "Good for you", ru: "Молодец / Поздравляю" },
+      { en: "Good luck", ru: "Успехов / Удачи / Надеюсь, все будет хорошо" },
+      { en: "Shotgun", ru: "Тот, кто сидит спереди в машине" },
+      { en: "Who cares", ru: "Какая разница / Кому какое дело / Неважно" },
+      { en: "Big deal", ru: "Важное дело / Трудное дело / Тоже мне дело (с сарказмом) No big deal - Не важно / Не страшно" },
+      { en: "What a small world", ru: "Как тесен мир" },
+      { en: "What's going on?", ru: "Что стряслось? / Что тут происходит?" },
+      { en: "Now You're Talking", ru: "Мне нравится эта идея / Наконец-то хорошая мысль" },
+      { en: "Over my dead body", ru: "Только через мой труп" },
+      { en: "Coming right up", ru: "Сейчас будет сделано / Будет готово через минуту" },
+      { en: "Good thinking", ru: "Правильная мысль / Хорошо, что ты подумал об этом / Вовремя исправился" },
+      { en: "Shoot", ru: "Черт! / Блин!" },
+      { en: "Nothing Matters", ru: "Все остальное не важно / Это самое важное" },
+      { en: "Come on", ru: "Ну же! / Давай! / Да ладно" },
+      { en: "Never mind", ru: "Не важно / Не нужно / Не думай об этом" },
+      { en: "If you insist", ru: "Если вы настаиваете" },
+      { en: "Stop it!", ru: "Прекрати! / Перестань!" },
+      { en: "It's nothing", ru: "Это ерунда / Без проблем / Это не составит труда" },
+      { en: "What gives?", ru: "Что случилось? / В чем дело?" },
+      { en: "Fair enough", ru: "Справедливо" },
+      { en: "Cat got your tongue", ru: "Воды в рот набрал / Язык проглотил" },
+      { en: "My pleasure", ru: "С удовольствием / Приятно (это сделать)" },
+      { en: "It totally slipped my mind", ru: "Это вылетело у меня из головы / Я совершенно забыл (что должен был это сделать)" },
+      { en: "Give it to me straight", ru: "Скажи прямо / Скажи, как есть" },
+      { en: "It's written all over your face", ru: "У тебя на лице написано" },
+      { en: "Go for it", ru: "Иди к своей цели / Не отступай / Действуй" },
+      { en: "It's a deal", ru: "Договорились" },
+      { en: "Don't be a stranger", ru: "Не пропадай / Напоминай о себе" },
+      { en: "Let's go fifty- fifty", ru: "Давайте разделим счет пополам" },
+      { en: "Good for nothing", ru: "Ни к чему не пригодный / Никчемный / Ленивый" },
+      { en: "You're telling me", ru: "И говорить нечего / Конечно / Еще бы" },
+      { en: "Get a life", ru: "Отвали / Отстать/ Найди себе занятие (и перестать ко мне приставать)" },
+      { en: "Don't joke with me", ru: "Это не смешно / Не шути так" },
+      { en: "I can't thank you enough", ru: "Не знаю, как вас благодарить" },
+      { en: "My two cents", ru: "Мое мнение" },
+      { en: "Just name it", ru: "Только скажи (и я готов)" },
+      { en: "No worries", ru: "Не волнуйся / Ничего страшного / Все в порядке" },
+      { en: "Why so blue?", ru: "Чего такой грустный?" },
+      { en: "Nature calls", ru: "Природа зовет / Нужно сходить в туалет / Нужно справить нужду" },
+      { en: "What's eating you?", ru: "Что тебя гложет? / Что тебя беспокоит?" },
+      { en: "Shame on you", ru: "Как тебе не стыдно? / Тебе должно быть стыдно" },
+      { en: "Hang in there", ru: "Потерпи / Держись" },
+      { en: "I owe you", ru: "Я буду тебе должен / Я могу у тебя одолжить?" },
+      { en: "Take a hike", ru: "Иди куда подальше / Оставь меня в покое" },
+      { en: "Give it a shot", ru: "Дать шанс / Сделать попытку" },
+      { en: "I'm on my way", ru: "Я уже еду / Я уже в пути" },
+      { en: "I'm hosed", ru: "Мне крышка / Я попал / Не повезло" },
+      { en: "It's a long story", ru: "Долго рассказывать / Потом расскажу" },
+      { en: "Since when", ru: "С каких пор" },
+      { en: "Got it", ru: "Понятно / Ясно" },
+      { en: "You wish", ru: "И не мечтай!" },
+      { en: "You're dressed to kill", ru: "Выглядишь сногсшибательно" },
+      { en: "Behave yourself", ru: "Веди себя хорошо / Следи за своим поведением" },
+      { en: "That figures", ru: "Это логично / Ничего удивительного" },
+      { en: "Do tell", ru: "Рассказывай (все, что знаешь)" },
+      { en: "No sweat", ru: "Без проблем" },
+      { en: "I blew it", ru: "Я все испортил" },
+      { en: "Maddening", ru: "Это сводит с ума" },
+      { en: "I messed up", ru: "Я облажался / Я сглупил / Я сделал ошибку" },
+      { en: "I beg to differ", ru: "Я позволю себе не согласиться." },
+      { en: "Rise and shine", ru: "Пора вставать / Проснись и пой" },
+      { en: "You bet", ru: "Конечно" },
+      { en: "Pie in the sky", ru: "Несбыточная мечта / Что-то недостижимое" },
+      { en: "No strings attached", ru: "Без скрытых условий / От вас больше ничего не требуется" },
+      { en: "Sleep tight", ru: "Спи крепко" },
+      { en: "It can't hurt", ru: "Хуже не будет / Это не повредит" },
+      { en: "I couldn't agree with you more", ru: "Целиком и полностью согласен с вами" },
+      { en: "Thank goodness", ru: "Слава Богу" },
+      { en: "You made it", ru: "У тебя получилось / Ты смог добраться (до места)" },
+      { en: "Whatever", ru: "Не важно / Пусть будет так / С трудом верится / Что бы ты не говорил (я не верю)" },
+      { en: "I'm sick of it", ru: "Меня это достало / Я устал от этого" },
+      { en: "Get out of here", ru: "Да иди ты! / Шутишь? / Не гони!" },
+      { en: "You made it big", ru: "Ты хорошо раскрутился / Ты хорошо преуспел / Ты многого достиг" },
+      { en: "In your dreams", ru: "Только в мечтах (Этого никогда не случится)" },
+      { en: "Hold on a sec", ru: "Постой / Подожди-ка" },
+      { en: "Creepy", ru: "Доводящий до мурашек / Странный / Ненормальный" },
+      { en: "You never know", ru: "Мало ли / Всякое бывает / Кто знает" },
+      { en: "Back to the grind", ru: "Назад к работе / За работу" },
+      { en: "It serves you right", ru: "Ты получил по заслугам" },
+      { en: "I can't wait", ru: "Жду не дождусь / Жду с нетерпением / Не могу дождаться" },
+      { en: "Lighten up", ru: "Расслабься / Взбодрись / Не расстраивайся" },
+      { en: "Good point", ru: "Хорошая мысль (идея)" },
+      { en: "Just my luck", ru: "Мне всегда не везет" },
+      { en: "It's up to you", ru: "Решать тебе" },
+      { en: "Hop in", ru: "Запрыгивай в машину" },
+      { en: "I told you so", ru: "Я же говорил" },
+      { en: "You know better than that", ru: "Но ты и так догадываешься (что поступил неправильно)" },
+      { en: "Has been burned / got burned", ru: "Обжегся на этом / Погорел / Надули / Лоханулся" },
+      { en: "Keep me in the loop", ru: "Держать в курсе" },
+      { en: "I'll be down", ru: "Я с вами" },
+      { en: "Get to the point", ru: "Ближе к сути / Говори по сути" },
+      { en: "Down to earth", ru: "Разумный человек / Реалист" },
+      { en: "Sure thing", ru: "Конечно / Без проблем" },
+    ],
+  },
+};
+
 async function seedSharedLibraryOnce() {
   let addedTopics = 0;
   let addedWords = 0;
-  const allLevels = [SEED_SHARED_LIBRARY_A1, SEED_SHARED_LIBRARY_A2, SEED_SHARED_LIBRARY_B1, SEED_SHARED_LIBRARY_B2, SEED_SHARED_LIBRARY_C1];
+  const allLevels = [
+    SEED_SHARED_LIBRARY_A1,
+    SEED_SHARED_LIBRARY_A2,
+    SEED_SHARED_LIBRARY_B1,
+    SEED_SHARED_LIBRARY_B2,
+    SEED_SHARED_LIBRARY_C1,
+    SEED_SHARED_LIBRARY_BIZ_A1,
+    SEED_SHARED_LIBRARY_BIZ_A2,
+    SEED_SHARED_LIBRARY_BIZ_B1,
+    SEED_SHARED_LIBRARY_BIZ_B2,
+    SEED_SHARED_LIBRARY_BIZ_C1,
+    SEED_SHARED_LIBRARY_PHRASES,
+  ];
   for (const level of allLevels) {
     for (const [topic, pairs] of Object.entries(level.topics)) {
       const { added } = await addSharedWords(level.difficulty, topic, pairs);
@@ -3899,6 +5677,7 @@ const GRAMMAR_EXERCISE_TYPES = {
   v2vs: "🔁 V2 vs Vs (прошедшее / настоящее)",
   vsV1: "🔤 Vs vs V1 (He/She vs We, только настоящее)",
   psVsPrPs: "🆕 Past Simple vs Present Perfect (для начинающих)",
+  trapWords: "🪤 Слова-ловушки (mean/present/fine...)",
   collocations: "🤝 give / get / take / have",
   modalMeaning: "🧭 Модальные — по смыслу",
   modalTo: "🔧 Модальные — нужна ли to",
@@ -3912,10 +5691,62 @@ const GRAMMAR_REAL_EXERCISE_TYPES = [
   "v2vs",
   "vsV1",
   "psVsPrPs",
+  "trapWords",
   "collocations",
   "modalMeaning",
   "modalTo",
   "futureInPast",
+];
+
+const TRAP_WORDS = [
+  {
+    base: "mean", past: "meant", participle: "meant",
+    ruInf: "означать", ru3sg: "означает", ru1pl: "означаем", ru3pl: "означают",
+    ruPastM: "означал", ruPastF: "означала", ruPastPl: "означали",
+    contextEn: "trouble", contextRu: "проблемы",
+    adjNomM: "подлый", adjNomF: "подлая", adjNomPl: "подлые",
+    adjInstrM: "подлым", adjInstrF: "подлой", adjInstrPl: "подлыми",
+  },
+  {
+    base: "present", past: "presented", participle: "presented",
+    ruInf: "представлять", ru3sg: "представляет", ru1pl: "представляем", ru3pl: "представляют",
+    ruPastM: "представлял", ruPastF: "представляла", ruPastPl: "представляли",
+    contextEn: "the results", contextRu: "результаты",
+    adjNomM: "присутствующий", adjNomF: "присутствующая", adjNomPl: "присутствующие",
+    adjInstrM: "присутствующим", adjInstrF: "присутствующей", adjInstrPl: "присутствующими",
+  },
+  {
+    base: "fine", past: "fined", participle: "fined",
+    ruInf: "штрафовать", ru3sg: "штрафует", ru1pl: "штрафуем", ru3pl: "штрафуют",
+    ruPastM: "штрафовал", ruPastF: "штрафовала", ruPastPl: "штрафовали",
+    contextEn: "the driver", contextRu: "водителя",
+    adjNomM: "прекрасный", adjNomF: "прекрасная", adjNomPl: "прекрасные",
+    adjInstrM: "прекрасным", adjInstrF: "прекрасной", adjInstrPl: "прекрасными",
+  },
+  {
+    base: "right", past: "righted", participle: "righted",
+    ruInf: "исправлять", ru3sg: "исправляет", ru1pl: "исправляем", ru3pl: "исправляют",
+    ruPastM: "исправлял", ruPastF: "исправляла", ruPastPl: "исправляли",
+    contextEn: "the situation", contextRu: "ситуацию",
+    adjNomM: "правильный", adjNomF: "правильная", adjNomPl: "правильные",
+    adjInstrM: "правильным", adjInstrF: "правильной", adjInstrPl: "правильными",
+  },
+  {
+    base: "close", past: "closed", participle: "closed",
+    ruInf: "закрывать", ru3sg: "закрывает", ru1pl: "закрываем", ru3pl: "закрывают",
+    ruPastM: "закрывал", ruPastF: "закрывала", ruPastPl: "закрывали",
+    contextEn: "the shop", contextRu: "магазин",
+    adjNomM: "близкий", adjNomF: "близкая", adjNomPl: "близкие",
+    adjInstrM: "близким", adjInstrF: "близкой", adjInstrPl: "близкими",
+  },
+  {
+    base: "light", past: "lit", participle: "lit",
+    ruInf: "зажигать", ru3sg: "зажигает", ru1pl: "зажигаем", ru3pl: "зажигают",
+    ruPastM: "зажигал", ruPastF: "зажигала", ruPastPl: "зажигали",
+    contextEn: "the candle", contextRu: "свечу",
+    adjNomM: "лёгкий", adjNomF: "лёгкая", adjNomPl: "лёгкие",
+    adjInstrM: "лёгким", adjInstrF: "лёгкой", adjInstrPl: "лёгкими",
+  },
 ];
 
 const GRAMMAR_VERBS = [
@@ -3959,6 +5790,10 @@ const GRAMMAR_VERBS = [
     ruInf: "звонить", ru3sg: "звонит", ru1pl: "звоним", ru3pl: "звонят", ruPastM: "звонил", ruPastF: "звонила", ruPastPl: "звонили" },
   { base: "clean", participle: "cleaned", past: "cleaned", ru: "убирать", contextEn: "the house", contextRu: "дом",
     ruInf: "убирать", ru3sg: "убирает", ru1pl: "убираем", ru3pl: "убирают", ruPastM: "убирал", ruPastF: "убирала", ruPastPl: "убирали" },
+  ...TRAP_WORDS.map((w) => ({
+    base: w.base, participle: w.participle, past: w.past, ru: w.ruInf, contextEn: w.contextEn, contextRu: w.contextRu,
+    ruInf: w.ruInf, ru3sg: w.ru3sg, ru1pl: w.ru1pl, ru3pl: w.ru3pl, ruPastM: w.ruPastM, ruPastF: w.ruPastF, ruPastPl: w.ruPastPl,
+  })),
 ];
 
 const GRAMMAR_SUBJECTS = [
@@ -4156,6 +5991,11 @@ const STATE_ADJECTIVES = [
   { adjSg: "at work", adjPl: "at work", nomM: "на работе", nomF: "на работе", nomPl: "на работе", instrM: "на работе", instrF: "на работе", instrPl: "на работе" },
   { adjSg: "a doctor", adjPl: "doctors", nomM: "врач", nomF: "врач", nomPl: "врачи", instrM: "врачом", instrF: "врачом", instrPl: "врачами" },
   { adjSg: "a teacher", adjPl: "teachers", nomM: "учитель", nomF: "учительница", nomPl: "учителя", instrM: "учителем", instrF: "учительницей", instrPl: "учителями" },
+  ...TRAP_WORDS.map((w) => ({
+    adjSg: w.base, adjPl: w.base,
+    nomM: w.adjNomM, nomF: w.adjNomF, nomPl: w.adjNomPl,
+    instrM: w.adjInstrM, instrF: w.adjInstrF, instrPl: w.adjInstrPl,
+  })),
 ];
 
 function stateAdjEn(state, subject) {
@@ -4240,6 +6080,60 @@ function buildBeVsVerbQuestion(forbiddenText) {
     const questionLabel = ruSentence.charAt(0).toUpperCase() + ruSentence.slice(1);
 
     return { correctText, questionLabel, options, correctPos };
+  }
+  return null;
+}
+
+function trapWordAdjRu(word, subject, tense) {
+  const nom = subject.isPlural ? word.adjNomPl : subject.gender === "f" ? word.adjNomF : word.adjNomM;
+  const instr = subject.isPlural ? word.adjInstrPl : subject.gender === "f" ? word.adjInstrF : word.adjInstrM;
+  return tense === "past" ? instr : nom;
+}
+
+function buildTrapWordsQuestion(forbiddenText) {
+  for (let attempt = 0; attempt < 25; attempt++) {
+    const subject = RU_SENTENCE_SUBJECTS[Math.floor(Math.random() * RU_SENTENCE_SUBJECTS.length)];
+    const word = TRAP_WORDS[Math.floor(Math.random() * TRAP_WORDS.length)];
+    const tense = Math.random() < 0.5 ? "present" : "past";
+    const wantVerb = Math.random() < 0.5;
+    const context = contextFor(subject, word);
+    const be = beForm(subject, tense);
+    const otherBe = tense === "present" ? beForm(subject, "past") : beForm(subject, "present");
+    const markers = RU_TIME_MARKERS[tense];
+    const marker = markers[Math.floor(Math.random() * markers.length)];
+    const verbForm = conjugate(subject, word, tense, "affirmative");
+    const adjEn = word.base;
+
+    let correctText;
+    let ruSentence;
+    if (wantVerb) {
+      correctText = `${subject.pron} ${verbForm} ${context}`;
+      ruSentence = buildRuSentence(subject, word, tense, "affirmative", marker);
+    } else {
+      correctText = `${subject.pron} ${be} ${adjEn}`;
+      const adjRu = trapWordAdjRu(word, subject, tense);
+      const beRu = tense === "past" ? (subject.isPlural ? "были " : subject.gender === "f" ? "была " : "был ") : "";
+      const sentence = `${subject.ru} ${beRu}${adjRu} ${marker}`.replace(/\s+/g, " ").trim();
+      ruSentence = sentence.charAt(0).toUpperCase() + sentence.slice(1);
+    }
+    if (forbiddenText && correctText.toLowerCase() === forbiddenText.toLowerCase()) continue;
+
+    const candidates = [
+      correctText,
+      wantVerb ? `${subject.pron} ${be} ${adjEn}` : `${subject.pron} ${verbForm} ${context}`,
+      `${subject.pron} ${otherBe} ${adjEn}`,
+      `${subject.pron} ${conjugate(subject, word, tense === "present" ? "past" : "present", "affirmative")} ${context}`,
+      `${subject.pron} ${be} ${verbForm} ${context}`,
+      `${subject.pron} ${ingForm(word)} ${context}`,
+    ];
+    const uniqueOptions = new Set(candidates.map((c) => c.toLowerCase()));
+    if (uniqueOptions.size !== 6) continue;
+
+    const order = shuffle(candidates.map((_, i) => i));
+    const correctPos = order.indexOf(0);
+    const options = order.map((i) => candidates[i]);
+
+    return { correctText, questionLabel: ruSentence, options, correctPos };
   }
   return null;
 }
@@ -4694,6 +6588,7 @@ function buildGrammarQuestion(forbiddenText, exerciseType) {
     else if (type === "tobe") q = buildBeVsVerbQuestion(forbiddenText);
     else if (type === "v2vs") q = buildV2VsQuestion(forbiddenText);
     else if (type === "vsV1") q = buildVsV1Question(forbiddenText);
+    else if (type === "trapWords") q = buildTrapWordsQuestion(forbiddenText);
     else if (type === "psVsPrPs") q = buildPsVsPrPsQuestion(forbiddenText);
     else if (type === "collocations") q = buildCollocationQuestion(forbiddenText);
     else if (type === "modalMeaning") q = buildModalMeaningQuestion(forbiddenText);
@@ -5141,6 +7036,12 @@ async function sendQuestion(chatId, stats, prefix, modeOverride, levelOverride, 
     return;
   }
 
+  if (mode === "dialogue") {
+    const picked = buildDialoguePicked(prefix, null);
+    if (picked) await deliverQuestion(chatId, picked);
+    return;
+  }
+
   const shared = sharedOverride !== undefined ? sharedOverride : (prevPending && prevPending.shared) || null;
 
   let fullVocab;
@@ -5220,6 +7121,205 @@ async function handleStart(chatId) {
 
 // Показывает выбор режима тренировки — кнопками, а не текстом, чтобы не
 // нужно было ничего печатать.
+const DIALOGUE_PHRASES = [
+  { setupEn: "How was the meeting?", setupRu: "Как прошла встреча?", en: "It was so boring, I was bored to death.", ru: "До смерти скучно / Умираю со скуки", category: "boredom_tiredness" },
+  { setupEn: "Are you okay with your job lately?", setupRu: "У тебя всё в порядке с работой в последнее время?", en: "Honestly, I'm sick and tired of it.", ru: "Меня это достало / Надоело", category: "boredom_tiredness" },
+  { setupEn: "How did you know I was thinking about pizza?", setupRu: "Как ты узнал, что я думал о пицце?", en: "I don't know, I guess I can read your mind.", ru: "Читать / угадать чьи-то мысли", category: "opinion_meaning" },
+  { setupEn: "What did you do all weekend?", setupRu: "Что ты делал все выходные?", en: "Nothing, I was just a couch potato.", ru: "Как овощ / Как комнатное растение", category: "boredom_tiredness" },
+  { setupEn: "You look exhausted, are you alright?", setupRu: "Ты выглядишь измотанным, всё нормально?", en: "Yeah, I'm just beat after that workout.", ru: "Я валюсь с ног от усталости.", category: "boredom_tiredness" },
+  { setupEn: "Why do you want to quit this project?", setupRu: "Почему ты хочешь бросить этот проект?", en: "I'm sick of it, honestly.", ru: "Меня это достало / Я устал от этого", category: "boredom_tiredness" },
+  { setupEn: "I got the highest score in the class.", setupRu: "У меня самый высокий балл в классе.", en: "You've got to be kidding!", ru: "Ты, наверное, шутишь!", category: "disbelief_surprise" },
+  { setupEn: "How was the concert last night?", setupRu: "Как прошёл вчерашний концерт?", en: "It was out of this world!", ru: "Потрясающе / Невероятно / Будто, не из этого мира", category: "disbelief_surprise" },
+  { setupEn: "I ran into my old classmate in Tokyo.", setupRu: "Я столкнулся со своим старым одноклассником в Токио.", en: "What a small world!", ru: "Как тесен мир", category: "disbelief_surprise" },
+  { setupEn: "The meeting starts at 9am tomorrow.", setupRu: "Встреча завтра в 9 утра.", en: "Got it, thanks for letting me know.", ru: "Понятно / Ясно", category: "disbelief_surprise" },
+  { setupEn: "Have you ever heard of a place called Millbrook?", setupRu: "Ты когда-нибудь слышал о месте под названием Миллбрук?", en: "That rings a bell, actually.", ru: "Что-то знакомое / Всплывает в памяти", category: "disbelief_surprise" },
+  { setupEn: "This traffic is absolutely terrible today.", setupRu: "Сегодня просто ужасные пробки.", en: "You can say that again!", ru: "Полностью согласен / Это точно!", category: "agreement_response" },
+  { setupEn: "I finally finished my thesis last night.", setupRu: "Я наконец закончил свою диссертацию вчера ночью.", en: "Good for you!", ru: "Молодец / Поздравляю", category: "agreement_response" },
+  { setupEn: "I think we should postpone the launch.", setupRu: "Думаю, нам стоит отложить запуск.", en: "I couldn't agree with you more.", ru: "Целиком и полностью согласен с вами", category: "agreement_response" },
+  { setupEn: "Are you coming to the party tonight?", setupRu: "Ты придёшь на вечеринку сегодня?", en: "You bet!", ru: "Конечно", category: "agreement_response" },
+  { setupEn: "I'd rather stay home tonight instead.", setupRu: "Я лучше останусь сегодня дома.", en: "Fair enough.", ru: "Справедливо", category: "agreement_response" },
+  { setupEn: "Maybe we should try a different approach.", setupRu: "Может, стоит попробовать другой подход.", en: "Good point.", ru: "Хорошая мысль (идея)", category: "agreement_response" },
+  { setupEn: "I'm really sorry, I broke your mug.", setupRu: "Мне очень жаль, я разбил твою кружку.", en: "No worries at all!", ru: "Не волнуйся / Ничего страшного / Все в порядке", category: "reassurance_dismissal" },
+  { setupEn: "Thank you so much for fixing my laptop.", setupRu: "Огромное спасибо, что починил мой ноутбук.", en: "It's nothing, really.", ru: "Это ерунда / Без проблем / Это не составит труда", category: "reassurance_dismissal" },
+  { setupEn: "Sorry I couldn't come to your show.", setupRu: "Извини, что не смог прийти на твоё выступление.", en: "No sweat, don't worry about it.", ru: "Без проблем", category: "reassurance_dismissal" },
+  { setupEn: "I'm really stressed about the exam.", setupRu: "Я очень переживаю из-за экзамена.", en: "Don't sweat it, you'll do great.", ru: "Не парься", category: "reassurance_dismissal" },
+  { setupEn: "You seem really anxious about this presentation.", setupRu: "Ты выглядишь очень взволнованным из-за этой презентации.", en: "I know, I just need to take it easy.", ru: "Расслабься / Успокойся", category: "reassurance_dismissal" },
+  { setupEn: "My little brother keeps borrowing my clothes.", setupRu: "Мой младший брат постоянно берёт мою одежду.", en: "It really gets on my nerves.", ru: "Действовать на нервы", category: "annoyance_irritation" },
+  { setupEn: "How's your relationship with your new roommate?", setupRu: "Как твои отношения с новым соседом по квартире?", en: "Honestly, he's a pain in the ass.", ru: "Заноза в заднице / Достало / Испытание на прочность", category: "annoyance_irritation" },
+  { setupEn: "What's wrong, you seem upset?", setupRu: "Что не так, ты выглядишь расстроенным?", en: "That noise outside is really starting to bug me.", ru: "Раздражает / Нервирует", category: "annoyance_irritation" },
+  { setupEn: "How do you feel about all this paperwork?", setupRu: "Как ты относишься ко всей этой бумажной работе?", en: "It's absolutely maddening.", ru: "Это сводит с ума", category: "annoyance_irritation" },
+  { setupEn: "Have you chosen a university yet?", setupRu: "Ты уже выбрал университет?", en: "Not yet, I still need to make up my mind.", ru: "Принять решение / определиться", category: "decision_effort" },
+  { setupEn: "Are you going to keep trying to fix it?", setupRu: "Ты собираешься продолжать пытаться это починить?", en: "No, I'm ready to throw in the towel.", ru: "Сдаваться", category: "decision_effort" },
+  { setupEn: "Do you think you'll apply for that job?", setupRu: "Думаешь, ты подашь заявку на эту работу?", en: "Sure, I'll give it a shot.", ru: "Дать шанс / Сделать попытку", category: "decision_effort" },
+  { setupEn: "You've always wanted to open your own business.", setupRu: "Ты всегда хотел открыть свой бизнес.", en: "I know, I should just go for it.", ru: "Иди к своей цели / Не отступай / Действуй", category: "decision_effort" },
+  { setupEn: "Do you have an answer for me right now?", setupRu: "У тебя есть ответ для меня прямо сейчас?", en: "Let me sleep on it first.", ru: "Утро вечера мудренее / \"Переспать\" с этой мыслью", category: "decision_effort" },
+  { setupEn: "Could you help me carry these boxes?", setupRu: "Не мог бы ты помочь мне занести эти коробки?", en: "Sure, my pleasure.", ru: "С удовольствием / Приятно (это сделать)", category: "politeness_thanks" },
+  { setupEn: "I stayed up all night helping you move.", setupRu: "Я не спал всю ночь, помогая тебе переезжать.", en: "I can't thank you enough for that.", ru: "Не знаю, как вас благодарить", category: "politeness_thanks" },
+  { setupEn: "The doctor said the surgery went well.", setupRu: "Врач сказал, что операция прошла хорошо.", en: "Thank goodness!", ru: "Слава Богу", category: "politeness_thanks" },
+  { setupEn: "I think this is definitely the right decision.", setupRu: "Думаю, это определённо правильное решение.", en: "I beg to differ, actually.", ru: "Я позволю себе не согласиться.", category: "disagreement_doubt" },
+  { setupEn: "He said he'll finish the report by tonight.", setupRu: "Он сказал, что закончит отчёт к вечеру.", en: "I don't buy it, honestly.", ru: "Я не верю / Не согласен / Не куплюсь на это", category: "disagreement_doubt" },
+  { setupEn: "He forgot about the meeting again.", setupRu: "Он снова забыл о встрече.", en: "That figures, he always does that.", ru: "Это логично / Ничего удивительного", category: "disagreement_doubt" },
+  { setupEn: "It's already 9pm, should we keep working?", setupRu: "Уже 9 вечера, продолжим работать?", en: "No, let's call it a day.", ru: "Заканчивать работу / Закругляться", category: "farewell_departure" },
+  { setupEn: "We probably won't see each other for a while.", setupRu: "Мы, наверное, не увидимся какое-то время.", en: "Let's stay in touch, okay?", ru: "Быть на связи / Поддерживать связь", category: "farewell_departure" },
+  { setupEn: "It was great catching up with you today.", setupRu: "Было здорово повидаться с тобой сегодня.", en: "You too, don't be a stranger!", ru: "Не пропадай / Напоминай о себе", category: "farewell_departure" },
+  { setupEn: "I'll be traveling for the next few weeks.", setupRu: "Я буду путешествовать следующие пару недель.", en: "Please keep me in the loop.", ru: "Держать в курсе", category: "farewell_departure" },
+  { setupEn: "I bet you won't finish the marathon.", setupRu: "Спорим, ты не пробежишь марафон.", en: "Over my dead body I won't!", ru: "Только через мой труп", category: "warning_threat" },
+  { setupEn: "I heard you're getting a raise soon.", setupRu: "Слышал, тебе скоро повысят зарплату.", en: "You wish!", ru: "И не мечтай!", category: "warning_threat" },
+  { setupEn: "Do you think you'll ever meet your favorite celebrity?", setupRu: "Думаешь, ты когда-нибудь встретишь свою любимую знаменитость?", en: "In your dreams.", ru: "Только в мечтах (Этого никогда не случится)", category: "warning_threat" },
+  { setupEn: "You seem quiet today, what's up?", setupRu: "Ты сегодня тихий, что случилось?", en: "I don't know, I just feel blue.", ru: "Мне грустно / уныло / тоскливо", category: "state_feeling" },
+  { setupEn: "Why weren't you at work yesterday?", setupRu: "Почему тебя вчера не было на работе?", en: "I was feeling a bit under the weather.", ru: "Нездоровится / плохо себя чувствовать", category: "state_feeling" },
+  { setupEn: "You've barely said a word all morning.", setupRu: "Ты почти не сказал ни слова всё утро.", en: "Why so blue? Is something wrong?", ru: "Чего такой грустный?", category: "state_feeling" },
+  { setupEn: "Do you visit your parents often?", setupRu: "Ты часто навещаешь родителей?", en: "Every now and then, yes.", ru: "Иногда / Время от времени", category: "time_frequency" },
+  { setupEn: "What time does the train usually arrive?", setupRu: "Во сколько обычно прибывает поезд?", en: "It arrives at 9am, right on the dot.", ru: "Ровно в это время / Минута в минуту", category: "time_frequency" },
+  { setupEn: "Do you think he'll apologize?", setupRu: "Думаешь, он извинится?", en: "Sooner or later, I'm sure of it.", ru: "Рано или поздно", category: "time_frequency" },
+  { setupEn: "How often do you check your phone?", setupRu: "Как часто ты проверяешь телефон?", en: "Pretty much twenty-four seven.", ru: "Постоянно / 24 часа в сутки 7 дней в неделю", category: "time_frequency" },
+  { setupEn: "Will the game still happen if it rains?", setupRu: "Игра всё равно состоится, если пойдёт дождь?", en: "Yes, rain or shine.", ru: "В любую погоду / Не смотря ни на что", category: "time_frequency" },
+  { setupEn: "It's already 7am, time to get up.", setupRu: "Уже 7 утра, пора вставать.", en: "Alright, rise and shine!", ru: "Пора вставать / Проснись и пой", category: "excitement_readiness" },
+  { setupEn: "The concert is next week, are you excited?", setupRu: "Концерт на следующей неделе, ты рад?", en: "Yes, I can't wait!", ru: "Жду не дождусь / Жду с нетерпением / Не могу дождаться", category: "excitement_readiness" },
+  { setupEn: "What if we tried a completely different design?", setupRu: "Что если попробовать совершенно другой дизайн?", en: "Now you're talking!", ru: "Мне нравится эта идея / Наконец-то хорошая мысль", category: "excitement_readiness" },
+  { setupEn: "Could you give me a hand with this table?", setupRu: "Не поможешь мне с этим столом?", en: "Sure, give someone a hand is what friends do.", ru: "Помочь / Протянуть руку помощи", category: "request_offer" },
+  { setupEn: "Can I get a coffee, please?", setupRu: "Можно мне кофе, пожалуйста?", en: "Coming right up!", ru: "Сейчас будет сделано / Будет готово через минуту", category: "request_offer" },
+  { setupEn: "Just tell me honestly what you think.", setupRu: "Просто скажи мне честно, что ты думаешь.", en: "Okay, give it to me straight then.", ru: "Скажи прямо / Скажи, как есть", category: "request_offer" },
+  { setupEn: "The car is ready, we're leaving now.", setupRu: "Машина готова, мы уезжаем.", en: "Alright, hop in!", ru: "Запрыгивай в машину", category: "request_offer" },
+  { setupEn: "What do you think about the new policy?", setupRu: "Что ты думаешь о новой политике?", en: "Well, my two cents is that it's too strict.", ru: "Мое мнение", category: "opinion_meaning" },
+  { setupEn: "He said everything was 'fine' at dinner.", setupRu: "Он сказал, что за ужином всё было «нормально».", en: "You need to read between the lines there.", ru: "Читать между строк / Понимать подтекст", category: "opinion_meaning" },
+  { setupEn: "Do you understand this physics homework?", setupRu: "Ты понимаешь это домашнее задание по физике?", en: "No, it's completely over my head.", ru: "Вне (моего) понимания", category: "opinion_meaning" },
+  { setupEn: "What happened to your car door?", setupRu: "Что случилось с дверью твоей машины?", en: "Just a small fender bender in the parking lot.", ru: "Небольшое ДТП / Немного помял машину", category: "misc_situations" },
+  { setupEn: "How did you land such a big client?", setupRu: "Как ты заполучил такого крупного клиента?", en: "It took a while to get my foot in the door.", ru: "Сделать первый шаг", category: "misc_situations" },
+  { setupEn: "Why won't you go on the roller coaster?", setupRu: "Почему ты не хочешь на американские горки?", en: "I'm just too chicken.", ru: "Бояться / быть трусишкой", category: "misc_situations" },
+  { setupEn: "The teacher assigned way too much homework.", setupRu: "Учитель задал слишком много домашней работы.", en: "Yeah, she really gave us a hard time.", ru: "Устроить кому-то проблемы / трудные времена", category: "misc_situations" },
+  { setupEn: "Should I pay for both of our dinners?", setupRu: "Мне заплатить за оба наших ужина?", en: "No, let's just go Dutch.", ru: "Платить пополам / вскладчину / каждый за себя", category: "misc_situations" },
+  { setupEn: "That horror movie was really scary.", setupRu: "Этот фильм ужасов был по-настоящему страшным.", en: "I know, I still have goose bumps.", ru: "Мурашки по коже", category: "misc_situations" },
+  { setupEn: "Do you think you could quit your job and travel?", setupRu: "Думаешь, ты смог бы бросить работу и путешествовать?", en: "I don't have the guts to do that.", ru: "Иметь смелость", category: "misc_situations" },
+  { setupEn: "Losing weight seems really simple.", setupRu: "Похудеть кажется довольно простым делом.", en: "It's easier said than done.", ru: "Легче сказать, чем сделать / Не всё так просто", category: "misc_situations" },
+  { setupEn: "The bus finally showed up.", setupRu: "Автобус наконец приехал.", en: "It's about time!", ru: "Наконец-то / Пришло время / Пора (это сделать)", category: "misc_situations" },
+  { setupEn: "He didn't answer, so I assumed he was mad.", setupRu: "Он не ответил, поэтому я решил, что он злится.", en: "You shouldn't jump to conclusions like that.", ru: "Спешить с выводами", category: "misc_situations" },
+  { setupEn: "Could you watch my bag for a second?", setupRu: "Не мог бы ты присмотреть за моей сумкой секунду?", en: "Sure, I'll keep an eye on it.", ru: "Следить / наблюдать / приглядывать", category: "misc_situations" },
+  { setupEn: "Why did he suddenly quit his job?", setupRu: "Почему он вдруг уволился с работы?", en: "It happened completely out of the blue.", ru: "Неожиданно / Из ниоткуда", category: "misc_situations" },
+  { setupEn: "Does she really understand this software well?", setupRu: "Она действительно хорошо разбирается в этой программе?", en: "Yeah, she knows it inside out.", ru: "Вдоль и поперек / на зубок / как свои 5 пальцев", category: "misc_situations" },
+  { setupEn: "How should I heat up this soup?", setupRu: "Как мне разогреть этот суп?", en: "Just nuke it in the microwave.", ru: "Готовить в микроволновке", category: "misc_situations" },
+  { setupEn: "Do you think we'll win the game tomorrow?", setupRu: "Думаешь, мы выиграем игру завтра?", en: "I'm keeping my fingers crossed.", ru: "Держать кулаки на удачу / Скрестить пальцы на удачу", category: "misc_situations" },
+  { setupEn: "Was the exam difficult for you?", setupRu: "Экзамен был для тебя сложным?", en: "Not at all, it was a piece of cake.", ru: "Проще простого / проще пареной репы / легче легкого", category: "misc_situations" },
+  { setupEn: "Are you serious about moving to Canada?", setupRu: "Ты серьёзно насчёт переезда в Канаду?", en: "No, I was just pulling your leg.", ru: "Морочить голову / Разыгрывать / Обманывать", category: "misc_situations" },
+  { setupEn: "You're too hard on him about this mistake.", setupRu: "Ты слишком строг к нему из-за этой ошибки.", en: "Try to put yourself in his place.", ru: "Поставить себя на чье-то место", category: "misc_situations" },
+  { setupEn: "Do you want to grab lunch now?", setupRu: "Хочешь пообедать прямо сейчас?", en: "Yes, please, I can eat a horse.", ru: "Я голодный, как волк / Умираю с голоду", category: "misc_situations" },
+  { setupEn: "What's your plan for the weekend?", setupRu: "Какие у тебя планы на выходные?", en: "I'll just play it by ear.", ru: "Действовать по обстоятельствам / Импровизировать", category: "misc_situations" },
+  { setupEn: "I was just talking about you, and here you are!", setupRu: "Я как раз говорил о тебе, а вот и ты!", en: "Speak of the devil!", ru: "Помяни чёрта (и он появится) / Легок на помине / О волке помолвка, а волк и тут.", category: "misc_situations" },
+  { setupEn: "I'm starving, want to get something quick?", setupRu: "Я умираю с голоду, хочешь перекусить по-быстрому?", en: "Sure, let's grab a bite.", ru: "Перекусить", category: "misc_situations" },
+  { setupEn: "Do you have a fixed plan for the trip?", setupRu: "У тебя есть чёткий план поездки?", en: "Not really, I like to go with the flow.", ru: "Плыть по течению / двигаться в потоке / делать, как все", category: "misc_situations" },
+  { setupEn: "Can you lend me some money this week?", setupRu: "Можешь одолжить мне немного денег на этой неделе?", en: "Sorry, I'm completely broke right now.", ru: "На мели", category: "misc_situations" },
+  { setupEn: "Why did the printer suddenly stop working?", setupRu: "Почему принтер вдруг перестал работать?", en: "Beats me, I have no idea.", ru: "Ума не приложу / Не понимаю / Не знаю", category: "misc_situations" },
+  { setupEn: "Everyone in the room is panicking.", setupRu: "Все в комнате паникуют.", en: "Just keep your cool, everyone.", ru: "Успокойся / Держи себя под контролем", category: "misc_situations" },
+  { setupEn: "Are you excited about the new job?", setupRu: "Ты рад новой работе?", en: "Sort of, but I'm also nervous.", ru: "Как бы / вроде бы", category: "misc_situations" },
+  { setupEn: "I have my driving test tomorrow.", setupRu: "У меня завтра экзамен по вождению.", en: "Good luck, you'll do fine!", ru: "Успехов / Удачи / Надеюсь, все будет хорошо", category: "misc_situations" },
+  { setupEn: "Who gets to sit in the front seat?", setupRu: "Кто сядет на переднее сиденье?", en: "I called shotgun first!", ru: "Тот, кто сидит спереди в машине", category: "misc_situations" },
+  { setupEn: "Did you hear they changed the schedule again?", setupRu: "Слышал, они снова поменяли расписание?", en: "Who cares, honestly.", ru: "Какая разница / Кому какое дело / Неважно", category: "misc_situations" },
+  { setupEn: "I got a small scratch on my new phone.", setupRu: "У меня маленькая царапина на новом телефоне.", en: "That's not a big deal.", ru: "Важное дело / Трудное дело / Тоже мне дело (с сарказмом) No big deal - Не важно / Не страшно", category: "misc_situations" },
+  { setupEn: "Everyone is running around the office nervously.", setupRu: "Все в офисе бегают нервно туда-сюда.", en: "What's going on here?", ru: "Что стряслось? / Что тут происходит?", category: "misc_situations" },
+  { setupEn: "I decided to double-check the numbers before sending.", setupRu: "Я решил перепроверить цифры перед отправкой.", en: "Good thinking, that's smart.", ru: "Правильная мысль / Хорошо, что ты подумал об этом / Вовремя исправился", category: "misc_situations" },
+  { setupEn: "I just spilled coffee all over my laptop!", setupRu: "Я только что пролил кофе на ноутбук!", en: "Shoot, that's terrible.", ru: "Черт! / Блин!", category: "misc_situations" },
+  { setupEn: "Does it matter which color we choose?", setupRu: "Важно, какой цвет мы выберем?", en: "Not really, nothing matters as long as it works.", ru: "Все остальное не важно / Это самое важное", category: "misc_situations" },
+  { setupEn: "I'm not sure I can do this.", setupRu: "Я не уверен, что смогу это сделать.", en: "Come on, you can do it!", ru: "Ну же! / Давай! / Да ладно", category: "misc_situations" },
+  { setupEn: "I forgot to bring the documents again.", setupRu: "Я снова забыл принести документы.", en: "Never mind, we can send them later.", ru: "Не важно / Не нужно / Не думай об этом", category: "misc_situations" },
+  { setupEn: "Let me pay for dinner tonight, please.", setupRu: "Позволь мне заплатить за ужин сегодня.", en: "Well, if you insist.", ru: "Если вы настаиваете", category: "misc_situations" },
+  { setupEn: "He keeps tapping his pen on the desk.", setupRu: "Он постоянно стучит ручкой по столу.", en: "Stop it, that's so annoying!", ru: "Прекрати! / Перестань!", category: "misc_situations" },
+  { setupEn: "Everyone suddenly went quiet in the room.", setupRu: "Все в комнате вдруг замолчали.", en: "What gives? Did something happen?", ru: "Что случилось? / В чем дело?", category: "misc_situations" },
+  { setupEn: "Why aren't you answering my question?", setupRu: "Почему ты не отвечаешь на мой вопрос?", en: "What, cat got your tongue?", ru: "Воды в рот набрал / Язык проглотил", category: "misc_situations" },
+  { setupEn: "You seem really nervous about something.", setupRu: "Ты выглядишь очень нервным из-за чего-то.", en: "It's written all over your face, isn't it?", ru: "У тебя на лице написано", category: "misc_situations" },
+  { setupEn: "I'll finish the project by Friday for you.", setupRu: "Я закончу проект к пятнице для тебя.", en: "Great, it's a deal.", ru: "Договорились", category: "misc_situations" },
+  { setupEn: "How should we split the bill at the restaurant?", setupRu: "Как нам разделить счёт в ресторане?", en: "Let's go fifty-fifty.", ru: "Давайте разделим счет пополам", category: "misc_situations" },
+  { setupEn: "Why did they fire that manager?", setupRu: "Почему они уволили того менеджера?", en: "He was pretty good for nothing, honestly.", ru: "Ни к чему не пригодный / Никчемный / Ленивый", category: "misc_situations" },
+  { setupEn: "This weather is absolutely freezing today.", setupRu: "Сегодня просто ужасно холодно.", en: "You're telling me, I can't feel my hands.", ru: "И говорить нечего / Конечно / Еще бы", category: "misc_situations" },
+  { setupEn: "Stop calling me every single day.", setupRu: "Перестань звонить мне каждый день.", en: "Get a life, seriously.", ru: "Отвали / Отстать/ Найди себе занятие (и перестать ко мне приставать)", category: "misc_situations" },
+  { setupEn: "I'm going to fail this class for sure.", setupRu: "Я точно провалю этот предмет.", en: "Don't joke with me like that.", ru: "Это не смешно / Не шути так", category: "misc_situations" },
+  { setupEn: "I need help moving this weekend, can you come?", setupRu: "Мне нужна помощь с переездом в эти выходные, придёшь?", en: "Just name it, I'll be there.", ru: "Только скажи (и я готов)", category: "misc_situations" },
+  { setupEn: "I've been in a really bad mood all week.", setupRu: "Я всю неделю в плохом настроении.", en: "What's eating you? You can tell me.", ru: "Что тебя гложет? / Что тебя беспокоит?", category: "misc_situations" },
+  { setupEn: "I forgot your birthday completely.", setupRu: "Я совсем забыл про твой день рождения.", en: "Shame on you, honestly.", ru: "Как тебе не стыдно? / Тебе должно быть стыдно", category: "misc_situations" },
+  { setupEn: "This project is really difficult right now.", setupRu: "Этот проект сейчас правда сложный.", en: "Just hang in there, it'll get easier.", ru: "Потерпи / Держись", category: "misc_situations" },
+  { setupEn: "Can you lend me twenty dollars?", setupRu: "Можешь одолжить мне двадцать долларов?", en: "Sure, now I owe you one.", ru: "Я буду тебе должен / Я могу у тебя одолжить?", category: "misc_situations" },
+  { setupEn: "I don't want to see you here again.", setupRu: "Я не хочу больше видеть тебя здесь.", en: "Fine, take a hike then.", ru: "Иди куда подальше / Оставь меня в покое", category: "misc_situations" },
+  { setupEn: "Where are you right now?", setupRu: "Где ты сейчас?", en: "I'm on my way, be there in five.", ru: "Я уже еду / Я уже в пути", category: "misc_situations" },
+  { setupEn: "Did you finish the report on time?", setupRu: "Ты закончил отчёт вовремя?", en: "No, I'm totally hosed.", ru: "Мне крышка / Я попал / Не повезло", category: "misc_situations" },
+  { setupEn: "How did you end up living in Berlin?", setupRu: "Как ты в итоге оказался живёшь в Берлине?", en: "It's a long story, honestly.", ru: "Долго рассказывать / Потом расскажу", category: "misc_situations" },
+  { setupEn: "I've become a vegetarian, you know.", setupRu: "Я, между прочим, стал вегетарианцем.", en: "Since when? You had a burger yesterday!", ru: "С каких пор", category: "misc_situations" },
+  { setupEn: "Wow, you look amazing tonight!", setupRu: "Ого, ты сегодня потрясающе выглядишь!", en: "Thanks, I'm dressed to kill for the party.", ru: "Выглядишь сногсшибательно", category: "misc_situations" },
+  { setupEn: "The kids are running wild in the store.", setupRu: "Дети бегают как угорелые в магазине.", en: "Tell them to behave themselves.", ru: "Веди себя хорошо / Следи за своим поведением", category: "misc_situations" },
+  { setupEn: "I have a huge secret to tell you.", setupRu: "У меня есть огромный секрет, чтобы тебе рассказать.", en: "Do tell, I'm listening.", ru: "Рассказывай (все, что знаешь)", category: "misc_situations" },
+  { setupEn: "You forgot to send the invoice again.", setupRu: "Ты снова забыл отправить счёт.", en: "I know, I blew it this time.", ru: "Я все испортил", category: "misc_situations" },
+  { setupEn: "You look upset about something you did.", setupRu: "Ты выглядишь расстроенным из-за чего-то, что сделал.", en: "Yeah, I messed up badly.", ru: "Я облажался / Я сглупил / Я сделал ошибку", category: "misc_situations" },
+  { setupEn: "I want to become a famous actor someday.", setupRu: "Я хочу однажды стать знаменитым актёром.", en: "That sounds like pie in the sky to me.", ru: "Несбыточная мечта / Что-то недостижимое", category: "misc_situations" },
+  { setupEn: "Is there a catch to this offer?", setupRu: "В этом предложении есть подвох?", en: "No, no strings attached.", ru: "Без скрытых условий / От вас больше ничего не требуется", category: "misc_situations" },
+  { setupEn: "I'm heading to bed now, goodnight.", setupRu: "Я иду спать, спокойной ночи.", en: "Goodnight, sleep tight!", ru: "Спи крепко", category: "misc_situations" },
+  { setupEn: "Should I bring an umbrella just in case?", setupRu: "Взять зонт на всякий случай?", en: "Sure, it can't hurt.", ru: "Хуже не будет / Это не повредит", category: "misc_situations" },
+  { setupEn: "I finally passed my driving test!", setupRu: "Я наконец сдал экзамен по вождению!", en: "You made it, congratulations!", ru: "У тебя получилось / Ты смог добраться (до места)", category: "misc_situations" },
+  { setupEn: "I heard he's the best in the whole company.", setupRu: "Слышал, он лучший во всей компании.", en: "Whatever, I don't really believe that.", ru: "Не важно / Пусть будет так / С трудом верится / Что бы ты не говорил (я не верю)", category: "misc_situations" },
+  { setupEn: "I just won the lottery!", setupRu: "Я только что выиграл в лотерею!", en: "Get out of here, seriously?", ru: "Да иди ты! / Шутишь? / Не гони!", category: "misc_situations" },
+  { setupEn: "His new business is doing incredibly well.", setupRu: "Его новый бизнес идёт невероятно хорошо.", en: "Yeah, he really made it big.", ru: "Ты хорошо раскрутился / Ты хорошо преуспел / Ты многого достиг", category: "misc_situations" },
+  { setupEn: "Can I ask you something important?", setupRu: "Могу я спросить тебя кое-что важное?", en: "Sure, hold on a sec, let me finish this.", ru: "Постой / Подожди-ка", category: "misc_situations" },
+  { setupEn: "That old abandoned house down the street is scary.", setupRu: "Тот старый заброшенный дом на улице пугает.", en: "Yeah, it's really creepy at night.", ru: "Доводящий до мурашек / Странный / Ненормальный", category: "misc_situations" },
+  { setupEn: "He'll probably never call you back.", setupRu: "Он, наверное, никогда тебе не перезвонит.", en: "You never know, maybe he will.", ru: "Мало ли / Всякое бывает / Кто знает", category: "misc_situations" },
+  { setupEn: "The weekend is over, back to work tomorrow.", setupRu: "Выходные закончились, завтра снова на работу.", en: "Yeah, back to the grind.", ru: "Назад к работе / За работу", category: "misc_situations" },
+  { setupEn: "He lied to everyone and now no one trusts him.", setupRu: "Он всем соврал, и теперь никто ему не доверяет.", en: "It serves him right, honestly.", ru: "Ты получил по заслугам", category: "misc_situations" },
+  { setupEn: "I failed the interview, I feel terrible.", setupRu: "Я провалил собеседование, мне ужасно.", en: "Lighten up, there will be other chances.", ru: "Расслабься / Взбодрись / Не расстраивайся", category: "misc_situations" },
+  { setupEn: "You missed the bus by literally two seconds.", setupRu: "Ты опоздал на автобус буквально на две секунды.", en: "That's just my luck, honestly.", ru: "Мне всегда не везет", category: "misc_situations" },
+  { setupEn: "Should we go to the beach or the mountains?", setupRu: "Поехать на пляж или в горы?", en: "It's up to you, I'm fine either way.", ru: "Решать тебе", category: "misc_situations" },
+  { setupEn: "I knew this plan wouldn't work from the start.", setupRu: "Я знал, что этот план не сработает с самого начала.", en: "I told you so.", ru: "Я же говорил", category: "misc_situations" },
+  { setupEn: "I really shouldn't have said that to her.", setupRu: "Мне правда не стоило говорить ей это.", en: "You know better than that.", ru: "Но ты и так догадываешься (что поступил неправильно)", category: "misc_situations" },
+  { setupEn: "Why are you so careful with that investment?", setupRu: "Почему ты так осторожен с этой инвестицией?", en: "I've been burned before, so now I'm careful.", ru: "Обжегся на этом / Погорел / Надули / Лоханулся", category: "misc_situations" },
+  { setupEn: "Are you joining us for the trip this weekend?", setupRu: "Ты присоединишься к нам в поездке в эти выходные?", en: "Yeah, I'll be down.", ru: "Я с вами", category: "misc_situations" },
+  { setupEn: "Can you explain the whole story from the start?", setupRu: "Можешь объяснить всю историю с самого начала?", en: "Let me just get to the point instead.", ru: "Ближе к сути / Говори по сути", category: "misc_situations" },
+  { setupEn: "He never brags about his success.", setupRu: "Он никогда не хвастается своим успехом.", en: "Yeah, he's really down to earth.", ru: "Разумный человек / Реалист", category: "misc_situations" },
+  { setupEn: "Can you send me the file by tomorrow?", setupRu: "Можешь прислать мне файл к завтрашнему дню?", en: "Sure thing.", ru: "Конечно / Без проблем", category: "misc_situations" },
+  { setupEn: "Did you remember to call the dentist?", setupRu: "Ты не забыл позвонить стоматологу?", en: "No, it totally slipped my mind.", ru: "Это вылетело у меня из головы / Я совершенно забыл (что должен был это сделать)", category: "misc_situations" },
+  { setupEn: "Where are you going in such a hurry?", setupRu: "Куда ты так спешишь?", en: "Sorry, nature calls.", ru: "Природа зовет / Нужно сходить в туалет / Нужно справить нужду", category: "misc_situations" },
+];
+
+// --- Формат "Диалоги": выбрать подходящую ответную реплику ---
+// Дистракторы берутся из ДРУГИХ категорий (не той, что у правильного
+// ответа) — это настоящие, живые фразы-ответы, просто не подходящие
+// именно к этой конкретной реплике. Так варианты выглядят правдоподобно,
+// но не дают лёгкой подсказки по структуре/грамматике, как это было бы
+// с искусственно "сломанными" неправильными вариантами.
+function buildDialogueQuestion(forbiddenText) {
+  for (let attempt = 0; attempt < 25; attempt++) {
+    const target = DIALOGUE_PHRASES[Math.floor(Math.random() * DIALOGUE_PHRASES.length)];
+    if (forbiddenText && target.en.toLowerCase() === forbiddenText.toLowerCase()) continue;
+
+    const others = DIALOGUE_PHRASES.filter((p) => p.category !== target.category && p.en.toLowerCase() !== target.en.toLowerCase());
+    const shuffledOthers = shuffle([...others]);
+    const distractors = shuffledOthers.slice(0, 5).map((p) => p.en);
+    if (distractors.length < 5) continue;
+
+    const candidates = [target.en, ...distractors];
+    const uniqueOptions = new Set(candidates.map((c) => c.toLowerCase()));
+    if (uniqueOptions.size !== 6) continue;
+
+    const order = shuffle(candidates.map((_, i) => i));
+    const correctPos = order.indexOf(0);
+    const options = order.map((i) => candidates[i]);
+
+    const questionLabel = `«${target.setupEn}»\n(${target.setupRu})\n\nВыбери подходящий ответ:`;
+
+    return { correctText: target.en, correctRu: target.ru, questionLabel, options, correctPos };
+  }
+  return null;
+}
+
+function buildDialoguePicked(prefix, forbiddenText) {
+  const q = buildDialogueQuestion(forbiddenText);
+  if (!q) return null;
+  const keyboard = q.options.map((textOpt, i) => [{ text: textOpt, callback_data: `a:${i}` }]);
+  const questionText = `💬 ${q.questionLabel}`;
+  const text = prefix ? `${prefix}\n\n${questionText}` : questionText;
+  return {
+    correct: { en: q.correctText, ru: q.correctRu },
+    correctPos: q.correctPos,
+    keyboard,
+    text,
+    mode: "dialogue",
+  };
+}
+
 async function handleModeVocabPersonal(chatId) {
   const vocab = await getVocab(chatId);
   const topics = getDistinctTopics(vocab);
@@ -5241,23 +7341,19 @@ async function handleModeVocabPersonal(chatId) {
 }
 
 async function handleModeVocab(chatId) {
-  // Блок "Общая библиотека" показываем только если в ней вообще что-то
-  // есть — иначе для учеников, у которых Маргарита её ещё не наполнила,
-  // ничего не меняется вообще, никакого лишнего выбора.
+  // "Диалоги" — постоянный вариант, так что теперь меню выбора источника
+  // показываем всегда. "Общая библиотека" по-прежнему добавляется в
+  // список только если в ней реально есть слова.
   const sharedEntries = await listSharedLibrary();
-  if (!sharedEntries.length) {
-    await handleModeVocabPersonal(chatId);
-    return;
+  const buttons = [[{ text: "📓 Мой словарь", callback_data: "vsource:personal" }]];
+  if (sharedEntries.length) {
+    buttons.push([{ text: "📖 Общая библиотека", callback_data: "vsource:shared" }]);
   }
+  buttons.push([{ text: "💬 150 американских фраз", callback_data: "vsource:dialogue" }]);
   await tg("sendMessage", {
     chat_id: chatId,
     text: "Лексика — откуда слова?",
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: "📓 Мой словарь", callback_data: "vsource:personal" }],
-        [{ text: "📖 Общая библиотека", callback_data: "vsource:shared" }],
-      ],
-    },
+    reply_markup: { inline_keyboard: buttons },
   });
 }
 
@@ -5877,6 +7973,11 @@ async function handleCallback(callbackQuery) {
     return;
   }
 
+  if (data.startsWith("dash:")) {
+    await handleDashboardCallback(chatId, messageId, data);
+    return;
+  }
+
   if (data === "start") {
     const stats = await getStats(chatId);
     await sendQuestion(chatId, stats);
@@ -5901,6 +8002,12 @@ async function handleCallback(callbackQuery) {
 
   if (data === "vsource:personal") {
     await handleModeVocabPersonal(chatId);
+    return;
+  }
+
+  if (data === "vsource:dialogue") {
+    const picked = buildDialoguePicked("💬 Режим: 150 американских фраз", null);
+    if (picked) await deliverQuestion(chatId, picked);
     return;
   }
 
@@ -6010,7 +8117,7 @@ async function handleCallback(callbackQuery) {
   const isCorrect = chosenIdx === pending.correctPos;
   await log(`[callback] step3: word="${pending.correctEn}" chosenIdx=${chosenIdx} correctPos=${pending.correctPos} isCorrect=${isCorrect}`);
 
-  const mode = pending.mode === "grammar" || pending.mode === "irregular" ? pending.mode : "vocab";
+  const mode = ["grammar", "irregular", "dialogue"].includes(pending.mode) ? pending.mode : "vocab";
   const fullVocab =
     mode === "vocab" ? (pending.shared ? await getSharedVocab(pending.shared.difficulty, pending.shared.topic) : await getVocab(chatId)) : null;
   const vocab = mode === "vocab" ? (pending.shared ? fullVocab : filterByTopic(fullVocab, pending.topic || null)) : null;
@@ -6020,8 +8127,16 @@ async function handleCallback(callbackQuery) {
   let statsAfter = null;
 
   await withOptimisticUpdate(statsStore(), String(chatId), emptyStats, (current) => {
-    const s = { ...current, wrong: { ...current.wrong } };
+    const s = { ...current, wrong: { ...current.wrong }, daily: { ...(current.daily || {}) } };
     s.answered += 1;
+    const today = new Date().toISOString().slice(0, 10);
+    s.daily[today] = (s.daily[today] || 0) + 1;
+    // Храним только последние 30 дней — этого достаточно для "сегодня"/"за
+    // неделю" в дашборде, а запись не растёт бесконечно.
+    const cutoff = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+    for (const day of Object.keys(s.daily)) {
+      if (day < cutoff) delete s.daily[day];
+    }
     if (isCorrect) {
       s.correct += 1;
       s.streak += 1;
@@ -6039,6 +8154,8 @@ async function handleCallback(callbackQuery) {
       picked = buildGrammarPicked(resultText, pending.correctEn, pending.exerciseType || "tenses");
     } else if (mode === "irregular") {
       picked = buildIrregularPicked(resultText, pending.correctEn, pending.level || "a", pending.exerciseType || "triplet");
+    } else if (mode === "dialogue") {
+      picked = buildDialoguePicked(resultText, pending.correctEn);
     } else if (vocab.length) {
       picked = buildQuestion(vocab, s.wrong, resultText, pending.correctEn, seenEnList, recentTailList);
       picked.topic = pending.topic || null;
@@ -6145,6 +8262,192 @@ async function handlePending(chatId) {
   await tg("sendMessage", { chat_id: chatId, text: `⏳ Ждут доступа:\n${pending.join("\n")}\n\nОдобрить: /approve @username (или chat_id)` });
 }
 
+async function buildActivityReport() {
+  const list = await identityStore().list();
+  const entries = list && list.blobs ? list.blobs : [];
+  const rows = [];
+  const today = new Date().toISOString().slice(0, 10);
+  const last7Days = [];
+  for (let i = 0; i < 7; i++) {
+    last7Days.push(new Date(Date.now() - i * 86400000).toISOString().slice(0, 10));
+  }
+  for (const entry of entries) {
+    const info = await identityStore().get(entry.key, { type: "json" });
+    if (!info || info.approved === false) continue;
+    const stats = await getStats(entry.key);
+    const name = info.registeredName || [info.firstName, info.lastName].filter(Boolean).join(" ") || "без имени";
+    const uname = info.username ? ` (@${info.username})` : "";
+    const daysActive = Array.isArray(info.activeDays) ? info.activeDays.length : info.lastSeen ? 1 : 0;
+    const lastSeenDate = info.lastSeen ? info.lastSeen.slice(0, 10) : "\u2014";
+    const daily = stats.daily || {};
+    const todayCount = daily[today] || 0;
+    const weekCount = last7Days.reduce((sum, day) => sum + (daily[day] || 0), 0);
+    rows.push({
+      chatId: entry.key,
+      name,
+      uname,
+      daysActive,
+      answered: stats.answered || 0,
+      todayCount,
+      weekCount,
+      lastSeenDate,
+      lastSeenTs: info.lastSeen || "",
+    });
+  }
+  rows.sort((a, b) => (a.lastSeenTs < b.lastSeenTs ? 1 : a.lastSeenTs > b.lastSeenTs ? -1 : 0));
+  return rows;
+}
+
+function dashboardMainKeyboard() {
+  return {
+    inline_keyboard: [
+      [
+        { text: "\ud83d\udc65 \u0423\u0447\u0435\u043d\u0438\u043a\u0438", callback_data: "dash:students" },
+        { text: "\ud83d\udcc8 \u0410\u043a\u0442\u0438\u0432\u043d\u043e\u0441\u0442\u044c", callback_data: "dash:activity" },
+      ],
+      [
+        { text: "\ud83d\udcd6 \u041e\u0431\u0449\u0430\u044f \u0431\u0438\u0431\u043b\u0438\u043e\u0442\u0435\u043a\u0430", callback_data: "dash:library" },
+        { text: "\ud83d\udcda \u041b\u0438\u0447\u043d\u044b\u0435 \u0441\u043b\u043e\u0432\u0430\u0440\u0438", callback_data: "dash:personal" },
+      ],
+    ],
+  };
+}
+
+async function handleDashboard(chatId) {
+  if (!(await isAdmin(chatId))) {
+    await tg("sendMessage", { chat_id: chatId, text: "\u042d\u0442\u0430 \u043a\u043e\u043c\u0430\u043d\u0434\u0430 \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u043d\u0430." });
+    return;
+  }
+  await tg("sendMessage", {
+    chat_id: chatId,
+    text: "\ud83d\udcca \u041f\u0430\u043d\u0435\u043b\u044c \u0443\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u044f \u0431\u043e\u0442\u043e\u043c\n\n\u0412\u044b\u0431\u0435\u0440\u0438 \u0440\u0430\u0437\u0434\u0435\u043b:",
+    reply_markup: dashboardMainKeyboard(),
+  });
+}
+
+async function handleDashboardCallback(chatId, messageId, data) {
+  if (!(await isAdmin(chatId))) return;
+
+  if (data === "dash:main") {
+    await tg("editMessageText", {
+      chat_id: chatId,
+      message_id: messageId,
+      text: "\ud83d\udcca \u041f\u0430\u043d\u0435\u043b\u044c \u0443\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u044f \u0431\u043e\u0442\u043e\u043c\n\n\u0412\u044b\u0431\u0435\u0440\u0438 \u0440\u0430\u0437\u0434\u0435\u043b:",
+      reply_markup: dashboardMainKeyboard(),
+    });
+    return;
+  }
+
+  if (data === "dash:students") {
+    const ids = await identityStore().list();
+    const entries = ids && ids.blobs ? ids.blobs : [];
+    const lines = [];
+    for (const entry of entries) {
+      const info = await identityStore().get(entry.key, { type: "json" });
+      if (info && info.approved === false) continue;
+      const vocab = await getVocab(entry.key);
+      const name = (info && info.registeredName) || (info ? [info.firstName, info.lastName].filter(Boolean).join(" ") : "");
+      const uname = info && info.username ? ` (@${info.username})` : "";
+      lines.push(`\u2022 ${name || "\u0431\u0435\u0437 \u0438\u043c\u0435\u043d\u0438"}${uname} \u2014 ${vocab.length} \u0441\u043b\u043e\u0432`);
+    }
+    const text = lines.length ? `\ud83d\udc65 \u0423\u0447\u0435\u043d\u0438\u043a\u0438 (${lines.length}):\n\n${lines.join("\n")}` : "\u041f\u043e\u043a\u0430 \u043d\u0438\u043a\u0442\u043e \u043d\u0435 \u043f\u0438\u0441\u0430\u043b \u0431\u043e\u0442\u0443.";
+    await tg("editMessageText", {
+      chat_id: chatId,
+      message_id: messageId,
+      text,
+      reply_markup: {
+        inline_keyboard: [[{ text: "\u23f3 \u0416\u0434\u0443\u0442 \u043e\u0434\u043e\u0431\u0440\u0435\u043d\u0438\u044f", callback_data: "dash:pending" }], [{ text: "\u25c0\ufe0f \u041d\u0430\u0437\u0430\u0434", callback_data: "dash:main" }]],
+      },
+    });
+    return;
+  }
+
+  if (data === "dash:pending") {
+    const list = await identityStore().list();
+    const entries = list && list.blobs ? list.blobs : [];
+    const pending = [];
+    for (const entry of entries) {
+      const info = await identityStore().get(entry.key, { type: "json" });
+      if (info && info.approved === false) {
+        const name = [info.firstName, info.lastName].filter(Boolean).join(" ") || "\u0431\u0435\u0437 \u0438\u043c\u0435\u043d\u0438";
+        const uname = info.username ? ` (@${info.username})` : "";
+        pending.push(`\u2022 ${name}${uname} \u2014 chat_id ${entry.key}`);
+      }
+    }
+    const text = pending.length
+      ? `\u23f3 \u0416\u0434\u0443\u0442 \u0434\u043e\u0441\u0442\u0443\u043f\u0430:\n\n${pending.join("\n")}\n\n\u041e\u0434\u043e\u0431\u0440\u0438\u0442\u044c: /approve @username\n\u0417\u0430\u043a\u0440\u044b\u0442\u044c \u0434\u043e\u0441\u0442\u0443\u043f: /revoke @username`
+      : "\u041d\u0438\u043a\u0442\u043e \u043d\u0435 \u0436\u0434\u0451\u0442 \u043e\u0434\u043e\u0431\u0440\u0435\u043d\u0438\u044f.";
+    await tg("editMessageText", {
+      chat_id: chatId,
+      message_id: messageId,
+      text,
+      reply_markup: { inline_keyboard: [[{ text: "\u25c0\ufe0f \u041d\u0430\u0437\u0430\u0434", callback_data: "dash:students" }]] },
+    });
+    return;
+  }
+
+  if (data === "dash:activity") {
+    const rows = await buildActivityReport();
+    const lines = rows.map(
+      (r) =>
+        `• ${r.name}${r.uname} — сегодня: ${r.todayCount}, за неделю: ${r.weekCount}, всего: ${r.answered}, дней занятий: ${r.daysActive}, посл. раз: ${r.lastSeenDate}`
+    );
+    const text = lines.length ? `📈 Активность учеников:\n\n${lines.join("\n")}` : "Пока нет данных об активности.";
+    await tg("editMessageText", {
+      chat_id: chatId,
+      message_id: messageId,
+      text,
+      reply_markup: { inline_keyboard: [[{ text: "◀️ Назад", callback_data: "dash:main" }]] },
+    });
+    return;
+  }
+
+  if (data === "dash:library") {
+    const entries = await listSharedLibrary();
+    let text;
+    if (!entries.length) {
+      text = "\ud83d\udcd6 \u041e\u0431\u0449\u0430\u044f \u0431\u0438\u0431\u043b\u0438\u043e\u0442\u0435\u043a\u0430 \u043f\u043e\u043a\u0430 \u043f\u0443\u0441\u0442\u0430\u044f.\n\n\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c: /addshared <\u0441\u043b\u043e\u0436\u043d\u043e\u0441\u0442\u044c> #<\u0442\u0435\u043c\u0430>";
+    } else {
+      const byDifficulty = new Map();
+      for (const e of entries) {
+        if (!byDifficulty.has(e.difficultySlug)) byDifficulty.set(e.difficultySlug, []);
+        byDifficulty.get(e.difficultySlug).push(e);
+      }
+      const lines = ["\ud83d\udcd6 \u041e\u0431\u0449\u0430\u044f \u0431\u0438\u0431\u043b\u0438\u043e\u0442\u0435\u043a\u0430:"];
+      for (const [difficulty, topics] of byDifficulty) {
+        lines.push(`\n${difficulty}:`);
+        for (const t of topics) lines.push(`  \u2022 ${t.topicSlug} \u2014 ${t.count} \u0441\u043b\u043e\u0432`);
+      }
+      lines.push("\n\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c: /addshared <\u0441\u043b\u043e\u0436\u043d\u043e\u0441\u0442\u044c> #<\u0442\u0435\u043c\u0430>\n\u0423\u0434\u0430\u043b\u0438\u0442\u044c: /deleteshared <\u0441\u043b\u043e\u0436\u043d\u043e\u0441\u0442\u044c> #<\u0442\u0435\u043c\u0430>");
+      text = lines.join("\n");
+    }
+    await tg("editMessageText", {
+      chat_id: chatId,
+      message_id: messageId,
+      text,
+      reply_markup: { inline_keyboard: [[{ text: "\u25c0\ufe0f \u041d\u0430\u0437\u0430\u0434", callback_data: "dash:main" }]] },
+    });
+    return;
+  }
+
+  if (data === "dash:personal") {
+    const text =
+      "\ud83d\udcda \u041b\u0438\u0447\u043d\u044b\u0435 \u0441\u043b\u043e\u0432\u0430\u0440\u0438 \u0443\u0447\u0435\u043d\u0438\u043a\u043e\u0432 \u2014 \u043a\u043e\u043c\u0430\u043d\u0434\u044b:\n\n" +
+      "/addto @user [#\u0442\u0435\u043c\u0430] + \u0441\u043b\u043e\u0432\u0430 \u2014 \u0434\u043e\u0431\u0430\u0432\u0438\u0442\u044c\n" +
+      "/viewvocab @user \u2014 \u043f\u043e\u0441\u043c\u043e\u0442\u0440\u0435\u0442\u044c \u0432\u0435\u0441\u044c \u0441\u043b\u043e\u0432\u0430\u0440\u044c\n" +
+      "/deletefrom @user + \u0441\u043f\u0438\u0441\u043e\u043a \u0441\u043b\u043e\u0432 \u2014 \u0443\u0434\u0430\u043b\u0438\u0442\u044c \u043a\u043e\u043d\u043a\u0440\u0435\u0442\u043d\u044b\u0435\n" +
+      "/clearvocab <chat_id> \u2014 \u0441\u0442\u0435\u0440\u0435\u0442\u044c \u0432\u0441\u0451\n" +
+      "/removedefault @user \u2014 \u0443\u0431\u0440\u0430\u0442\u044c \u0441\u0442\u0430\u0440\u044b\u0439 \u0441\u0442\u0430\u0440\u0442\u043e\u0432\u044b\u0439 \u0441\u043f\u0438\u0441\u043e\u043a";
+    await tg("editMessageText", {
+      chat_id: chatId,
+      message_id: messageId,
+      text,
+      reply_markup: { inline_keyboard: [[{ text: "\u25c0\ufe0f \u041d\u0430\u0437\u0430\u0434", callback_data: "dash:main" }]] },
+    });
+    return;
+  }
+}
+
 // Напоминания о практике: если человек не появлялся дольше REMIND_AFTER_MS
 // (и мы не напоминали ему за последние REMIND_MIN_GAP_MS, чтобы не слать
 // каждый день подряд одному и тому же), присылаем ему короткий пинг.
@@ -6218,11 +8521,14 @@ async function handleMessage(message) {
   }
 
   // Доступ по приглашению: новые чаты (approved === false) не пускаем
-  // дальше ни к каким командам, кроме /whoami — чтобы человек мог сообщить
-  // свой chat_id учителю для одобрения. У уже существующих пользователей
-  // (approved отсутствует или true) это никак не меняется.
+  // дальше ни к каким командам, кроме /whoami, /claimadmin и специальной
+  // пригласительной ссылки /start <INVITE_SECRET> — она сразу открывает
+  // доступ, не дожидаясь ручного /approve от админа.
   const gateIdentity = await identityStore().get(String(chatId), { type: "json" });
-  if (gateIdentity && gateIdentity.approved === false && !(await isAdmin(chatId))) {
+  const startInviteMatch = text.match(/^\/start\s+(\S+)/);
+  if (startInviteMatch && startInviteMatch[1] === INVITE_SECRET) {
+    await identityStore().setJSON(String(chatId), { ...(gateIdentity || {}), approved: true });
+  } else if (gateIdentity && gateIdentity.approved === false && !(await isAdmin(chatId))) {
     if (text === "/whoami") {
       await tg("sendMessage", { chat_id: chatId, text: `Твой chat_id: ${chatId}` });
       return;
@@ -6252,7 +8558,7 @@ async function handleMessage(message) {
     return;
   }
 
-  if (text === "/start") return handleStart(chatId);
+  if (text === "/start" || /^\/start\s+\S+/.test(text)) return handleStart(chatId);
   if (text === BTN_VOCAB) return handleModeVocab(chatId);
   if (text === BTN_IRREGULAR) return handleModeIrregular(chatId);
   if (text === BTN_GRAMMAR) return handleModeGrammar(chatId);
@@ -6299,6 +8605,7 @@ async function handleMessage(message) {
     return handleRevoke(chatId, text.replace(/^\/revoke(@\w+)?\s*/i, ""));
   }
   if (text === "/pending") return handlePending(chatId);
+  if (text === "/dashboard" || text === "/admin") return handleDashboard(chatId);
   if (text === "/students") {
     if (!(await isAdmin(chatId))) {
       await tg("sendMessage", { chat_id: chatId, text: "Эта команда недоступна." });
@@ -6306,20 +8613,23 @@ async function handleMessage(message) {
     }
     const ids = await identityStore().list();
     const entries = ids && ids.blobs ? ids.blobs : [];
-    if (!entries.length) {
-      await tg("sendMessage", { chat_id: chatId, text: "Пока никто не писал боту." });
-      return;
-    }
     const lines = [];
+    let shownCount = 0;
     for (const entry of entries) {
       const info = await identityStore().get(entry.key, { type: "json" });
+      if (info && info.approved === false) continue;
       const studentChatId = entry.key;
       const vocab = await getVocab(studentChatId);
       const name = (info && info.registeredName) || (info ? [info.firstName, info.lastName].filter(Boolean).join(" ") : "");
       const uname = info && info.username ? ` (@${info.username})` : "";
       lines.push(`• ${name || "без имени"}${uname} — ${vocab.length} слов, chat_id ${studentChatId}`);
+      shownCount += 1;
     }
-    await tg("sendMessage", { chat_id: chatId, text: `Ученики (${entries.length}):\n${lines.join("\n")}` });
+    if (!shownCount) {
+      await tg("sendMessage", { chat_id: chatId, text: "Пока никто не писал боту." });
+      return;
+    }
+    await tg("sendMessage", { chat_id: chatId, text: `Ученики (${shownCount}):\n${lines.join("\n")}` });
     return;
   }
   if (text === "/play" || text === "/next") {
