@@ -43,6 +43,19 @@ const CLAIM_ADMIN_SECRET = "GCfVjhtMz9-wJSgQ";
 // Кто угодно с этой ссылкой получает доступ мгновенно, без ручного /approve.
 // Не совпадает с CLAIM_ADMIN_SECRET — этим секретом нельзя получить права админа.
 const INVITE_SECRET = "PromargyStart2026";
+// Отдельная бесплатная ссылка ТОЛЬКО на "150 американских фраз":
+// t.me/<имя_бота>?start=<PHRASES_INVITE_SECRET>. Не даёт approved: true —
+// человек не становится полноценным учеником, а получает phrasesAccess
+// (постоянный бесплатный доступ к фразам) + TRIAL_DAYS пробного периода на
+// всё остальное (общая библиотека, грамматика, неправильные глаголы).
+const PHRASES_INVITE_SECRET = "150Phrases2026";
+const TRIAL_DAYS = 5;
+const TRIAL_MS = TRIAL_DAYS * 24 * 60 * 60 * 1000;
+
+function isTrialExpired(identity) {
+  if (!identity || !identity.trialStartedAt) return false;
+  return Date.now() - new Date(identity.trialStartedAt).getTime() > TRIAL_MS;
+}
 
 async function isAdmin(chatId) {
   const v = await adminStore().get(String(chatId), { type: "json" });
@@ -7021,6 +7034,17 @@ async function sendQuestion(chatId, stats, prefix, modeOverride, levelOverride, 
   const currentMode = prevPending && prevPending.mode ? prevPending.mode : "vocab";
   const mode = modeOverride || currentMode;
 
+  if (mode !== "dialogue" && mode !== "idiomtranslate") {
+    const trialIdentity = await identityStore().get(String(chatId), { type: "json" });
+    if (trialIdentity && trialIdentity.phrasesAccess && !trialIdentity.approved && !(await isAdmin(chatId)) && isTrialExpired(trialIdentity)) {
+      await tg("sendMessage", {
+        chat_id: chatId,
+        text: "Пробный период на 5 дней закончился. «150 американских фраз» остаются доступны бесплатно — а чтобы открыть всё остальное, напиши своему преподавателю.",
+      });
+      return;
+    }
+  }
+
   if (mode === "grammar") {
     const exerciseType = exerciseTypeOverride || (prevPending && prevPending.mode === "grammar" && prevPending.exerciseType) || "tenses";
     const picked = buildGrammarPicked(prefix, null, exerciseType);
@@ -7038,6 +7062,12 @@ async function sendQuestion(chatId, stats, prefix, modeOverride, levelOverride, 
 
   if (mode === "dialogue") {
     const picked = buildDialoguePicked(prefix, null);
+    if (picked) await deliverQuestion(chatId, picked);
+    return;
+  }
+
+  if (mode === "idiomtranslate") {
+    const picked = buildIdiomTranslatePicked(prefix, null);
     if (picked) await deliverQuestion(chatId, picked);
     return;
   }
@@ -7320,6 +7350,49 @@ function buildDialoguePicked(prefix, forbiddenText) {
   };
 }
 
+// --- Второй формат для тех же 150 идиом: обычный перевод с вариантами
+// ответа (идиома — выбери верный перевод). Берём точные заголовки идиом
+// из книги (SEED_SHARED_LIBRARY_PHRASES), а не сконструированные
+// предложения из DIALOGUE_PHRASES — так вопрос точно совпадает с тем, что
+// в тексте книги. Дистракторы — RU переводы ДРУГИХ идиом из этого же
+// списка, не случайный мусор.
+const IDIOM_TRANSLATE_PAIRS = SEED_SHARED_LIBRARY_PHRASES.topics["разговорные_фразы"];
+
+function buildIdiomTranslateQuestion(forbiddenText) {
+  for (let attempt = 0; attempt < 25; attempt++) {
+    const target = IDIOM_TRANSLATE_PAIRS[Math.floor(Math.random() * IDIOM_TRANSLATE_PAIRS.length)];
+    if (forbiddenText && target.en.toLowerCase() === forbiddenText.toLowerCase()) continue;
+
+    const others = shuffle(IDIOM_TRANSLATE_PAIRS.filter((p) => p.en.toLowerCase() !== target.en.toLowerCase()));
+    const distractorRu = others.slice(0, 5).map((p) => p.ru);
+    const candidates = [target.ru, ...distractorRu];
+    const uniqueOptions = new Set(candidates.map((c) => c.toLowerCase()));
+    if (uniqueOptions.size !== 6) continue;
+
+    const order = shuffle(candidates.map((_, i) => i));
+    const correctPos = order.indexOf(0);
+    const options = order.map((i) => candidates[i]);
+
+    return { correctEn: target.en, correctRu: target.ru, options, correctPos };
+  }
+  return null;
+}
+
+function buildIdiomTranslatePicked(prefix, forbiddenText) {
+  const q = buildIdiomTranslateQuestion(forbiddenText);
+  if (!q) return null;
+  const keyboard = q.options.map((textOpt, i) => [{ text: textOpt, callback_data: `a:${i}` }]);
+  const questionText = `🔤 Как переводится: *${mdEscape(q.correctEn)}*?`;
+  const text = prefix ? `${prefix}\n\n${questionText}` : questionText;
+  return {
+    correct: { en: q.correctEn, ru: q.correctRu },
+    correctPos: q.correctPos,
+    keyboard,
+    text,
+    mode: "idiomtranslate",
+  };
+}
+
 async function handleModeVocabPersonal(chatId) {
   const vocab = await getVocab(chatId);
   const topics = getDistinctTopics(vocab);
@@ -7349,7 +7422,7 @@ async function handleModeVocab(chatId) {
   if (sharedEntries.length) {
     buttons.push([{ text: "📖 Общая библиотека", callback_data: "vsource:shared" }]);
   }
-  buttons.push([{ text: "💬 150 американских фраз", callback_data: "vsource:dialogue" }]);
+  buttons.push([{ text: "💬 150 американских фраз", callback_data: "vsource:idioms" }]);
   await tg("sendMessage", {
     chat_id: chatId,
     text: "Лексика — откуда слова?",
@@ -7968,8 +8041,28 @@ async function handleCallback(callbackQuery) {
   const data = callbackQuery.data;
 
   const gateIdentity = await identityStore().get(String(chatId), { type: "json" });
-  if (gateIdentity && gateIdentity.approved === false && !(await isAdmin(chatId))) {
+  if (gateIdentity && gateIdentity.approved === false && !gateIdentity.phrasesAccess && !(await isAdmin(chatId))) {
     await log("[callback] blocked: chat not yet approved", chatId);
+    return;
+  }
+
+  // Пробный доступ (phrasesAccess, но не approved): "150 американских
+  // фраз" разрешены всегда, а после истечения TRIAL_DAYS всё остальное
+  // (общая библиотека помимо фраз, личный словарь, грамматика,
+  // неправильные глаголы) — блокируется этим списком колбэков.
+  const TRIAL_GATED_CALLBACKS = ["mode:grammar", "mode:irregular", "vsource:personal", "vsource:shared"];
+  if (
+    gateIdentity &&
+    gateIdentity.phrasesAccess &&
+    !gateIdentity.approved &&
+    !(await isAdmin(chatId)) &&
+    TRIAL_GATED_CALLBACKS.includes(data) &&
+    isTrialExpired(gateIdentity)
+  ) {
+    await tg("sendMessage", {
+      chat_id: chatId,
+      text: "Пробный период на 5 дней закончился. «150 американских фраз» остаются доступны бесплатно — а чтобы открыть всё остальное, напиши своему преподавателю.",
+    });
     return;
   }
 
@@ -8005,8 +8098,28 @@ async function handleCallback(callbackQuery) {
     return;
   }
 
-  if (data === "vsource:dialogue") {
-    const picked = buildDialoguePicked("💬 Режим: 150 американских фраз", null);
+  if (data === "vsource:idioms") {
+    await tg("sendMessage", {
+      chat_id: chatId,
+      text: "💬 150 американских фраз — какой формат?",
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: "🔤 Перевод", callback_data: "idiomformat:translate" }],
+          [{ text: "💬 Диалог", callback_data: "idiomformat:dialogue" }],
+        ],
+      },
+    });
+    return;
+  }
+
+  if (data === "idiomformat:translate") {
+    const picked = buildIdiomTranslatePicked("🔤 Режим: 150 американских фраз — перевод", null);
+    if (picked) await deliverQuestion(chatId, picked);
+    return;
+  }
+
+  if (data === "idiomformat:dialogue") {
+    const picked = buildDialoguePicked("💬 Режим: 150 американских фраз — диалог", null);
     if (picked) await deliverQuestion(chatId, picked);
     return;
   }
@@ -8117,7 +8230,19 @@ async function handleCallback(callbackQuery) {
   const isCorrect = chosenIdx === pending.correctPos;
   await log(`[callback] step3: word="${pending.correctEn}" chosenIdx=${chosenIdx} correctPos=${pending.correctPos} isCorrect=${isCorrect}`);
 
-  const mode = ["grammar", "irregular", "dialogue"].includes(pending.mode) ? pending.mode : "vocab";
+  const mode = ["grammar", "irregular", "dialogue", "idiomtranslate"].includes(pending.mode) ? pending.mode : "vocab";
+
+  if (mode !== "dialogue" && mode !== "idiomtranslate") {
+    const trialIdentity = await identityStore().get(String(chatId), { type: "json" });
+    if (trialIdentity && trialIdentity.phrasesAccess && !trialIdentity.approved && !(await isAdmin(chatId)) && isTrialExpired(trialIdentity)) {
+      await tg("sendMessage", {
+        chat_id: chatId,
+        text: "Пробный период на 5 дней закончился. «150 американских фраз» остаются доступны бесплатно — а чтобы открыть всё остальное, напиши своему преподавателю.",
+      });
+      return;
+    }
+  }
+
   const fullVocab =
     mode === "vocab" ? (pending.shared ? await getSharedVocab(pending.shared.difficulty, pending.shared.topic) : await getVocab(chatId)) : null;
   const vocab = mode === "vocab" ? (pending.shared ? fullVocab : filterByTopic(fullVocab, pending.topic || null)) : null;
@@ -8156,6 +8281,8 @@ async function handleCallback(callbackQuery) {
       picked = buildIrregularPicked(resultText, pending.correctEn, pending.level || "a", pending.exerciseType || "triplet");
     } else if (mode === "dialogue") {
       picked = buildDialoguePicked(resultText, pending.correctEn);
+    } else if (mode === "idiomtranslate") {
+      picked = buildIdiomTranslatePicked(resultText, pending.correctEn);
     } else if (vocab.length) {
       picked = buildQuestion(vocab, s.wrong, resultText, pending.correctEn, seenEnList, recentTailList);
       picked.topic = pending.topic || null;
@@ -8521,14 +8648,24 @@ async function handleMessage(message) {
   }
 
   // Доступ по приглашению: новые чаты (approved === false) не пускаем
-  // дальше ни к каким командам, кроме /whoami, /claimadmin и специальной
-  // пригласительной ссылки /start <INVITE_SECRET> — она сразу открывает
-  // доступ, не дожидаясь ручного /approve от админа.
+  // дальше ни к каким командам, кроме /whoami, /claimadmin и двух
+  // пригласительных ссылок:
+  // /start <INVITE_SECRET> — полный доступ сразу, как обычный ученик.
+  // /start <PHRASES_INVITE_SECRET> — НЕ делает approved: true, а даёт
+  // postoянный бесплатный доступ именно к "150 американских фраз" плюс
+  // TRIAL_DAYS дней пробного доступа ко всему остальному (см.
+  // isTrialExpired — используется в конкретных пунктах меню ниже).
   const gateIdentity = await identityStore().get(String(chatId), { type: "json" });
   const startInviteMatch = text.match(/^\/start\s+(\S+)/);
   if (startInviteMatch && startInviteMatch[1] === INVITE_SECRET) {
     await identityStore().setJSON(String(chatId), { ...(gateIdentity || {}), approved: true });
-  } else if (gateIdentity && gateIdentity.approved === false && !(await isAdmin(chatId))) {
+  } else if (startInviteMatch && startInviteMatch[1] === PHRASES_INVITE_SECRET) {
+    await identityStore().setJSON(String(chatId), {
+      ...(gateIdentity || {}),
+      phrasesAccess: true,
+      trialStartedAt: (gateIdentity && gateIdentity.trialStartedAt) || new Date().toISOString(),
+    });
+  } else if (gateIdentity && gateIdentity.approved === false && !gateIdentity.phrasesAccess && !(await isAdmin(chatId))) {
     if (text === "/whoami") {
       await tg("sendMessage", { chat_id: chatId, text: `Твой chat_id: ${chatId}` });
       return;
