@@ -69,25 +69,37 @@ async function isAdmin(chatId) {
 async function rememberIdentity(chatId, from) {
   if (!from) return;
   try {
-    const existing = await identityStore().get(String(chatId), { type: "json" });
     const today = new Date().toISOString().slice(0, 10);
-    const activeDays = existing && Array.isArray(existing.activeDays) ? [...existing.activeDays] : [];
-    if (!activeDays.includes(today)) activeDays.push(today);
-    const firstSeen = (existing && existing.firstSeen) || new Date().toISOString();
-    // Новым чатам (existing === null) сразу проставляем approved: false —
-    // доступ только по приглашению. У УЖЕ существующих чатов ничего не
-    // трогаем: раз existing содержит их прежние данные, поле approved (или
-    // его отсутствие) сохраняется как было — так все, кто уже пользовался
-    // ботом до этой правки, не теряют доступ автоматически.
-    await identityStore().setJSON(String(chatId), {
-      ...(existing || { approved: false }),
-      firstName: from.first_name || "",
-      lastName: from.last_name || "",
-      username: from.username || "",
-      lastSeen: new Date().toISOString(),
-      firstSeen,
-      activeDays,
-    });
+    // Новым чатам (существующей записи ещё нет) сразу проставляем
+    // approved: false — доступ только по приглашению. У УЖЕ существующих
+    // чатов ничего не трогаем: раз existing содержит их прежние данные,
+    // поле approved (или его отсутствие) сохраняется как было — так все,
+    // кто уже пользовался ботом до этой правки, не теряют доступ
+    // автоматически.
+    //
+    // updateIdentity (атомарный read-modify-write, см. определение) —
+    // намеренно, а не обычный get()+setJSON(): это сообщение может прийти
+    // почти одновременно с тем, как админ меняет ту же запись (/approve,
+    // пригласительная ссылка и т.п.), и без защиты от гонки более позднее
+    // из двух обновлений тихо стирало бы другое.
+    await updateIdentity(
+      chatId,
+      (current) => {
+        const activeDays = Array.isArray(current.activeDays) ? [...current.activeDays] : [];
+        if (!activeDays.includes(today)) activeDays.push(today);
+        const firstSeen = current.firstSeen || new Date().toISOString();
+        return {
+          ...current,
+          firstName: from.first_name || "",
+          lastName: from.last_name || "",
+          username: from.username || "",
+          lastSeen: new Date().toISOString(),
+          firstSeen,
+          activeDays,
+        };
+      },
+      () => ({ approved: false })
+    );
   } catch (err) {
     // не критично
   }
@@ -199,6 +211,25 @@ async function withOptimisticUpdate(store, key, defaultValue, mutate, maxAttempt
       await new Promise((resolve) => setTimeout(resolve, 10 + Math.random() * 90));
     }
   }
+}
+
+// Обёртка withOptimisticUpdate специально для identityStore (доступ,
+// approved/phrasesAccess/remindersEnabled и т.п.). До этой правки все места,
+// трогающие identity-запись (rememberIdentity, /approve, /revoke,
+// пригласительные ссылки, напоминания, /register), делали обычное
+// "прочитать — целиком переписать" без защиты от гонки. Проблема: у каждого
+// входящего сообщения rememberIdentity тоже читает-и-переписывает ту же самую
+// запись (обновляет lastSeen/activeDays). Если ученик пишет боту почти
+// одновременно с тем, как админ жмёт /approve (например, нетерпеливо
+// повторяет /start в ожидании ответа), обе записи гонятся за одним и тем же
+// ключом без какой-либо синхронизации — и чьё бы обновление ни завершилось
+// последним, оно тихо стирает другое. Так approved:true от /approve мог
+// пропасть, если rememberIdentity (прочитавший старое approved:false чуть
+// раньше) дозаписывался позже. updateIdentity даёт каждому месту атомарное
+// read-modify-write: при конфликте перечитывает актуальное состояние и
+// применяет то же изменение заново, а не переписывает вслепую.
+async function updateIdentity(chatId, mutate, defaultValue = () => ({})) {
+  return withOptimisticUpdate(identityStore(), String(chatId), defaultValue, mutate);
 }
 
 // Как и выше — без блокирующей перепроверки, просто доверяем ответу записи.
@@ -5690,11 +5721,13 @@ const GRAMMAR_EXERCISE_TYPES = {
   v2vs: "🔁 V2 vs Vs (прошедшее / настоящее)",
   vsV1: "🔤 Vs vs V1 (He/She vs We, только настоящее)",
   psVsPrPs: "🆕 Past Simple vs Present Perfect (для начинающих)",
+  gerundInfinitive: "🎯 V-ing или to-V1 (enjoy doing / want to do)",
   trapWords: "🪤 Слова-ловушки (mean/present/fine...)",
   collocations: "🤝 give / get / take / have",
   modalMeaning: "🧭 Модальные — по смыслу",
   modalTo: "🔧 Модальные — нужна ли to",
   futureInPast: "⏳ Future in the Past vs Future Simple",
+  someAnyNo: "🔸 Some / any / no (something, someone, somewhere…)",
   mix: "🎲 Микс всех форматов",
 };
 const GRAMMAR_REAL_EXERCISE_TYPES = [
@@ -5704,11 +5737,13 @@ const GRAMMAR_REAL_EXERCISE_TYPES = [
   "v2vs",
   "vsV1",
   "psVsPrPs",
+  "gerundInfinitive",
   "trapWords",
   "collocations",
   "modalMeaning",
   "modalTo",
   "futureInPast",
+  "someAnyNo",
 ];
 
 const TRAP_WORDS = [
@@ -5803,6 +5838,66 @@ const GRAMMAR_VERBS = [
     ruInf: "звонить", ru3sg: "звонит", ru1pl: "звоним", ru3pl: "звонят", ruPastM: "звонил", ruPastF: "звонила", ruPastPl: "звонили" },
   { base: "clean", participle: "cleaned", past: "cleaned", ru: "убирать", contextEn: "the house", contextRu: "дом",
     ruInf: "убирать", ru3sg: "убирает", ru1pl: "убираем", ru3pl: "убирают", ruPastM: "убирал", ruPastF: "убирала", ruPastPl: "убирали" },
+  // --- Расширение по просьбе Margy (02.10.2026): раньше тренажёр по временам
+  // (pr.s/p.s/f.s) звучал слишком однотипно — всего ~19 глаголов и 2
+  // временных маркера на время давали маленькое комбинаторное пространство.
+  // Лексика ниже взята из её личной базы "English Grammar Sentence Bank" в
+  // Notion (реальные проверенные предложения из Everyday Life A1 и Business
+  // A1 — именно там сосредоточены разделы Present/Past/Future Simple) —
+  // глагол+контекст извлечены из настоящих предложений базы, а не
+  // придуманы с нуля, то есть материал "подходящий" в её терминологии.
+  { base: "know", participle: "known", past: "knew", ru: "знать", contextEn: "the answer", contextRu: "ответ",
+    ruInf: "знать", ru3sg: "знает", ru1pl: "знаем", ru3pl: "знают", ruPastM: "знал", ruPastF: "знала", ruPastPl: "знали" },
+  { base: "buy", participle: "bought", past: "bought", ru: "покупать", contextEn: "a present", contextRu: "подарок",
+    ruInf: "покупать", ru3sg: "покупает", ru1pl: "покупаем", ru3pl: "покупают", ruPastM: "покупал", ruPastF: "покупала", ruPastPl: "покупали" },
+  { base: "update", participle: "updated", past: "updated", ru: "обновлять", contextEn: "the website", contextRu: "сайт",
+    ruInf: "обновлять", ru3sg: "обновляет", ru1pl: "обновляем", ru3pl: "обновляют", ruPastM: "обновлял", ruPastF: "обновляла", ruPastPl: "обновляли" },
+  { base: "publish", participle: "published", past: "published", ru: "публиковать", contextEn: "an article", contextRu: "статью",
+    ruInf: "публиковать", ru3sg: "публикует", ru1pl: "публикуем", ru3pl: "публикуют", ruPastM: "публиковал", ruPastF: "публиковала", ruPastPl: "публиковали" },
+  { base: "go", participle: "gone", past: "went", ru: "идти / ходить", contextEn: "shopping", contextRu: "по магазинам",
+    ruInf: "идти", ru3sg: "идёт", ru1pl: "идём", ru3pl: "идут", ruPastM: "шёл", ruPastF: "шла", ruPastPl: "шли" },
+  { base: "bring", participle: "brought", past: "brought", ru: "приносить", contextEn: "flowers", contextRu: "цветы",
+    ruInf: "приносить", ru3sg: "приносит", ru1pl: "приносим", ru3pl: "приносят", ruPastM: "приносил", ruPastF: "приносила", ruPastPl: "приносили" },
+  { base: "achieve", participle: "achieved", past: "achieved", ru: "достигать", contextEn: "the goal", contextRu: "цели",
+    ruInf: "достигать", ru3sg: "достигает", ru1pl: "достигаем", ru3pl: "достигают", ruPastM: "достигал", ruPastF: "достигала", ruPastPl: "достигали" },
+  { base: "give", participle: "given", past: "gave", ru: "давать", contextEn: "advice", contextRu: "советы",
+    ruInf: "давать", ru3sg: "даёт", ru1pl: "даём", ru3pl: "дают", ruPastM: "давал", ruPastF: "давала", ruPastPl: "давали" },
+  { base: "make", participle: "made", past: "made", ru: "принимать", contextEn: "a decision", contextRu: "решение",
+    ruInf: "принимать", ru3sg: "принимает", ru1pl: "принимаем", ru3pl: "принимают", ruPastM: "принимал", ruPastF: "принимала", ruPastPl: "принимали" },
+  { base: "meet", participle: "met", past: "met", ru: "встречать", contextEn: "a client", contextRu: "клиента",
+    ruInf: "встречать", ru3sg: "встречает", ru1pl: "встречаем", ru3pl: "встречают", ruPastM: "встречал", ruPastF: "встречала", ruPastPl: "встречали" },
+  { base: "have", participle: "had", past: "had", ru: "проводить", irregular3rd: "has", contextEn: "a meeting", contextRu: "встречу",
+    ruInf: "проводить", ru3sg: "проводит", ru1pl: "проводим", ru3pl: "проводят", ruPastM: "проводил", ruPastF: "проводила", ruPastPl: "проводили" },
+  { base: "check", participle: "checked", past: "checked", ru: "проверять", contextEn: "the report", contextRu: "отчёт",
+    ruInf: "проверять", ru3sg: "проверяет", ru1pl: "проверяем", ru3pl: "проверяют", ruPastM: "проверял", ruPastF: "проверяла", ruPastPl: "проверяли" },
+  { base: "send", participle: "sent", past: "sent", ru: "отправлять", contextEn: "an email", contextRu: "письмо",
+    ruInf: "отправлять", ru3sg: "отправляет", ru1pl: "отправляем", ru3pl: "отправляют", ruPastM: "отправлял", ruPastF: "отправляла", ruPastPl: "отправляли" },
+  { base: "pay", participle: "paid", past: "paid", ru: "платить", contextEn: "the bill", contextRu: "по счёту",
+    ruInf: "платить", ru3sg: "платит", ru1pl: "платим", ru3pl: "платят", ruPastM: "платил", ruPastF: "платила", ruPastPl: "платили" },
+  { base: "open", participle: "opened", past: "opened", ru: "открывать", contextEn: "the shop", contextRu: "магазин",
+    ruInf: "открывать", ru3sg: "открывает", ru1pl: "открываем", ru3pl: "открывают", ruPastM: "открывал", ruPastF: "открывала", ruPastPl: "открывали" },
+  { base: "close", participle: "closed", past: "closed", ru: "закрывать", contextEn: "the office", contextRu: "офис",
+    ruInf: "закрывать", ru3sg: "закрывает", ru1pl: "закрываем", ru3pl: "закрывают", ruPastM: "закрывал", ruPastF: "закрывала", ruPastPl: "закрывали" },
+  { base: "finish", participle: "finished", past: "finished", ru: "заканчивать", contextEn: "the project", contextRu: "проект",
+    ruInf: "заканчивать", ru3sg: "заканчивает", ru1pl: "заканчиваем", ru3pl: "заканчивают", ruPastM: "заканчивал", ruPastF: "заканчивала", ruPastPl: "заканчивали" },
+  { base: "start", participle: "started", past: "started", ru: "начинать", contextEn: "a new job", contextRu: "новую работу",
+    ruInf: "начинать", ru3sg: "начинает", ru1pl: "начинаем", ru3pl: "начинают", ruPastM: "начинал", ruPastF: "начинала", ruPastPl: "начинали" },
+  { base: "visit", participle: "visited", past: "visited", ru: "посещать", contextEn: "the museum", contextRu: "музей",
+    ruInf: "посещать", ru3sg: "посещает", ru1pl: "посещаем", ru3pl: "посещают", ruPastM: "посещал", ruPastF: "посещала", ruPastPl: "посещали" },
+  { base: "answer", participle: "answered", past: "answered", ru: "отвечать на", contextEn: "the question", contextRu: "вопрос",
+    ruInf: "отвечать на", ru3sg: "отвечает на", ru1pl: "отвечаем на", ru3pl: "отвечают на", ruPastM: "отвечал на", ruPastF: "отвечала на", ruPastPl: "отвечали на" },
+  { base: "ask", participle: "asked", past: "asked", ru: "задавать", contextEn: "a question", contextRu: "вопрос",
+    ruInf: "задавать", ru3sg: "задаёт", ru1pl: "задаём", ru3pl: "задают", ruPastM: "задавал", ruPastF: "задавала", ruPastPl: "задавали" },
+  { base: "need", participle: "needed", past: "needed", ru: "нуждаться в", contextEn: "more time", contextRu: "дополнительном времени",
+    ruInf: "нуждаться в", ru3sg: "нуждается в", ru1pl: "нуждаемся в", ru3pl: "нуждаются в", ruPastM: "нуждался в", ruPastF: "нуждалась в", ruPastPl: "нуждались в" },
+  { base: "like", participle: "liked", past: "liked", ru: "любить", contextEn: "this idea", contextRu: "эту идею",
+    ruInf: "любить", ru3sg: "любит", ru1pl: "любим", ru3pl: "любят", ruPastM: "любил", ruPastF: "любила", ruPastPl: "любили" },
+  { base: "use", participle: "used", past: "used", ru: "использовать", contextEn: "a new system", contextRu: "новую систему",
+    ruInf: "использовать", ru3sg: "использует", ru1pl: "используем", ru3pl: "используют", ruPastM: "использовал", ruPastF: "использовала", ruPastPl: "использовали" },
+  { base: "offer", participle: "offered", past: "offered", ru: "предлагать", contextEn: "a discount", contextRu: "скидку",
+    ruInf: "предлагать", ru3sg: "предлагает", ru1pl: "предлагаем", ru3pl: "предлагают", ruPastM: "предлагал", ruPastF: "предлагала", ruPastPl: "предлагали" },
+  { base: "sign", participle: "signed", past: "signed", ru: "подписывать", contextEn: "the contract", contextRu: "контракт",
+    ruInf: "подписывать", ru3sg: "подписывает", ru1pl: "подписываем", ru3pl: "подписывают", ruPastM: "подписывал", ruPastF: "подписывала", ruPastPl: "подписывали" },
   ...TRAP_WORDS.map((w) => ({
     base: w.base, participle: w.participle, past: w.past, ru: w.ruInf, contextEn: w.contextEn, contextRu: w.contextRu,
     ruInf: w.ruInf, ru3sg: w.ru3sg, ru1pl: w.ru1pl, ru3pl: w.ru3pl, ruPastM: w.ruPastM, ruPastF: w.ruPastF, ruPastPl: w.ruPastPl,
@@ -5822,19 +5917,112 @@ const GRAMMAR_SUBJECTS = [
 // "You" — у них в прошедшем времени по-русски нужен род говорящего
 // (шёл/шла), а мы его не знаем. He/She однозначны по роду, We/They не
 // требуют рода вовсе (мн. число).
+// ruDative — дательный падеж подлежащего ("мне"/"ему"/"моему другу"...),
+// нужен для модальных конструкций вроде "мне нужно"/"ему следует" (формат
+// "modalMeaning"/"modalTo"). actsAsWe — подлежащее грамматически ведёт
+// себя как "мы" (составное "X и я"/"мы с X"): и по-русски спрягается как
+// 1-е лицо мн. числа (играем, не играют), и will-будущее берёт "будем", а
+// не "будут" — это НЕ то же самое, что просто "isPlural" (обычное 3-е лицо
+// мн. числа — They/My colleagues — спрягается иначе: играют/будут).
 const RU_SENTENCE_SUBJECTS = [
-  { pron: "He", ru: "он", is3rd: true, poss: "his", gender: "m", isPlural: false },
-  { pron: "She", ru: "она", is3rd: true, poss: "her", gender: "f", isPlural: false },
-  { pron: "We", ru: "мы", is3rd: false, poss: "our", gender: null, isPlural: true },
-  { pron: "They", ru: "они", is3rd: false, poss: "their", gender: null, isPlural: true },
+  { pron: "He", ru: "он", ruDative: "ему", is3rd: true, poss: "his", gender: "m", isPlural: false },
+  { pron: "She", ru: "она", ruDative: "ей", is3rd: true, poss: "her", gender: "f", isPlural: false },
+  { pron: "We", ru: "мы", ruDative: "нам", is3rd: false, poss: "our", gender: null, isPlural: true, actsAsWe: true },
+  { pron: "They", ru: "они", ruDative: "им", is3rd: false, poss: "their", gender: null, isPlural: true },
+  // --- Расширение по просьбе Margy (02.10.2026): формат "v2vs" (и другие
+  // форматы, которые берут подлежащее из этого же общего пула) звучали
+  // однотипно — всего 2 варианта подлежащего на 3-е лицо (He/She). Ниже —
+  // ещё 3-е лицо ед. числа ("He/She"-подобные, is3rd: true), чтобы
+  // увеличить разнообразие, не трогая русское согласование по роду/числу
+  // (оно уже обрабатывается через gender/isPlural везде, где используется).
+  { pron: "My friend", ru: "мой друг", ruDative: "моему другу", is3rd: true, poss: "his", gender: "m", isPlural: false },
+  { pron: "My sister", ru: "моя сестра", ruDative: "моей сестре", is3rd: true, poss: "her", gender: "f", isPlural: false },
+  { pron: "My brother", ru: "мой брат", ruDative: "моему брату", is3rd: true, poss: "his", gender: "m", isPlural: false },
+  { pron: "My mother", ru: "моя мама", ruDative: "моей маме", is3rd: true, poss: "her", gender: "f", isPlural: false },
+  { pron: "My father", ru: "мой папа", ruDative: "моему папе", is3rd: true, poss: "his", gender: "m", isPlural: false },
+  { pron: "My colleague", ru: "мой коллега", ruDative: "моему коллеге", is3rd: true, poss: "his", gender: "m", isPlural: false },
+  { pron: "The teacher", ru: "учитель", ruDative: "учителю", is3rd: true, poss: "his", gender: "m", isPlural: false },
+  { pron: "My neighbour", ru: "мой сосед", ruDative: "моему соседу", is3rd: true, poss: "his", gender: "m", isPlural: false },
+  { pron: "My parents", ru: "мои родители", ruDative: "моим родителям", is3rd: false, poss: "their", gender: null, isPlural: true },
+  { pron: "My friends", ru: "мои друзья", ruDative: "моим друзьям", is3rd: false, poss: "their", gender: null, isPlural: true },
+  // --- Расширение по просьбе Margy (02.10.2026, второй заход): "добавь
+  // имён в подлежащие" — настоящие имена (не только родственники) и
+  // составные подлежащие с "и я" ("Kate and I" = "мы с Кейт" — по-русски
+  // так естественнее, чем дословное "Кейт и я").
+  { pron: "Kate", ru: "Кейт", ruDative: "Кейт", is3rd: true, poss: "her", gender: "f", isPlural: false },
+  { pron: "Tom", ru: "Том", ruDative: "Тому", is3rd: true, poss: "his", gender: "m", isPlural: false },
+  { pron: "My husband", ru: "мой муж", ruDative: "моему мужу", is3rd: true, poss: "his", gender: "m", isPlural: false },
+  { pron: "My colleagues", ru: "мои коллеги", ruDative: "моим коллегам", is3rd: false, poss: "their", gender: null, isPlural: true },
+  { pron: "Kate and I", ru: "мы с Кейт", ruDative: "нам с Кейт", is3rd: false, poss: "our", gender: null, isPlural: true, actsAsWe: true },
+  { pron: "My friend and I", ru: "мы с другом", ruDative: "нам с другом", is3rd: false, poss: "our", gender: null, isPlural: true, actsAsWe: true },
+  { pron: "My colleague and I", ru: "мы с коллегой", ruDative: "нам с коллегой", is3rd: false, poss: "our", gender: null, isPlural: true, actsAsWe: true },
+  // --- Расширение по просьбе Margy (02.10.2026, третий заход): топ-25
+  // мужских + топ-25 женских имён из её списка (Top Boys/Girls Names).
+  // "Lucas" в её списке встретился дважды (#13 и #19) — добавлен один раз.
+  // Все имена — 3-е лицо ед. числа (is3rd: true), чтобы пополнить пул для
+  // v2vs/tenses/modal-форматов. ru — её собственный перевод из списка;
+  // ruDative — дательный падеж для модальных конструкций ("Ною нужно...").
+  { pron: "Noah", ru: "Ной", ruDative: "Ною", is3rd: true, poss: "his", gender: "m", isPlural: false },
+  { pron: "Oliver", ru: "Оливер", ruDative: "Оливеру", is3rd: true, poss: "his", gender: "m", isPlural: false },
+  { pron: "Liam", ru: "Лиам", ruDative: "Лиаму", is3rd: true, poss: "his", gender: "m", isPlural: false },
+  { pron: "George", ru: "Джордж", ruDative: "Джорджу", is3rd: true, poss: "his", gender: "m", isPlural: false },
+  { pron: "Arthur", ru: "Артур", ruDative: "Артуру", is3rd: true, poss: "his", gender: "m", isPlural: false },
+  { pron: "Muhammad", ru: "Мухаммад", ruDative: "Мухаммаду", is3rd: true, poss: "his", gender: "m", isPlural: false },
+  { pron: "Leo", ru: "Лео", ruDative: "Лео", is3rd: true, poss: "his", gender: "m", isPlural: false },
+  { pron: "Harry", ru: "Гарри", ruDative: "Гарри", is3rd: true, poss: "his", gender: "m", isPlural: false },
+  { pron: "Jack", ru: "Джек", ruDative: "Джеку", is3rd: true, poss: "his", gender: "m", isPlural: false },
+  { pron: "Henry", ru: "Генри", ruDative: "Генри", is3rd: true, poss: "his", gender: "m", isPlural: false },
+  { pron: "Oscar", ru: "Оскар", ruDative: "Оскару", is3rd: true, poss: "his", gender: "m", isPlural: false },
+  { pron: "Archie", ru: "Арчи", ruDative: "Арчи", is3rd: true, poss: "his", gender: "m", isPlural: false },
+  { pron: "Lucas", ru: "Лукас", ruDative: "Лукасу", is3rd: true, poss: "his", gender: "m", isPlural: false },
+  { pron: "Ethan", ru: "Итан", ruDative: "Итану", is3rd: true, poss: "his", gender: "m", isPlural: false },
+  { pron: "Mason", ru: "Мейсон", ruDative: "Мейсону", is3rd: true, poss: "his", gender: "m", isPlural: false },
+  { pron: "Elijah", ru: "Элайджа", ruDative: "Элайдже", is3rd: true, poss: "his", gender: "m", isPlural: false },
+  { pron: "James", ru: "Джеймс", ruDative: "Джеймсу", is3rd: true, poss: "his", gender: "m", isPlural: false },
+  { pron: "Benjamin", ru: "Бенджамин", ruDative: "Бенджамину", is3rd: true, poss: "his", gender: "m", isPlural: false },
+  { pron: "Alexander", ru: "Александер", ruDative: "Александеру", is3rd: true, poss: "his", gender: "m", isPlural: false },
+  { pron: "Sebastian", ru: "Себастьян", ruDative: "Себастьяну", is3rd: true, poss: "his", gender: "m", isPlural: false },
+  { pron: "Daniel", ru: "Дэниел", ruDative: "Дэниелу", is3rd: true, poss: "his", gender: "m", isPlural: false },
+  { pron: "Logan", ru: "Логан", ruDative: "Логану", is3rd: true, poss: "his", gender: "m", isPlural: false },
+  { pron: "Jackson", ru: "Джексон", ruDative: "Джексону", is3rd: true, poss: "his", gender: "m", isPlural: false },
+  { pron: "Samuel", ru: "Самуэль", ruDative: "Самуэлю", is3rd: true, poss: "his", gender: "m", isPlural: false },
+  { pron: "Olivia", ru: "Оливия", ruDative: "Оливии", is3rd: true, poss: "her", gender: "f", isPlural: false },
+  { pron: "Amelia", ru: "Амелия", ruDative: "Амелии", is3rd: true, poss: "her", gender: "f", isPlural: false },
+  { pron: "Isla", ru: "Айла", ruDative: "Айле", is3rd: true, poss: "her", gender: "f", isPlural: false },
+  { pron: "Ava", ru: "Ава", ruDative: "Аве", is3rd: true, poss: "her", gender: "f", isPlural: false },
+  { pron: "Ivy", ru: "Айви", ruDative: "Айви", is3rd: true, poss: "her", gender: "f", isPlural: false },
+  { pron: "Freya", ru: "Фрейя", ruDative: "Фрейе", is3rd: true, poss: "her", gender: "f", isPlural: false },
+  { pron: "Lily", ru: "Лили", ruDative: "Лили", is3rd: true, poss: "her", gender: "f", isPlural: false },
+  { pron: "Florence", ru: "Флоренс", ruDative: "Флоренс", is3rd: true, poss: "her", gender: "f", isPlural: false },
+  { pron: "Mia", ru: "Миа", ruDative: "Мие", is3rd: true, poss: "her", gender: "f", isPlural: false },
+  { pron: "Willow", ru: "Уиллоу", ruDative: "Уиллоу", is3rd: true, poss: "her", gender: "f", isPlural: false },
+  { pron: "Emily", ru: "Эмили", ruDative: "Эмили", is3rd: true, poss: "her", gender: "f", isPlural: false },
+  { pron: "Sophia", ru: "София", ruDative: "Софии", is3rd: true, poss: "her", gender: "f", isPlural: false },
+  { pron: "Isabella", ru: "Изабелла", ruDative: "Изабелле", is3rd: true, poss: "her", gender: "f", isPlural: false },
+  { pron: "Ella", ru: "Элла", ruDative: "Элле", is3rd: true, poss: "her", gender: "f", isPlural: false },
+  { pron: "Grace", ru: "Грейс", ruDative: "Грейс", is3rd: true, poss: "her", gender: "f", isPlural: false },
+  { pron: "Charlotte", ru: "Шарлотт", ruDative: "Шарлотт", is3rd: true, poss: "her", gender: "f", isPlural: false },
+  { pron: "Harper", ru: "Харпер", ruDative: "Харпер", is3rd: true, poss: "her", gender: "f", isPlural: false },
+  { pron: "Evelyn", ru: "Эвелин", ruDative: "Эвелин", is3rd: true, poss: "her", gender: "f", isPlural: false },
+  { pron: "Scarlett", ru: "Скарлетт", ruDative: "Скарлетт", is3rd: true, poss: "her", gender: "f", isPlural: false },
+  { pron: "Aria", ru: "Арья", ruDative: "Арье", is3rd: true, poss: "her", gender: "f", isPlural: false },
+  { pron: "Luna", ru: "Луна", ruDative: "Луне", is3rd: true, poss: "her", gender: "f", isPlural: false },
+  { pron: "Chloe", ru: "Хлои", ruDative: "Хлои", is3rd: true, poss: "her", gender: "f", isPlural: false },
+  { pron: "Penelope", ru: "Пенелопа", ruDative: "Пенелопе", is3rd: true, poss: "her", gender: "f", isPlural: false },
+  { pron: "Mila", ru: "Мила", ruDative: "Миле", is3rd: true, poss: "her", gender: "f", isPlural: false },
+  { pron: "Elizabeth", ru: "Элизабет", ruDative: "Элизабет", is3rd: true, poss: "her", gender: "f", isPlural: false },
 ];
 
 // Явные показатели времени по-русски — делают время однозначным, не
-// оставляя простора для "а может, это другое время".
+// оставляя простора для "а может, это другое время". "недавно" и "совсем
+// скоро" убраны по просьбе Margy (02.10.2026) — это "ложные маркеры",
+// которые не однозначно указывают на одно время (могут звучать и в
+// Present Perfect / near future другими способами), заменены на более
+// надёжные.
 const RU_TIME_MARKERS = {
-  present: ["каждый день", "обычно"],
-  past: ["вчера", "на прошлой неделе"],
-  future: ["завтра", "на следующей неделе"],
+  present: ["каждый день", "обычно", "часто", "иногда", "каждую неделю", "по утрам"],
+  past: ["вчера", "на прошлой неделе", "позавчера", "два дня назад", "в прошлом месяце", "в прошлом году"],
+  future: ["завтра", "на следующей неделе", "послезавтра", "через два дня", "в следующем месяце", "через месяц"],
 };
 
 // Спрягает русский глагол под подлежащее/время/полярность — используется
@@ -5842,11 +6030,11 @@ const RU_TIME_MARKERS = {
 function ruConjugate(verb, subject, tense) {
   let form;
   if (tense === "present") {
-    form = subject.isPlural ? (subject.pron === "We" ? verb.ru1pl : verb.ru3pl) : verb.ru3sg;
+    form = subject.isPlural ? (subject.actsAsWe ? verb.ru1pl : verb.ru3pl) : verb.ru3sg;
   } else if (tense === "past") {
     form = subject.isPlural ? verb.ruPastPl : subject.gender === "m" ? verb.ruPastM : verb.ruPastF;
   } else {
-    const aux = subject.pron === "We" ? "будем" : subject.isPlural ? "будут" : "будет";
+    const aux = subject.actsAsWe ? "будем" : subject.isPlural ? "будут" : "будет";
     form = `${aux} ${verb.ruInf}`;
   }
   return form;
@@ -6155,13 +6343,24 @@ function buildTrapWordsQuestion(forbiddenText) {
 // Только He/She/It — именно тут визуально путаются "-s" и форма
 // прошедшего времени. Явный маркер времени (every day / yesterday) прямо
 // указывает, какая форма нужна.
+// Расширено по просьбе Margy (02.10.2026): было всего по 2 маркера на
+// время — отсюда "слишком однотипно". Список приведён в соответствие с
+// RU_TIME_MARKERS.present/past (те же самые надёжные, однозначные маркеры).
 const TIME_MARKERS_PRESENT = [
   { en: "every day", ru: "каждый день" },
   { en: "usually", ru: "обычно" },
+  { en: "often", ru: "часто" },
+  { en: "sometimes", ru: "иногда" },
+  { en: "every week", ru: "каждую неделю" },
+  { en: "in the morning", ru: "по утрам" },
 ];
 const TIME_MARKERS_PAST = [
   { en: "yesterday", ru: "вчера" },
   { en: "last week", ru: "на прошлой неделе" },
+  { en: "the day before yesterday", ru: "позавчера" },
+  { en: "two days ago", ru: "два дня назад" },
+  { en: "last month", ru: "в прошлом месяце" },
+  { en: "last year", ru: "в прошлом году" },
 ];
 
 function buildV2VsQuestion(forbiddenText) {
@@ -6317,6 +6516,294 @@ function buildPsVsPrPsQuestion(forbiddenText) {
   return null;
 }
 
+// --- Формат "gerundInfinitive": глаголы, после которых идёт V-ing или to-V1 ---
+// Переделано по прямому требованию Margy: раньше это было упражнение
+// "собери правильное предложение из 6 вариантов" на ~24 придуманных
+// глаголах — она это забраковала. Теперь: (1) слова — ПОЛНЫЕ списки из
+// первоисточников (см. ниже), а не отобранная вручную подборка; (2) формат —
+// прямая 3-вариантная классификация глагола: показываем сам глагол (например
+// "enjoy"), ученик выбирает один из ТРЁХ фиксированных вариантов: "V1"
+// (to-инфинитив), "Ving" (герундий) или "оба" (обе формы допустимы).
+//
+// Источники (по явному указанию Margy — "должны быть все слова из ссылок"):
+//  - https://enginform.com/article/infinitive-verbs — таблица "Verbs Not
+//    Requiring an Object" (47 глаголов, только простой to-инфинитив без
+//    промежуточного дополнения — глаголы из второй таблицы, "Requiring an
+//    Object" типа "want SOMEONE to do", сюда не включены: это другая
+//    конструкция, не относящаяся к вопросу V1 vs Ving).
+//  - https://enginform.com/article/verbs-followed-by-gerund — таблица
+//    глаголов (и глагольно-предложных сочетаний) с герундием (96 позиций).
+// Глагол, буквально встретившийся в ОБОИХ списках без изменения формы
+// (begin/continue/forget/mean/neglect/prefer/propose/regret/remember/
+// start/stop/try), вынесен в категорию "both" — источники сами подтверждают,
+// что после него работают обе формы (иногда с изменением смысла — например
+// remember to do = не забыть сделать, remember doing = помнить, что делал;
+// объяснение самого нюанса даётся не в этом упражнении, а в теории по
+// ссылке, здесь тренируется только сам факт "какая форма возможна").
+//
+// Исключение: "finish" в таблице enginform значится с to-инфинитивом
+// (пример "We finished to paint the fence"), но это не соответствует
+// нормативному английскому — finish употребляется только с герундием
+// (finish painting). Похоже на опечатку/ошибку источника, поэтому finish
+// сознательно отнесён к "только Ving", а не к "both" — если Margy сочтёт
+// иначе, это единственное расхождение с буквальным текстом источника.
+//
+// "care" (V1-список, обычно в отрицании/вопросе: "I don't care to argue")
+// и "care about" (Ving-список, другой предлог и смысл: "заботиться о") —
+// разные конструкции с разным предлогом, поэтому НЕ объединены в "both",
+// а идут отдельными пунктами. Аналогично "plan" (V1) и "plan on" (Ving).
+const GERUND_INFINITIVE_VERBS = [
+  // ===== Только to-инфинитив (V1) — 34 =====
+  { phrase: "agree", ru: "соглашаться", pattern: "infinitive" },
+  { phrase: "aim", ru: "стремиться, ставить целью", pattern: "infinitive" },
+  { phrase: "appear", ru: "казаться, по-видимому", pattern: "infinitive" },
+  { phrase: "arrange", ru: "договариваться, организовывать", pattern: "infinitive" },
+  { phrase: "ask", ru: "просить (разрешения)", pattern: "infinitive" },
+  { phrase: "attempt", ru: "пытаться", pattern: "infinitive" },
+  { phrase: "be able", ru: "быть способным, мочь", pattern: "infinitive" },
+  { phrase: "care", ru: "хотеть (обычно в отриц./вопросе: не прочь)", pattern: "infinitive" },
+  { phrase: "choose", ru: "решать, предпочитать", pattern: "infinitive" },
+  { phrase: "condescend", ru: "снисходить (до того, чтобы)", pattern: "infinitive" },
+  { phrase: "consent", ru: "соглашаться, давать согласие", pattern: "infinitive" },
+  { phrase: "dare", ru: "осмеливаться", pattern: "infinitive" },
+  { phrase: "decide", ru: "решать", pattern: "infinitive" },
+  { phrase: "deserve", ru: "заслуживать", pattern: "infinitive" },
+  { phrase: "expect", ru: "ожидать, рассчитывать", pattern: "infinitive" },
+  { phrase: "fail", ru: "не суметь, не сделать", pattern: "infinitive" },
+  { phrase: "happen", ru: "случайно оказаться, случаться", pattern: "infinitive" },
+  { phrase: "hesitate", ru: "колебаться, не решаться", pattern: "infinitive" },
+  { phrase: "hope", ru: "надеяться", pattern: "infinitive" },
+  { phrase: "hurry", ru: "торопиться", pattern: "infinitive" },
+  { phrase: "intend", ru: "намереваться", pattern: "infinitive" },
+  { phrase: "offer", ru: "предлагать", pattern: "infinitive" },
+  { phrase: "ought", ru: "следует, должен", pattern: "infinitive" },
+  { phrase: "plan", ru: "планировать", pattern: "infinitive" },
+  { phrase: "prepare", ru: "готовиться", pattern: "infinitive" },
+  { phrase: "proceed", ru: "приступать, продолжать (далее)", pattern: "infinitive" },
+  { phrase: "promise", ru: "обещать", pattern: "infinitive" },
+  { phrase: "refuse", ru: "отказываться", pattern: "infinitive" },
+  { phrase: "strive", ru: "стремиться, стараться", pattern: "infinitive" },
+  { phrase: "swear", ru: "клясться", pattern: "infinitive" },
+  { phrase: "threaten", ru: "угрожать", pattern: "infinitive" },
+  { phrase: "wait", ru: "ждать", pattern: "infinitive" },
+  { phrase: "want", ru: "хотеть", pattern: "infinitive" },
+  { phrase: "wish", ru: "желать", pattern: "infinitive" },
+  // ===== Только герундий (Ving) — 84 =====
+  { phrase: "acknowledge", ru: "признавать", pattern: "gerund" },
+  { phrase: "admit to", ru: "признаваться в", pattern: "gerund" },
+  { phrase: "advise", ru: "советовать", pattern: "gerund" },
+  { phrase: "approve of", ru: "одобрять", pattern: "gerund" },
+  { phrase: "allow", ru: "разрешать", pattern: "gerund" },
+  { phrase: "anticipate", ru: "предвкушать, предвидеть", pattern: "gerund" },
+  { phrase: "appreciate", ru: "ценить, быть благодарным за", pattern: "gerund" },
+  { phrase: "argue into", ru: "уговаривать (сделать)", pattern: "gerund" },
+  { phrase: "avoid", ru: "избегать", pattern: "gerund" },
+  { phrase: "be worth", ru: "стоить (того, чтобы)", pattern: "gerund" },
+  { phrase: "believe in", ru: "верить в", pattern: "gerund" },
+  { phrase: "can't help", ru: "не мочь удержаться от", pattern: "gerund" },
+  { phrase: "can't stand", ru: "терпеть не мочь", pattern: "gerund" },
+  { phrase: "care about", ru: "заботиться о, переживать за", pattern: "gerund" },
+  { phrase: "cease", ru: "прекращать", pattern: "gerund" },
+  { phrase: "celebrate", ru: "праздновать, отмечать", pattern: "gerund" },
+  { phrase: "complete", ru: "заканчивать, завершать", pattern: "gerund" },
+  { phrase: "confess to", ru: "признаваться в", pattern: "gerund" },
+  { phrase: "consider", ru: "рассматривать, обдумывать", pattern: "gerund" },
+  { phrase: "concentrate on", ru: "сосредотачиваться на", pattern: "gerund" },
+  { phrase: "complain about", ru: "жаловаться на", pattern: "gerund" },
+  { phrase: "delay", ru: "откладывать, задерживать", pattern: "gerund" },
+  { phrase: "deny", ru: "отрицать", pattern: "gerund" },
+  { phrase: "depend on", ru: "зависеть от", pattern: "gerund" },
+  { phrase: "despise", ru: "презирать", pattern: "gerund" },
+  { phrase: "detest", ru: "ненавидеть, презирать", pattern: "gerund" },
+  { phrase: "disapprove", ru: "не одобрять", pattern: "gerund" },
+  { phrase: "discuss", ru: "обсуждать", pattern: "gerund" },
+  { phrase: "discourage from", ru: "отговаривать от", pattern: "gerund" },
+  { phrase: "dislike", ru: "не любить", pattern: "gerund" },
+  { phrase: "dispute", ru: "оспаривать", pattern: "gerund" },
+  { phrase: "don't mind", ru: "не быть против", pattern: "gerund" },
+  { phrase: "dread", ru: "бояться, страшиться", pattern: "gerund" },
+  { phrase: "dream about", ru: "мечтать о", pattern: "gerund" },
+  { phrase: "endure", ru: "терпеть, выносить", pattern: "gerund" },
+  { phrase: "encourage", ru: "поощрять, побуждать", pattern: "gerund" },
+  { phrase: "enjoy", ru: "любить, наслаждаться (чем-то)", pattern: "gerund" },
+  { phrase: "escape", ru: "избегать, ускользать от", pattern: "gerund" },
+  { phrase: "evade", ru: "уклоняться от", pattern: "gerund" },
+  { phrase: "excuse for", ru: "извинять за", pattern: "gerund" },
+  { phrase: "explain", ru: "объяснять", pattern: "gerund" },
+  { phrase: "fancy", ru: "хотеть, представлять себе", pattern: "gerund" },
+  { phrase: "feel like", ru: "хотеться (разг.)", pattern: "gerund" },
+  { phrase: "finish", ru: "заканчивать", pattern: "gerund" },
+  { phrase: "forbid", ru: "запрещать", pattern: "gerund" },
+  { phrase: "forget about", ru: "забывать о (=не помнить, что делал)", pattern: "gerund" },
+  { phrase: "forgive for", ru: "прощать за", pattern: "gerund" },
+  { phrase: "give up", ru: "бросать, отказываться от", pattern: "gerund" },
+  { phrase: "hate", ru: "ненавидеть", pattern: "gerund" },
+  { phrase: "imagine", ru: "представлять себе", pattern: "gerund" },
+  { phrase: "insist on", ru: "настаивать на", pattern: "gerund" },
+  { phrase: "involve", ru: "включать в себя, предполагать", pattern: "gerund" },
+  { phrase: "justify", ru: "оправдывать", pattern: "gerund" },
+  { phrase: "keep", ru: "продолжать (постоянно делать)", pattern: "gerund" },
+  { phrase: "like", ru: "нравиться", pattern: "gerund" },
+  { phrase: "love", ru: "любить (получать удовольствие от процесса)", pattern: "gerund" },
+  { phrase: "mention", ru: "упоминать", pattern: "gerund" },
+  { phrase: "mind", ru: "возражать против", pattern: "gerund" },
+  { phrase: "miss", ru: "скучать по, упускать", pattern: "gerund" },
+  { phrase: "need", ru: "нуждаться (в том, чтобы было сделано)", pattern: "gerund" },
+  { phrase: "object to", ru: "возражать против", pattern: "gerund" },
+  { phrase: "permit", ru: "позволять, разрешать", pattern: "gerund" },
+  { phrase: "picture", ru: "представлять себе", pattern: "gerund" },
+  { phrase: "plan on", ru: "планировать, рассчитывать на", pattern: "gerund" },
+  { phrase: "postpone", ru: "откладывать", pattern: "gerund" },
+  { phrase: "practise", ru: "практиковать(ся), тренировать(ся)", pattern: "gerund" },
+  { phrase: "prevent from", ru: "препятствовать, не давать", pattern: "gerund" },
+  { phrase: "prohibit from", ru: "запрещать", pattern: "gerund" },
+  { phrase: "quit", ru: "бросать, прекращать", pattern: "gerund" },
+  { phrase: "recall", ru: "вспоминать", pattern: "gerund" },
+  { phrase: "recollect", ru: "вспоминать", pattern: "gerund" },
+  { phrase: "recommend", ru: "рекомендовать", pattern: "gerund" },
+  { phrase: "refrain from", ru: "воздерживаться от", pattern: "gerund" },
+  { phrase: "resent", ru: "возмущаться, обижаться на", pattern: "gerund" },
+  { phrase: "resist", ru: "сопротивляться, удерживаться от", pattern: "gerund" },
+  { phrase: "resume", ru: "возобновлять", pattern: "gerund" },
+  { phrase: "risk", ru: "рисковать", pattern: "gerund" },
+  { phrase: "succeed in", ru: "преуспевать в", pattern: "gerund" },
+  { phrase: "suggest", ru: "предлагать", pattern: "gerund" },
+  { phrase: "support", ru: "поддерживать", pattern: "gerund" },
+  { phrase: "talk about", ru: "говорить о", pattern: "gerund" },
+  { phrase: "think about", ru: "думать о", pattern: "gerund" },
+  { phrase: "tolerate", ru: "терпеть, мириться с", pattern: "gerund" },
+  { phrase: "urge", ru: "настоятельно советовать, побуждать", pattern: "gerund" },
+  { phrase: "worry about", ru: "беспокоиться о", pattern: "gerund" },
+  // ===== Обе формы допустимы (V1 и Ving) — 12 =====
+  { phrase: "begin", ru: "начинать", pattern: "both" },
+  { phrase: "continue", ru: "продолжать", pattern: "both" },
+  { phrase: "forget", ru: "забывать (to do = не забыть сделать / doing = забыть, что делал)", pattern: "both" },
+  { phrase: "mean", ru: "означать / намереваться (to do = намереваться / doing = означать, влечь за собой)", pattern: "both" },
+  { phrase: "neglect", ru: "пренебрегать, не делать", pattern: "both" },
+  { phrase: "prefer", ru: "предпочитать", pattern: "both" },
+  { phrase: "propose", ru: "предлагать", pattern: "both" },
+  { phrase: "regret", ru: "сожалеть (to do = вынужден сообщить / doing = сожалеть о сделанном)", pattern: "both" },
+  { phrase: "remember", ru: "помнить (to do = не забыть сделать / doing = помнить, что делал)", pattern: "both" },
+  { phrase: "start", ru: "начинать", pattern: "both" },
+  { phrase: "stop", ru: "останавливаться (to do = остановиться, чтобы / doing = прекратить делать)", pattern: "both" },
+  { phrase: "try", ru: "пытаться / пробовать (to do = прилагать усилие / doing = попробовать в качестве эксперимента)", pattern: "both" },
+];
+
+const GERUND_INFINITIVE_ANSWER_OPTIONS = ["V1", "Ving", "оба"];
+
+function buildGerundInfinitiveQuestion(forbiddenText) {
+  for (let attempt = 0; attempt < 15; attempt++) {
+    const item = GERUND_INFINITIVE_VERBS[Math.floor(Math.random() * GERUND_INFINITIVE_VERBS.length)];
+    const correctPos = item.pattern === "infinitive" ? 0 : item.pattern === "gerund" ? 1 : 2;
+    const answerLabel = GERUND_INFINITIVE_ANSWER_OPTIONS[correctPos];
+    const correctText = `${item.phrase} → ${answerLabel}`;
+    if (forbiddenText && correctText.toLowerCase() === forbiddenText.toLowerCase()) continue;
+
+    return {
+      correctText,
+      questionLabel: `${item.phrase} — ${item.ru}`,
+      options: GERUND_INFINITIVE_ANSWER_OPTIONS,
+      correctPos,
+    };
+  }
+  return null;
+}
+
+// --- Формат "someAnyNo": some / any / no и их производные ---
+// Новая тема по просьбе Margy (02.10.2026). Теория и примеры — из двух
+// страниц её личной базы знаний в Notion: базовое правило (some —
+// утверждение, any — отрицание/вопрос, no — отрицание с одним "не") и
+// более тонкие случаи уровня B1 (some в вежливых просьбах/предложениях,
+// any = "любой" в утверждении, прилагательное ПОСЛЕ
+// something/anyone/nothing, no + сущ. эмоциональнее not any). Формат —
+// заполнение пропуска: показываем английское предложение с "___",
+// ученик выбирает одно из ТРЁХ слов одного семейства (например
+// some/any/no, или something/anything/nothing). Каждое задание размечено
+// явно (а не выведено по формуле "утверждение→some"), потому что именно
+// в этих "неправильных по формуле" случаях и есть вся соль уровня B1
+// (вежливая просьба — это вопрос, но ответ "some", а не "any").
+const SOME_ANY_NO_ITEMS = [
+  // --- some / any / no (перед существительным) ---
+  { template: "I have ___ money.", options: ["some", "any", "no"], correctIdx: 0 },
+  { template: "I don't have ___ money.", options: ["some", "any", "no"], correctIdx: 1 },
+  { template: "Do you have ___ money?", options: ["some", "any", "no"], correctIdx: 1 },
+  { template: "Would you like ___ tea?", options: ["some", "any", "no"], correctIdx: 0 },
+  { template: "Could I have ___ water, please?", options: ["some", "any", "no"], correctIdx: 0 },
+  { template: "Is there ___ milk in the fridge?", options: ["some", "any", "no"], correctIdx: 1 },
+  { template: "There isn't ___ food in the fridge.", options: ["some", "any", "no"], correctIdx: 1 },
+  { template: "There is ___ food in the fridge!", options: ["some", "any", "no"], correctIdx: 2 },
+  { template: "You can take ___ book you like.", options: ["some", "any", "no"], correctIdx: 1 },
+  { template: "Do you have ___ brothers or sisters?", options: ["some", "any", "no"], correctIdx: 1 },
+  { template: "Can you give me ___ help with my bag?", options: ["some", "any", "no"], correctIdx: 0 },
+  { template: "We don't have ___ bread.", options: ["some", "any", "no"], correctIdx: 1 },
+  { template: "She has ___ friends here.", options: ["some", "any", "no"], correctIdx: 2 },
+  { template: "Did you see ___ nice clothes in the shop?", options: ["some", "any", "no"], correctIdx: 1 },
+  { template: "Can I borrow ___ money?", options: ["some", "any", "no"], correctIdx: 0 },
+  { template: "Have you got ___ pets?", options: ["some", "any", "no"], correctIdx: 1 },
+  { template: "Would you like ___ more cake?", options: ["some", "any", "no"], correctIdx: 0 },
+  // --- something / anything / nothing ---
+  { template: "There is ___ in the basket.", options: ["something", "anything", "nothing"], correctIdx: 0 },
+  { template: "Is there ___ in the basket?", options: ["something", "anything", "nothing"], correctIdx: 1 },
+  { template: "I don't see ___ on the table.", options: ["something", "anything", "nothing"], correctIdx: 1 },
+  { template: "I know ___ about it.", options: ["something", "anything", "nothing"], correctIdx: 2 },
+  { template: "I want ___ cold to drink.", options: ["something", "anything", "nothing"], correctIdx: 0 },
+  { template: "Is there ___ interesting on TV?", options: ["something", "anything", "nothing"], correctIdx: 1 },
+  { template: "___ new today.", options: ["Something", "Anything", "Nothing"], correctIdx: 2 },
+  { template: "I have ___ to tell you.", options: ["something", "anything", "nothing"], correctIdx: 0 },
+  { template: "Is there ___ to eat?", options: ["something", "anything", "nothing"], correctIdx: 1 },
+  { template: "I have ___ to do today.", options: ["something", "anything", "nothing"], correctIdx: 2 },
+  { template: "I'll eat ___ — I'm hungry!", options: ["something", "anything", "nothing"], correctIdx: 1 },
+  { template: "Anna has ___ important to say to you.", options: ["something", "anything", "nothing"], correctIdx: 0 },
+  { template: "We have ___ to wear for the party!", options: ["something", "anything", "nothing"], correctIdx: 2 },
+  { template: "Let's go somewhere — I want to watch ___ fun.", options: ["something", "anything", "nothing"], correctIdx: 0 },
+  // --- someone/somebody / anyone/anybody / no one/nobody ---
+  { template: "I see ___ near the gate.", options: ["somebody", "anybody", "nobody"], correctIdx: 0 },
+  { template: "I don't see ___ there.", options: ["somebody", "anybody", "nobody"], correctIdx: 1 },
+  { template: "___ is calling you.", options: ["Somebody", "Anybody", "Nobody"], correctIdx: 0 },
+  { template: "Has ___ come?", options: ["someone", "anyone", "no one"], correctIdx: 1 },
+  { template: "___ has come.", options: ["Someone", "Anyone", "No one"], correctIdx: 2 },
+  { template: "___ can learn English.", options: ["Someone", "Anyone", "No one"], correctIdx: 1 },
+  { template: "___ funny called.", options: ["Someone", "Anyone", "No one"], correctIdx: 0 },
+  { template: "There is ___ important here.", options: ["someone", "anyone", "no one"], correctIdx: 2 },
+  { template: "Bella has ___ to talk to.", options: ["someone", "anyone", "no one"], correctIdx: 2 },
+  { template: "If ___ calls, tell them I'm out.", options: ["someone", "anyone", "no one"], correctIdx: 0 },
+  { template: "___ likes when their ideas are ignored.", options: ["Someone", "Anyone", "No one"], correctIdx: 2 },
+  { template: "Did ___ come to your birthday party?", options: ["somebody", "anybody", "nobody"], correctIdx: 1 },
+  { template: "I need ___ to help me with this bag.", options: ["someone", "anyone", "no one"], correctIdx: 0 },
+  // --- somewhere / anywhere / nowhere ---
+  { template: "Are you going ___?", options: ["somewhere", "anywhere", "nowhere"], correctIdx: 1 },
+  { template: "He works ___.", options: ["somewhere", "anywhere", "nowhere"], correctIdx: 2 },
+  { template: "Does he work ___?", options: ["somewhere", "anywhere", "nowhere"], correctIdx: 1 },
+  { template: "You can sit ___ you want.", options: ["somewhere", "anywhere", "nowhere"], correctIdx: 1 },
+  { template: "Let's go ___ quiet.", options: ["somewhere", "anywhere", "nowhere"], correctIdx: 0 },
+  { template: "We need ___ to sit.", options: ["somewhere", "anywhere", "nowhere"], correctIdx: 0 },
+  { template: "There's ___ to park!", options: ["somewhere", "anywhere", "nowhere"], correctIdx: 2 },
+  { template: "I need ___ quiet to work.", options: ["somewhere", "anywhere", "nowhere"], correctIdx: 0 },
+  { template: "Max can't find his keys ___.", options: ["somewhere", "anywhere", "nowhere"], correctIdx: 1 },
+  { template: "She will go ___ for a good cup of coffee.", options: ["somewhere", "anywhere", "nowhere"], correctIdx: 1 },
+  { template: "I live ___ near the city centre.", options: ["somewhere", "anywhere", "nowhere"], correctIdx: 0 },
+];
+
+function buildSomeAnyNoQuestion(forbiddenText) {
+  for (let attempt = 0; attempt < 15; attempt++) {
+    const item = SOME_ANY_NO_ITEMS[Math.floor(Math.random() * SOME_ANY_NO_ITEMS.length)];
+    const correctText = item.template.replace("___", item.options[item.correctIdx]);
+    if (forbiddenText && correctText.toLowerCase() === forbiddenText.toLowerCase()) continue;
+
+    const order = shuffle(item.options.map((_, i) => i));
+    const correctPos = order.indexOf(item.correctIdx);
+    const options = order.map((i) => item.options[i]);
+
+    return {
+      correctText,
+      questionLabel: item.template,
+      options,
+      correctPos,
+    };
+  }
+  return null;
+}
+
 // --- Формат "collocations": give / get / take / have ---
 // Это не про времена, а про то, какой из четырёх глаголов идёт с
 // конкретным выражением (give advice, get married, take a photo, have
@@ -6375,8 +6862,12 @@ const MODAL_VERBS = [
   { key: "can", base: "can", thirdSg: "can", past: "could", needsTo: false },
 ];
 
-const RU_DATIVE = { I: "мне", You: "тебе", He: "ему", She: "ей", We: "нам", They: "им" };
-const RU_NOM = { I: "я", You: "ты", He: "он", She: "она", We: "мы", They: "они" };
+// Примечание (02.10.2026): раньше тут были словари RU_DATIVE/RU_NOM,
+// жёстко привязанные к 6 исходным местоимениям (I/You/He/She/We/They) —
+// при добавлении новых подлежащих (My friend, Kate and I и т.д.) лукап по
+// ним возвращал undefined. Теперь используем готовые subject.ru
+// (именительный) и subject.ruDative (дательный) — они есть у каждого
+// подлежащего в RU_SENTENCE_SUBJECTS.
 
 // Русские формы "должен" (must — своя убеждённость говорящего) и
 // "вынужден" (have to — вынуждают обстоятельства/правила) — НАРОЧНО разные
@@ -6401,26 +6892,26 @@ function canFormRu(subject, tense) {
     if (subject.isPlural) return "могли";
     return subject.gender === "f" ? "могла" : "мог";
   }
-  if (subject.isPlural) return subject.pron === "We" ? "можем" : "могут";
+  if (subject.isPlural) return subject.actsAsWe ? "можем" : "могут";
   return "может";
 }
 
 function needToRuPrefix(subject, tense) {
-  return tense === "past" ? `${RU_DATIVE[subject.pron]} нужно было` : `${RU_DATIVE[subject.pron]} нужно`;
+  return tense === "past" ? `${subject.ruDative} нужно было` : `${subject.ruDative} нужно`;
 }
 
 function ruModalSentence(subject, modal, verb, tense) {
   let prefix;
   if (modal.key === "must") {
-    prefix = `${RU_NOM[subject.pron]} ${mustFormRu(subject)}`;
+    prefix = `${subject.ru} ${mustFormRu(subject)}`;
   } else if (modal.key === "haveTo") {
-    prefix = `${RU_NOM[subject.pron]} ${haveToFormRu(subject, tense)}`;
+    prefix = `${subject.ru} ${haveToFormRu(subject, tense)}`;
   } else if (modal.key === "can") {
-    prefix = `${RU_NOM[subject.pron]} ${canFormRu(subject, tense)}`;
+    prefix = `${subject.ru} ${canFormRu(subject, tense)}`;
   } else if (modal.key === "should") {
-    prefix = `${RU_DATIVE[subject.pron]} следует`;
+    prefix = `${subject.ruDative} следует`;
   } else if (modal.key === "oughtTo") {
-    prefix = `${RU_DATIVE[subject.pron]} полагается`;
+    prefix = `${subject.ruDative} полагается`;
   } else {
     prefix = needToRuPrefix(subject, tense);
   }
@@ -6603,7 +7094,9 @@ function buildGrammarQuestion(forbiddenText, exerciseType) {
     else if (type === "vsV1") q = buildVsV1Question(forbiddenText);
     else if (type === "trapWords") q = buildTrapWordsQuestion(forbiddenText);
     else if (type === "psVsPrPs") q = buildPsVsPrPsQuestion(forbiddenText);
+    else if (type === "gerundInfinitive") q = buildGerundInfinitiveQuestion(forbiddenText);
     else if (type === "collocations") q = buildCollocationQuestion(forbiddenText);
+    else if (type === "someAnyNo") q = buildSomeAnyNoQuestion(forbiddenText);
     else if (type === "modalMeaning") q = buildModalMeaningQuestion(forbiddenText);
     else if (type === "modalTo") q = buildModalToQuestion(forbiddenText);
     else if (type === "futureInPast") q = buildFutureInPastQuestion(forbiddenText);
@@ -8336,8 +8829,7 @@ async function handleApprove(chatId, argText) {
     await tg("sendMessage", { chat_id: chatId, text: `Не нашла «${targetRaw}» — проверь @username или chat_id (см. /pending или /students).` });
     return;
   }
-  const identity = await identityStore().get(String(targetId), { type: "json" });
-  await identityStore().setJSON(String(targetId), { ...(identity || {}), approved: true });
+  await updateIdentity(targetId, (current) => ({ ...current, approved: true }));
   await tg("sendMessage", { chat_id: chatId, text: `✅ Доступ разрешён для ${targetRaw}.` });
   try {
     await tg("sendMessage", { chat_id: targetId, text: "✅ Тебе открыт доступ к боту! Нажми /start, чтобы начать." });
@@ -8361,8 +8853,7 @@ async function handleRevoke(chatId, argText) {
     await tg("sendMessage", { chat_id: chatId, text: `Не нашла «${targetRaw}».` });
     return;
   }
-  const identity = await identityStore().get(String(targetId), { type: "json" });
-  await identityStore().setJSON(String(targetId), { ...(identity || {}), approved: false });
+  await updateIdentity(targetId, (current) => ({ ...current, approved: false }));
   await tg("sendMessage", { chat_id: chatId, text: `🚫 Доступ закрыт для ${targetRaw}.` });
 }
 
@@ -8605,7 +9096,7 @@ async function sendReminders() {
         text: "👋 Давно не виделись! Может, немного попрактикуемся? Жми /start или любую кнопку внизу.\n\n(Не хочешь получать напоминания — напиши /reminders off.)",
       });
       sentCount += 1;
-      await identityStore().setJSON(chatId, { ...info, lastReminderSent: new Date().toISOString() });
+      await updateIdentity(chatId, (current) => ({ ...current, lastReminderSent: new Date().toISOString() }));
     } catch (err) {
       // не критично — пропускаем этого человека (например, заблокировал бота) и идём дальше
     }
@@ -8615,17 +9106,17 @@ async function sendReminders() {
 
 async function handleReminders(chatId, argText) {
   const arg = argText.trim().toLowerCase();
-  const identity = await identityStore().get(String(chatId), { type: "json" });
   if (arg === "off") {
-    await identityStore().setJSON(String(chatId), { ...(identity || {}), remindersEnabled: false });
+    await updateIdentity(chatId, (current) => ({ ...current, remindersEnabled: false }));
     await tg("sendMessage", { chat_id: chatId, text: "Хорошо, напоминания о практике отключены. Включить обратно — /reminders on." });
     return;
   }
   if (arg === "on") {
-    await identityStore().setJSON(String(chatId), { ...(identity || {}), remindersEnabled: true });
+    await updateIdentity(chatId, (current) => ({ ...current, remindersEnabled: true }));
     await tg("sendMessage", { chat_id: chatId, text: "Готово, буду иногда напоминать о практике, если долго не будет активности." });
     return;
   }
+  const identity = await identityStore().get(String(chatId), { type: "json" });
   const enabled = !identity || identity.remindersEnabled !== false;
   await tg("sendMessage", {
     chat_id: chatId,
@@ -8658,13 +9149,13 @@ async function handleMessage(message) {
   const gateIdentity = await identityStore().get(String(chatId), { type: "json" });
   const startInviteMatch = text.match(/^\/start\s+(\S+)/);
   if (startInviteMatch && startInviteMatch[1] === INVITE_SECRET) {
-    await identityStore().setJSON(String(chatId), { ...(gateIdentity || {}), approved: true });
+    await updateIdentity(chatId, (current) => ({ ...current, approved: true }));
   } else if (startInviteMatch && startInviteMatch[1] === PHRASES_INVITE_SECRET) {
-    await identityStore().setJSON(String(chatId), {
-      ...(gateIdentity || {}),
+    await updateIdentity(chatId, (current) => ({
+      ...current,
       phrasesAccess: true,
-      trialStartedAt: (gateIdentity && gateIdentity.trialStartedAt) || new Date().toISOString(),
-    });
+      trialStartedAt: current.trialStartedAt || new Date().toISOString(),
+    }));
   } else if (gateIdentity && gateIdentity.approved === false && !gateIdentity.phrasesAccess && !(await isAdmin(chatId))) {
     if (text === "/whoami") {
       await tg("sendMessage", { chat_id: chatId, text: `Твой chat_id: ${chatId}` });
@@ -8690,7 +9181,7 @@ async function handleMessage(message) {
       await tg("sendMessage", { chat_id: chatId, text: "Напиши, пожалуйста, своё имя текстом." });
       return;
     }
-    await identityStore().setJSON(String(chatId), { ...identity, registeredName: text, awaitingRegisterName: false });
+    await updateIdentity(chatId, (current) => ({ ...current, registeredName: text, awaitingRegisterName: false }));
     await tg("sendMessage", { chat_id: chatId, text: `Спасибо, ${text}! Записала.` });
     return;
   }
@@ -8716,7 +9207,7 @@ async function handleMessage(message) {
       return;
     }
     await adminStore().setJSON(String(chatId), { grantedAt: new Date().toISOString() });
-    await identityStore().setJSON(String(chatId), { ...(identity || {}), approved: true });
+    await updateIdentity(chatId, (current) => ({ ...current, approved: true }));
     await tg("sendMessage", {
       chat_id: chatId,
       text: "Готово — теперь тебе доступна команда /students.",
@@ -8727,11 +9218,11 @@ async function handleMessage(message) {
   if (/^\/register(@\w+)?\s*/i.test(text)) {
     const label = text.replace(/^\/register(@\w+)?\s*/i, "").trim();
     if (!label) {
-      await identityStore().setJSON(String(chatId), { ...(identity || {}), awaitingRegisterName: true });
+      await updateIdentity(chatId, (current) => ({ ...current, awaitingRegisterName: true }));
       await tg("sendMessage", { chat_id: chatId, text: "Как тебя записать? Напиши своё имя следующим сообщением." });
       return;
     }
-    await identityStore().setJSON(String(chatId), { ...(identity || {}), registeredName: label, awaitingRegisterName: false });
+    await updateIdentity(chatId, (current) => ({ ...current, registeredName: label, awaitingRegisterName: false }));
     await tg("sendMessage", { chat_id: chatId, text: `Готово, записала: ${label}` });
     return;
   }
