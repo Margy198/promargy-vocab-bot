@@ -7974,7 +7974,9 @@ async function handleHelp(chatId) {
       "/hidemenu (или кнопка «🔽 Скрыть меню») — убрать нижнее меню (если на телефоне не видно переписку)\n" +
       "/showmenu — вернуть его обратно\n\n" +
       "Чтобы добавить слова — просто пришли строки вида «English . перевод», " +
-      "хоть одну, хоть весь список с урока сразу.",
+      "хоть одну, хоть весь список с урока сразу.\n\n" +
+      "Папки: чтобы слова лежали отдельной группой, начни сообщение со строки с #названием, " +
+      "например #школа, а ниже — слова. Тренировать потом можно каждую папку отдельно.",
     reply_markup: await mainReplyKeyboard(chatId),
   });
 }
@@ -8462,11 +8464,35 @@ async function handleBulkAdd(chatId, text) {
   const lines = text.split(/\r?\n/);
   const pairs = [];
   const badLines = [];
+
+  // Необязательная "папка": если первая непустая строка — это #тема (и не
+  // пара "слово - перевод"), все слова из этого сообщения попадают в эту
+  // тему. Так ученик сам делит свои слова на группы (например, слова с
+  // урока и #школа), не обращаясь к админу. Слова без #темы идут в "Общие".
+  let topic = null;
+  const firstIdx = lines.findIndex((l) => l.trim());
+  if (firstIdx !== -1) {
+    const first = lines[firstIdx].trim();
+    if (first.startsWith("#") && !parseVocabLine(first)) {
+      const name = first.replace(/^#+/, "").trim().slice(0, 40);
+      if (name) {
+        // Если у ученика уже есть тема с таким названием (без учёта
+        // регистра) — берём её написание, чтобы не плодить "Школа"/"школа".
+        const existing = await getVocab(chatId);
+        const match = existing.map((w) => w.topic).find((t) => t && t.toLowerCase() === name.toLowerCase());
+        topic = match || name;
+      }
+      lines.splice(firstIdx, 1);
+    }
+  }
+
   for (const line of lines) {
     if (!line.trim()) continue;
     const parsed = parseVocabLine(line);
-    if (parsed) pairs.push(parsed);
-    else badLines.push(line.trim());
+    if (parsed) {
+      if (topic) parsed.topic = topic;
+      pairs.push(parsed);
+    } else badLines.push(line.trim());
   }
 
   if (!pairs.length) {
@@ -8482,6 +8508,7 @@ async function handleBulkAdd(chatId, text) {
   const { added, total } = await addWords(chatId, pairs);
   const skippedDupes = pairs.length - added;
   let msg = `✅ Добавлено новых слов: ${added}. Всего в словаре: ${total}.`;
+  if (topic) msg += `\n📁 Папка: ${topic}.`;
   if (skippedDupes) msg += `\nПропущено как дубли: ${skippedDupes}.`;
   if (badLines.length) {
     msg += `\nНе распознано строк: ${badLines.length}${badLines.length <= 5 ? " — " + badLines.join(" | ") : ""}.`;
