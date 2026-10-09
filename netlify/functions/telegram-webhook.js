@@ -28,7 +28,6 @@ const pendingStore = () => getStore("vocab-bot-pending", { consistency: "strong"
 const statsStore = () => getStore("vocab-bot-stats", { consistency: "strong" });
 const wordsStore = () => getStore("vocab-bot-words", { consistency: "strong" });
 const debugStore = () => getStore("vocab-bot-debug", { consistency: "strong" });
-const rateLimitStore = () => getStore("vocab-bot-ratelimit", { consistency: "strong" });
 const identityStore = () => getStore("vocab-bot-identities", { consistency: "strong" });
 const adminStore = () => getStore("vocab-bot-admins", { consistency: "strong" });
 const sharedLibraryStore = () => getStore("vocab-bot-shared-library", { consistency: "strong" });
@@ -67,7 +66,7 @@ async function isAdmin(chatId) {
 // Не критично для работы бота — если не получится записать, просто молча
 // продолжаем.
 async function rememberIdentity(chatId, from) {
-  if (!from) return;
+  if (!from) return null;
   try {
     const today = new Date().toISOString().slice(0, 10);
     // Новым чатам (существующей записи ещё нет) сразу проставляем
@@ -82,9 +81,12 @@ async function rememberIdentity(chatId, from) {
     // почти одновременно с тем, как админ меняет ту же запись (/approve,
     // пригласительная ссылка и т.п.), и без защиты от гонки более позднее
     // из двух обновлений тихо стирало бы другое.
-    await updateIdentity(
+    let wasNew = false;
+    const updated = await updateIdentity(
       chatId,
       (current) => {
+        // Запись без единого визита — новый чат (нужно для уведомления админов).
+        wasNew = !current.lastSeen && !current.firstSeen;
         const activeDays = Array.isArray(current.activeDays) ? [...current.activeDays] : [];
         if (!activeDays.includes(today)) activeDays.push(today);
         const firstSeen = current.firstSeen || new Date().toISOString();
@@ -100,39 +102,39 @@ async function rememberIdentity(chatId, from) {
       },
       () => ({ approved: false })
     );
+    return { identity: updated, wasNew };
   } catch (err) {
     // не критично
+    return null;
   }
 }
 
-// Telegram официально рекомендует не больше ~1 сообщения в секунду в один и
-// тот же чат — при превышении сообщение не отклоняется (наш вызов API
-// получает "ok"), а тихо откладывается на стороне Telegram и доставляется
-// клиенту позже. Это может объяснять "второй вопрос не приходит сразу":
-// если отвечать быстрее раза в секунду, каждое следующее сообщение рискует
-// попасть в такую отложенную доставку. Выдерживаем паузу перед отправкой,
-// если предыдущее сообщение в этот чат ушло меньше секунды назад.
-const MIN_MS_BETWEEN_MESSAGES = process.env.RATE_LIMIT_MS != null ? parseInt(process.env.RATE_LIMIT_MS, 10) : 1100;
+// Telegram не любит больше ~1 сообщения в секунду в один и тот же чат:
+// лишнее не отклоняется, а тихо откладывается и доходит позже. Раньше бот
+// перед КАЖДЫМ сообщением ходил в Blobs за временем прошлой отправки и
+// выдерживал паузу до 1,1 с — это была главная причина «нажал — и жди».
+// Теперь: время последней отправки держим в памяти самой функции (между
+// «тёплыми» вызовами она сохраняется, а больше одного сообщения подряд в
+// один чат бот почти никогда не шлёт), пауза — короткая. RATE_LIMIT_MS в
+// настройках Netlify по-прежнему переопределяет значение (0 — без паузы).
+const MIN_MS_BETWEEN_MESSAGES = process.env.RATE_LIMIT_MS != null ? parseInt(process.env.RATE_LIMIT_MS, 10) : 300;
+const lastSentAt = new Map();
 
 async function waitForRateLimit(chatId) {
-  const key = String(chatId);
-  const last = await rateLimitStore().get(key, { type: "json" });
-  const now = Date.now();
-  if (last && typeof last.at === "number") {
-    const elapsed = now - last.at;
+  if (!(MIN_MS_BETWEEN_MESSAGES > 0)) return;
+  const last = lastSentAt.get(String(chatId));
+  if (typeof last === "number") {
+    const elapsed = Date.now() - last;
     if (elapsed < MIN_MS_BETWEEN_MESSAGES) {
       await new Promise((resolve) => setTimeout(resolve, MIN_MS_BETWEEN_MESSAGES - elapsed));
     }
   }
 }
 
-async function markMessageSent(chatId) {
-  try {
-    await rateLimitStore().setJSON(String(chatId), { at: Date.now() });
-  } catch (err) {
-    // Не критично, если запись не удалась — просто следующий вызов
-    // подождёт чуть дольше, чем нужно.
-  }
+function markMessageSent(chatId) {
+  lastSentAt.set(String(chatId), Date.now());
+  // Не даём карте расти бесконечно на долгоживущей функции.
+  if (lastSentAt.size > 5000) lastSentAt.clear();
 }
 
 // Собственный маленький журнал отладки в Blobs — не зависит от того, работает
@@ -171,9 +173,21 @@ function emptyStats() {
   return { answered: 0, correct: 0, streak: 0, bestStreak: 0, wrong: {} };
 }
 
+// В журнал в Blobs раньше писалась КАЖДАЯ строчка: 5–10 записей на одно
+// нажатие, каждая — скачать весь журнал и записать обратно (а при двух
+// учениках одновременно — ещё и повторы из-за конфликтов). Теперь в Blobs
+// попадают только ошибки и сбои; всё остальное — в обычные логи Netlify
+// (console.log). Полный журнал в Blobs можно вернуть на время разбора
+// проблемы переменной DEBUG_BLOB_LOG=1 в настройках Netlify.
+const BLOB_LOG_ALL = process.env.DEBUG_BLOB_LOG === "1";
+const BLOB_LOG_PATTERN = /FAILED|ERROR|mismatch|giving up|stopping|blocked|could not/;
+
 async function log(...args) {
   console.log(...args);
-  await dbg(args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" "));
+  const text = args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" ");
+  if (BLOB_LOG_ALL || BLOB_LOG_PATTERN.test(text)) {
+    await dbg(text);
+  }
 }
 
 // Безопасное к гонкам обновление: читаем текущее значение вместе с ETag,
@@ -5678,7 +5692,7 @@ async function tg(method, payload) {
   } else {
     await log(`[tg:${method}] ok`);
     if ((method === "sendMessage" || method === "sendAudio") && payload && payload.chat_id != null) {
-      await markMessageSent(payload.chat_id);
+      markMessageSent(payload.chat_id);
     }
   }
   return data;
@@ -8547,9 +8561,18 @@ async function handleCallback(callbackQuery) {
   // функция была уже "прогрета"). Информативный текст (✅/❌ и перевод) всё
   // равно приходит в отредактированном сообщении ниже, поэтому в самом тосте
   // текст не дублируем.
-  await log("[callback] received", JSON.stringify({ id: callbackQuery.id, data: callbackQuery.data, hasMessage: !!callbackQuery.message }));
-  await tg("answerCallbackQuery", { callback_query_id: callbackQuery.id });
-  await log("[callback] step1: answerCallbackQuery done");
+  //
+  // Сразу показываем ученику, что бот работает: всплывающая плашка вверху
+  // экрана («⏳ Секунду…») + статус «печатает…» в шапке чата. Оба вызова
+  // идут параллельно и ДО записи в журнал отладки, чтобы реакция на нажатие
+  // была мгновенной. «печатает…» Telegram сам убирает, как только приходит
+  // наш ответ (или через ~5 секунд).
+  const ackChatId = callbackQuery.message && callbackQuery.message.chat ? callbackQuery.message.chat.id : null;
+  await Promise.all([
+    tg("answerCallbackQuery", { callback_query_id: callbackQuery.id, text: "⏳ Секунду…" }),
+    ackChatId != null ? tg("sendChatAction", { chat_id: ackChatId, action: "typing" }) : null,
+  ]);
+  await log("[callback] received+acked", JSON.stringify({ id: callbackQuery.id, data: callbackQuery.data, hasMessage: !!callbackQuery.message }));
 
   if (!callbackQuery.message) {
     await log("[callback] no message on callback_query — stopping (old/inline message)");
@@ -8560,8 +8583,13 @@ async function handleCallback(callbackQuery) {
   const messageId = callbackQuery.message.message_id;
   const data = callbackQuery.data;
 
-  const gateIdentity = await identityStore().get(String(chatId), { type: "json" });
-  if (gateIdentity && gateIdentity.approved === false && !gateIdentity.phrasesAccess && !(await isAdmin(chatId))) {
+  // Запись о доступе и флаг админа читаем ОДНОВРЕМЕННО и один раз на всё
+  // нажатие (раньше — по очереди и до трёх раз за одно и то же нажатие).
+  const [gateIdentity, chatIsAdmin] = await Promise.all([
+    identityStore().get(String(chatId), { type: "json" }),
+    isAdmin(chatId),
+  ]);
+  if (gateIdentity && gateIdentity.approved === false && !gateIdentity.phrasesAccess && !chatIsAdmin) {
     await log("[callback] blocked: chat not yet approved", chatId);
     return;
   }
@@ -8575,7 +8603,7 @@ async function handleCallback(callbackQuery) {
     gateIdentity &&
     gateIdentity.phrasesAccess &&
     !gateIdentity.approved &&
-    !(await isAdmin(chatId)) &&
+    !chatIsAdmin &&
     TRIAL_GATED_CALLBACKS.includes(data) &&
     isTrialExpired(gateIdentity)
   ) {
@@ -8753,8 +8781,8 @@ async function handleCallback(callbackQuery) {
   const mode = ["grammar", "irregular", "dialogue", "idiomtranslate"].includes(pending.mode) ? pending.mode : "vocab";
 
   if (mode !== "dialogue" && mode !== "idiomtranslate") {
-    const trialIdentity = await identityStore().get(String(chatId), { type: "json" });
-    if (trialIdentity && trialIdentity.phrasesAccess && !trialIdentity.approved && !(await isAdmin(chatId)) && isTrialExpired(trialIdentity)) {
+    const trialIdentity = gateIdentity; // уже прочитали в начале нажатия
+    if (trialIdentity && trialIdentity.phrasesAccess && !trialIdentity.approved && !chatIsAdmin && isTrialExpired(trialIdentity)) {
       await tg("sendMessage", {
         chat_id: chatId,
         text: "Пробный период на 5 дней закончился. «150 американских фраз» остаются доступны бесплатно — а чтобы открыть всё остальное, напиши своему преподавателю.",
@@ -9154,9 +9182,10 @@ async function handleReminders(chatId, argText) {
 async function handleMessage(message) {
   const chatId = message.chat.id;
   const text = (message.text || "").trim();
-  const existingIdentity = await identityStore().get(String(chatId), { type: "json" });
-  const isBrandNewChat = !existingIdentity;
-  await rememberIdentity(chatId, message.from);
+  // rememberIdentity сама читает-и-обновляет запись о чате и возвращает
+  // свежую версию — не читаем её отдельно ещё два раза, как раньше.
+  const remembered = await rememberIdentity(chatId, message.from);
+  const isBrandNewChat = !!(remembered && remembered.wasNew);
 
   if (isBrandNewChat) {
     const from = message.from || {};
@@ -9173,7 +9202,7 @@ async function handleMessage(message) {
   // postoянный бесплатный доступ именно к "150 американских фраз" плюс
   // TRIAL_DAYS дней пробного доступа ко всему остальному (см.
   // isTrialExpired — используется в конкретных пунктах меню ниже).
-  const gateIdentity = await identityStore().get(String(chatId), { type: "json" });
+  const gateIdentity = remembered ? remembered.identity : await identityStore().get(String(chatId), { type: "json" });
   const startInviteMatch = text.match(/^\/start\s+(\S+)/);
   if (startInviteMatch && startInviteMatch[1] === INVITE_SECRET) {
     await updateIdentity(chatId, (current) => ({ ...current, approved: true }));
