@@ -56,9 +56,31 @@ function isTrialExpired(identity) {
   return Date.now() - new Date(identity.trialStartedAt).getTime() > TRIAL_MS;
 }
 
+// Кэш на время ОДНОГО входящего запроса (одно нажатие / одно сообщение):
+// запись о доступе и флаг админа раньше перечитывались из Blobs по 2–3 раза
+// за одно и то же нажатие. Сбрасывается в начале каждого запроса
+// (resetRequestCache), а updateIdentity кладёт в него свежую версию, так что
+// устаревшего значения внутри запроса не бывает.
+const requestCache = { identity: new Map(), admin: new Map() };
+function resetRequestCache() {
+  requestCache.identity.clear();
+  requestCache.admin.clear();
+}
+
+async function readIdentity(chatId) {
+  const key = String(chatId);
+  if (requestCache.identity.has(key)) return requestCache.identity.get(key);
+  const v = await identityStore().get(key, { type: "json" });
+  requestCache.identity.set(key, v);
+  return v;
+}
+
 async function isAdmin(chatId) {
-  const v = await adminStore().get(String(chatId), { type: "json" });
-  return !!v;
+  const key = String(chatId);
+  if (requestCache.admin.has(key)) return requestCache.admin.get(key);
+  const v = !!(await adminStore().get(key, { type: "json" }));
+  requestCache.admin.set(key, v);
+  return v;
 }
 
 // Запоминаем, кто стоит за этим чатом (имя/username из Telegram), чтобы
@@ -243,7 +265,9 @@ async function withOptimisticUpdate(store, key, defaultValue, mutate, maxAttempt
 // read-modify-write: при конфликте перечитывает актуальное состояние и
 // применяет то же изменение заново, а не переписывает вслепую.
 async function updateIdentity(chatId, mutate, defaultValue = () => ({})) {
-  return withOptimisticUpdate(identityStore(), String(chatId), defaultValue, mutate);
+  const updated = await withOptimisticUpdate(identityStore(), String(chatId), defaultValue, mutate);
+  requestCache.identity.set(String(chatId), updated);
+  return updated;
 }
 
 // Как и выше — без блокирующей перепроверки, просто доверяем ответу записи.
@@ -305,6 +329,47 @@ async function getSharedVocab(difficulty, topic) {
   return Array.isArray(v) ? v : [];
 }
 
+// Индекс общей библиотеки: { "<ключ>": количество слов }. Раньше, чтобы
+// показать меню «Лексика — откуда слова?», бот скачивал ВСЕ темы библиотеки
+// целиком по очереди (10+ обращений, каждое — весь список слов) только ради
+// подсчёта. Теперь считаем один раз при записи и храним здесь; если индекса
+// ещё нет (первый запуск после этой правки) — он строится и сохраняется сам.
+const SHARED_INDEX_KEY = "index";
+
+async function setSharedIndexCount(key, count) {
+  try {
+    await withOptimisticUpdate(
+      sharedLibraryStore(),
+      SHARED_INDEX_KEY,
+      () => ({}),
+      (idx) => ({ ...idx, [key]: count })
+    );
+  } catch (err) {
+    // Индекс — ускорение, не источник истины: при сбое он просто
+    // перестроится при следующем чтении (см. listSharedLibrary).
+    await log("[sharedIndex] update FAILED:", String(err));
+    try {
+      await sharedLibraryStore().delete(SHARED_INDEX_KEY);
+    } catch {}
+  }
+}
+
+async function rebuildSharedIndex() {
+  const list = await sharedLibraryStore().list({ prefix: "shared:" });
+  const entries = list && list.blobs ? list.blobs : [];
+  const counts = await Promise.all(
+    entries.map(async (entry) => {
+      const vocab = await sharedLibraryStore().get(entry.key, { type: "json" });
+      return [entry.key, Array.isArray(vocab) ? vocab.length : 0];
+    })
+  );
+  const idx = Object.fromEntries(counts);
+  try {
+    await sharedLibraryStore().setJSON(SHARED_INDEX_KEY, idx);
+  } catch {}
+  return idx;
+}
+
 async function addSharedWords(difficulty, topic, pairs) {
   let added = 0;
   let total = 0;
@@ -327,6 +392,7 @@ async function addSharedWords(difficulty, topic, pairs) {
       return next;
     }
   );
+  await setSharedIndexCount(sharedKey(difficulty, topic), total);
   return { added, total };
 }
 
@@ -345,6 +411,7 @@ async function deleteSharedWords(difficulty, topic, terms) {
       return next;
     }
   );
+  await setSharedIndexCount(sharedKey(difficulty, topic), total);
   return { removedCount, total };
 }
 
@@ -352,15 +419,19 @@ async function deleteSharedWords(difficulty, topic, terms) {
 // вместе с человекочитаемыми исходными названиями (не только слагами) и
 // количеством слов — используется и для меню ученика, и для /sharedlist.
 async function listSharedLibrary() {
-  const list = await sharedLibraryStore().list({ prefix: "shared:" });
-  const entries = list && list.blobs ? list.blobs : [];
+  let idx = await sharedLibraryStore().get(SHARED_INDEX_KEY, { type: "json" });
+  if (!idx || typeof idx !== "object" || Array.isArray(idx)) {
+    idx = await rebuildSharedIndex();
+  }
   const result = [];
-  for (const entry of entries) {
-    const parts = entry.key.split(":");
-    if (parts.length !== 3) continue;
-    const vocab = await sharedLibraryStore().get(entry.key, { type: "json" });
-    const count = Array.isArray(vocab) ? vocab.length : 0;
-    if (count === 0) continue;
+  // Ключи сортируем, чтобы порядок кнопок (vshareddiff:<i>, vsharedtopic:…
+  // ссылаются на позиции в этом списке) был одинаковым при показе меню и
+  // при обработке нажатия.
+  for (const key of Object.keys(idx).sort()) {
+    const parts = key.split(":");
+    if (parts.length !== 3 || parts[0] !== "shared") continue;
+    const count = idx[key];
+    if (!(count > 0)) continue;
     result.push({ difficultySlug: parts[1], topicSlug: parts[2], count });
   }
   return result;
@@ -7537,13 +7608,18 @@ function topicLabel(topic) {
 }
 
 async function sendQuestion(chatId, stats, prefix, modeOverride, levelOverride, exerciseTypeOverride, topicOverride, sharedOverride) {
-  const prevPending = await pendingStore().get(String(chatId), { type: "json" });
+  // Три чтения параллельно (а после нажатия кнопки identity/admin уже
+  // лежат в кэше запроса и не стоят ничего).
+  const [prevPending, trialIdentity, trialIsAdmin] = await Promise.all([
+    pendingStore().get(String(chatId), { type: "json" }),
+    readIdentity(chatId),
+    isAdmin(chatId),
+  ]);
   const currentMode = prevPending && prevPending.mode ? prevPending.mode : "vocab";
   const mode = modeOverride || currentMode;
 
   if (mode !== "dialogue" && mode !== "idiomtranslate") {
-    const trialIdentity = await identityStore().get(String(chatId), { type: "json" });
-    if (trialIdentity && trialIdentity.phrasesAccess && !trialIdentity.approved && !(await isAdmin(chatId)) && isTrialExpired(trialIdentity)) {
+    if (trialIdentity && trialIdentity.phrasesAccess && !trialIdentity.approved && !trialIsAdmin && isTrialExpired(trialIdentity)) {
       await tg("sendMessage", {
         chat_id: chatId,
         text: "Пробный период на 5 дней закончился. «150 американских фраз» остаются доступны бесплатно — а чтобы открыть всё остальное, напиши своему преподавателю.",
@@ -7901,10 +7977,9 @@ function buildIdiomTranslatePicked(prefix, forbiddenText) {
 }
 
 async function handleModeVocabPersonal(chatId) {
-  const vocab = await getVocab(chatId);
+  const [vocab, stats] = await Promise.all([getVocab(chatId), getStats(chatId)]);
   const topics = getDistinctTopics(vocab);
   if (topics.length <= 1) {
-    const stats = await getStats(chatId);
     await sendQuestion(chatId, stats, "📚 Режим: Лексика", "vocab", undefined, undefined, null, null);
     return;
   }
@@ -8552,6 +8627,42 @@ async function claimPending(chatId, messageId) {
   }
 }
 
+// Реакция на нажатие кнопки — в два уровня:
+//  1) сразу: статус «печатает…» в шапке чата (Telegram сам убирает его,
+//     как только приходит наш ответ, или через ~5 секунд);
+//  2) всплывающая плашка «⏳ Секунду…» — ТОЛЬКО если обработка затянулась
+//     дольше SLOW_ACK_MS. Если успели раньше, нажатие подтверждается молча.
+// Ответить на одно нажатие (answerCallbackQuery) Telegram позволяет лишь
+// один раз, поэтому до истечения SLOW_ACK_MS ответ придерживаем: пока его
+// нет, Telegram показывает на кнопке свой маленький индикатор загрузки.
+const SLOW_ACK_MS = 2000;
+
+function startCallbackAck(callbackQuery) {
+  const id = callbackQuery.id;
+  const chatId = callbackQuery.message && callbackQuery.message.chat ? callbackQuery.message.chat.id : null;
+  let ackPromise = null;
+  const answer = (text) => {
+    if (ackPromise) return ackPromise;
+    const payload = text ? { callback_query_id: id, text } : { callback_query_id: id };
+    ackPromise = tg("answerCallbackQuery", payload).catch(() => {});
+    return ackPromise;
+  };
+  const timer = setTimeout(() => {
+    answer("⏳ Секунду…");
+  }, SLOW_ACK_MS);
+  const typing = chatId != null ? tg("sendChatAction", { chat_id: chatId, action: "typing" }).catch(() => {}) : Promise.resolve();
+  return {
+    typing,
+    // Вызывается, когда обработка закончена (или нажатие оказалось
+    // повторным): отвечаем молча, если ещё не ответили, и дожидаемся
+    // отправки — функция не должна завершиться раньше этого запроса.
+    async finish() {
+      clearTimeout(timer);
+      await answer();
+    },
+  };
+}
+
 async function handleCallback(callbackQuery) {
   // Отвечаем на нажатие СРАЗУ, первым делом — до любых обращений к Blobs и
   // Telegram API. Раньше это делалось в конце, и на холодном старте функции
@@ -8562,17 +8673,9 @@ async function handleCallback(callbackQuery) {
   // равно приходит в отредактированном сообщении ниже, поэтому в самом тосте
   // текст не дублируем.
   //
-  // Сразу показываем ученику, что бот работает: всплывающая плашка вверху
-  // экрана («⏳ Секунду…») + статус «печатает…» в шапке чата. Оба вызова
-  // идут параллельно и ДО записи в журнал отладки, чтобы реакция на нажатие
-  // была мгновенной. «печатает…» Telegram сам убирает, как только приходит
-  // наш ответ (или через ~5 секунд).
-  const ackChatId = callbackQuery.message && callbackQuery.message.chat ? callbackQuery.message.chat.id : null;
-  await Promise.all([
-    tg("answerCallbackQuery", { callback_query_id: callbackQuery.id, text: "⏳ Секунду…" }),
-    ackChatId != null ? tg("sendChatAction", { chat_id: ackChatId, action: "typing" }) : null,
-  ]);
-  await log("[callback] received+acked", JSON.stringify({ id: callbackQuery.id, data: callbackQuery.data, hasMessage: !!callbackQuery.message }));
+  // Подтверждение нажатия теперь живёт во входной точке вебхука (см.
+  // startCallbackAck): «печатает…» сразу, «⏳ Секунду…» — только если долго.
+  await log("[callback] received", JSON.stringify({ id: callbackQuery.id, data: callbackQuery.data, hasMessage: !!callbackQuery.message }));
 
   if (!callbackQuery.message) {
     await log("[callback] no message on callback_query — stopping (old/inline message)");
@@ -8585,10 +8688,7 @@ async function handleCallback(callbackQuery) {
 
   // Запись о доступе и флаг админа читаем ОДНОВРЕМЕННО и один раз на всё
   // нажатие (раньше — по очереди и до трёх раз за одно и то же нажатие).
-  const [gateIdentity, chatIsAdmin] = await Promise.all([
-    identityStore().get(String(chatId), { type: "json" }),
-    isAdmin(chatId),
-  ]);
+  const [gateIdentity, chatIsAdmin] = await Promise.all([readIdentity(chatId), isAdmin(chatId)]);
   if (gateIdentity && gateIdentity.approved === false && !gateIdentity.phrasesAccess && !chatIsAdmin) {
     await log("[callback] blocked: chat not yet approved", chatId);
     return;
@@ -8632,11 +8732,10 @@ async function handleCallback(callbackQuery) {
 
   if (data.startsWith("vtopic:")) {
     const sel = data.slice(7);
-    const vocab = await getVocab(chatId);
+    const [vocab, stats] = await Promise.all([getVocab(chatId), getStats(chatId)]);
     const topics = getDistinctTopics(vocab);
     const topic = sel === "all" ? null : topics[parseInt(sel, 10)] || null;
     const label = `📚 Режим: Лексика — ${topic ? topicLabel(topic) : "все темы"}`;
-    const stats = await getStats(chatId);
     await sendQuestion(chatId, stats, label, "vocab", undefined, undefined, topic, null);
     return;
   }
@@ -9202,7 +9301,7 @@ async function handleMessage(message) {
   // postoянный бесплатный доступ именно к "150 американских фраз" плюс
   // TRIAL_DAYS дней пробного доступа ко всему остальному (см.
   // isTrialExpired — используется в конкретных пунктах меню ниже).
-  const gateIdentity = remembered ? remembered.identity : await identityStore().get(String(chatId), { type: "json" });
+  const gateIdentity = remembered ? remembered.identity : await readIdentity(chatId);
   const startInviteMatch = text.match(/^\/start\s+(\S+)/);
   if (startInviteMatch && startInviteMatch[1] === INVITE_SECRET) {
     await updateIdentity(chatId, (current) => ({ ...current, approved: true }));
@@ -9263,6 +9362,7 @@ async function handleMessage(message) {
       return;
     }
     await adminStore().setJSON(String(chatId), { grantedAt: new Date().toISOString() });
+    requestCache.admin.set(String(chatId), true);
     await updateIdentity(chatId, (current) => ({ ...current, approved: true }));
     await tg("sendMessage", {
       chat_id: chatId,
@@ -9420,6 +9520,7 @@ async function handleAdminApi(body) {
 }
 
 export default async (req) => {
+  resetRequestCache();
   if (req.method !== "POST") {
     // GET ?debug=<секрет> — отдаёт последние записи собственного журнала
     // отладки, независимо от того, работает ли сейчас просмотр логов в
@@ -9506,9 +9607,14 @@ export default async (req) => {
     }
   }
 
-  const isFirstTimeSeeingThisUpdate = await claimUpdateOnce(body.update_id);
+  // Проверку «не повторная ли это доставка» запускаем, не дожидаясь, и
+  // ПАРАЛЛЕЛЬНО с ней сразу показываем «печатает…» (см. startCallbackAck).
+  const claimPromise = claimUpdateOnce(body.update_id);
+  const ack = body.callback_query ? startCallbackAck(body.callback_query) : null;
+  const [isFirstTimeSeeingThisUpdate] = await Promise.all([claimPromise, ack ? ack.typing : null]);
   if (!isFirstTimeSeeingThisUpdate) {
     // Повторная доставка того же update — уже обработали, просто отвечаем ok.
+    if (ack) await ack.finish();
     return new Response("ok", { status: 200 });
   }
 
@@ -9521,6 +9627,7 @@ export default async (req) => {
   } catch (err) {
     await log("[handler] UNCAUGHT ERROR:", String(err), err && err.stack);
   }
+  if (ack) await ack.finish();
 
   // Telegram ждёт быстрый ответ 200 — иначе будет слать вебхук повторно
   return new Response("ok", { status: 200 });
