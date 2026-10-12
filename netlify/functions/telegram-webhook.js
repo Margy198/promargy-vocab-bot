@@ -5667,29 +5667,44 @@ function parseVocabLine(raw) {
 // Добавляет распарсенные пары в словарь, пропуская дубли (по english, без учёта регистра).
 // Устойчиво к гонкам: если словарь параллельно поменяли (например, ты добавляешь
 // слова, а кто-то в этот же момент отвечает на вопрос и т.п.), просто повторяем попытку.
+// Добавление слов. Если слово уже есть в словаре:
+//  - пришло с #папкой — слово ПЕРЕЕЗЖАЕТ в эту папку (считается в moved).
+//    Так ученику не нужно сначала удалять слова, а потом добавлять заново,
+//    чтобы разложить их по папкам: достаточно прислать список с #названием.
+//  - пришло без папки — пропускается как дубль (папка у слова не трогается).
 async function addWords(chatId, pairs) {
   let added = 0;
+  let moved = 0;
   let total = 0;
   await withOptimisticUpdate(
     wordsStore(),
     `words:${chatId}`,
     () => [],
     (vocab) => {
-      const next = [...vocab];
-      const seen = new Set(next.map((w) => w.en.toLowerCase()));
+      const next = vocab.map((w) => ({ ...w }));
+      const byKey = new Map(next.map((w) => [w.en.toLowerCase(), w]));
       added = 0;
+      moved = 0;
       for (const p of pairs) {
         const key = p.en.toLowerCase();
-        if (seen.has(key)) continue;
-        seen.add(key);
-        next.push(p);
+        const existing = byKey.get(key);
+        if (existing) {
+          if (p.topic && (existing.topic || null) !== p.topic) {
+            existing.topic = p.topic;
+            moved += 1;
+          }
+          continue;
+        }
+        const fresh = { ...p };
+        byKey.set(key, fresh);
+        next.push(fresh);
         added += 1;
       }
       total = next.length;
       return next;
     }
   );
-  return { added, total };
+  return { added, moved, total };
 }
 
 async function deleteWord(chatId, term) {
@@ -7517,7 +7532,12 @@ const OPTIONS_COUNT = 6; // 1 правильный + 5 неверных вари
 // версию истории, а следующий её просто забирает оттуда, без отдельного
 // похода в другое хранилище.
 function buildQuestion(vocab, wrongMap, prefix, forbiddenEn, seenEnList, recentTailList) {
-  const seenEnSet = new Set(Array.isArray(seenEnList) ? seenEnList : []);
+  // История «отработанных» слов могла накопиться в другой папке/источнике
+  // (ученик переключил тему) — оставляем только те, что есть в текущем
+  // списке, иначе счётчик показывал бы «51/1 слов отработано».
+  const vocabEnSet = new Set(vocab.map((w) => w.en));
+  seenEnList = (Array.isArray(seenEnList) ? seenEnList : []).filter((en) => vocabEnSet.has(en));
+  const seenEnSet = new Set(seenEnList);
   const tail = Array.isArray(recentTailList) ? recentTailList : [];
   // Ограничиваем окно исключения так, чтобы оно не могло охватить ВЕСЬ
   // словарь (иначе, при маленьком словаре, единственным вариантом снова
@@ -8065,7 +8085,8 @@ async function handleHelp(chatId) {
       "Чтобы добавить слова — просто пришли строки вида «English . перевод», " +
       "хоть одну, хоть весь список с урока сразу.\n\n" +
       "Папки: чтобы слова лежали отдельной группой, начни сообщение со строки с #названием, " +
-      "например #школа, а ниже — слова. Тренировать потом можно каждую папку отдельно.",
+      "например #школа, а ниже — слова. Если слово уже есть в словаре, оно просто переедет в эту папку. " +
+      "Тренировать потом можно каждую папку отдельно.",
     reply_markup: await mainReplyKeyboard(chatId),
   });
 }
@@ -8594,10 +8615,11 @@ async function handleBulkAdd(chatId, text) {
     return;
   }
 
-  const { added, total } = await addWords(chatId, pairs);
-  const skippedDupes = pairs.length - added;
+  const { added, moved, total } = await addWords(chatId, pairs);
+  const skippedDupes = pairs.length - added - moved;
   let msg = `✅ Добавлено новых слов: ${added}. Всего в словаре: ${total}.`;
   if (topic) msg += `\n📁 Папка: ${topic}.`;
+  if (moved) msg += `\nУже были в словаре и перенесены в папку «${topic}»: ${moved}.`;
   if (skippedDupes) msg += `\nПропущено как дубли: ${skippedDupes}.`;
   if (badLines.length) {
     msg += `\nНе распознано строк: ${badLines.length}${badLines.length <= 5 ? " — " + badLines.join(" | ") : ""}.`;
@@ -8919,7 +8941,8 @@ async function handleCallback(callbackQuery) {
       s.wrong[pending.correctEn] = (s.wrong[pending.correctEn] || 0) + 1;
     }
 
-    const statsSuffix = mode === "vocab" ? `\n\n${statsLine(seenEnList.length, vocab.length)}` : "";
+    const seenInVocab = mode === "vocab" ? seenEnList.filter((en) => vocab.some((w) => w.en === en)).length : 0;
+    const statsSuffix = mode === "vocab" ? `\n\n${statsLine(seenInVocab, vocab.length)}` : "";
     const resultText = `${isCorrect ? "✅" : "❌"} *${mdEscape(pending.correctEn)}* — ${mdEscape(pending.correctRu)}${statsSuffix}`;
 
     if (mode === "grammar") {
