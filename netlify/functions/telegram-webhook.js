@@ -9250,6 +9250,37 @@ async function handleDashboardCallback(chatId, messageId, data) {
 const REMIND_AFTER_MS = 2 * 24 * 60 * 60 * 1000; // 2 дня без активности
 const REMIND_MIN_GAP_MS = 3 * 24 * 60 * 60 * 1000; // не чаще раза в 3 дня
 
+// Тексты напоминаний (список Маргариты). Каждому человеку фразы выдаются
+// без повторов, пока не израсходуется весь список, и только потом круг
+// начинается заново — для этого в его записи хранятся индексы уже
+// использованных фраз (reminderPhrasesUsed).
+const REMINDER_PHRASES = [
+  "ку-ку",
+  "это снова я",
+  "по-моему, пришло время чуть-чуть позаниматься",
+  "заниматься английским — это совсем не больно, как комарик укусит",
+  "а вот и я",
+  "напоминаааю",
+  "напоминаю о чьём-то желании выучить английский",
+  "кукусики",
+  "если есть сейчас 5 минут, будет круто повторить слова",
+  "найдётся 3 минуты, чтобы повторить грамматику?",
+  "предлагаю просто повторить 20 слов",
+];
+
+function pickReminderPhrase(used) {
+  const usedSet = new Set(Array.isArray(used) ? used : []);
+  let candidates = REMINDER_PHRASES.map((_, i) => i).filter((i) => !usedSet.has(i));
+  if (!candidates.length) {
+    // Весь список пройден — начинаем заново, но не с той же фразы, что была последней.
+    const last = Array.isArray(used) && used.length ? used[used.length - 1] : -1;
+    candidates = REMINDER_PHRASES.map((_, i) => i).filter((i) => i !== last);
+    used = [];
+  }
+  const idx = candidates[Math.floor(Math.random() * candidates.length)];
+  return { text: REMINDER_PHRASES[idx], used: [...(Array.isArray(used) ? used : []), idx] };
+}
+
 async function sendReminders() {
   const ids = await identityStore().list();
   const entries = ids && ids.blobs ? ids.blobs : [];
@@ -9268,12 +9299,14 @@ async function sendReminders() {
 
     const chatId = entry.key;
     try {
-      await tg("sendMessage", {
-        chat_id: chatId,
-        text: "👋 Давно не виделись! Может, немного попрактикуемся? Жми /start или любую кнопку внизу.\n\n(Не хочешь получать напоминания — напиши /reminders off.)",
-      });
+      const picked = pickReminderPhrase(info.reminderPhrasesUsed);
+      await tg("sendMessage", { chat_id: chatId, text: picked.text });
       sentCount += 1;
-      await updateIdentity(chatId, (current) => ({ ...current, lastReminderSent: new Date().toISOString() }));
+      await updateIdentity(chatId, (current) => ({
+        ...current,
+        lastReminderSent: new Date().toISOString(),
+        reminderPhrasesUsed: picked.used,
+      }));
     } catch (err) {
       // не критично — пропускаем этого человека (например, заблокировал бота) и идём дальше
     }
