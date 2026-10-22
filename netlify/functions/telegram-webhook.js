@@ -7531,7 +7531,25 @@ const OPTIONS_COUNT = 6; // 1 правильный + 5 неверных вари
 // вместе с pending, из рук в руки: каждый новый вопрос сохраняет свою
 // версию истории, а следующий её просто забирает оттуда, без отдельного
 // похода в другое хранилище.
-function buildQuestion(vocab, wrongMap, prefix, forbiddenEn, seenEnList, recentTailList) {
+// Направление вопроса в лексике: "en-ru" (по умолчанию) — показываем
+// английское слово, варианты по-русски; "ru-en" — наоборот. Хранится в
+// записи ученика (identity.vocabDirection), переключается кнопкой
+// «🔁 …» под каждым вопросом (callback vdir:toggle).
+const VOCAB_DIRECTION_EN_RU = "en-ru";
+const VOCAB_DIRECTION_RU_EN = "ru-en";
+
+function vocabDirectionOf(identity) {
+  return identity && identity.vocabDirection === VOCAB_DIRECTION_RU_EN ? VOCAB_DIRECTION_RU_EN : VOCAB_DIRECTION_EN_RU;
+}
+
+function vocabDirectionToggleButton(direction) {
+  return {
+    text: direction === VOCAB_DIRECTION_RU_EN ? "🔁 Спрашивать по-английски" : "🔁 Спрашивать по-русски",
+    callback_data: "vdir:toggle",
+  };
+}
+
+function buildQuestion(vocab, wrongMap, prefix, forbiddenEn, seenEnList, recentTailList, direction = VOCAB_DIRECTION_EN_RU) {
   // История «отработанных» слов могла накопиться в другой папке/источнике
   // (ученик переключил тему) — оставляем только те, что есть в текущем
   // списке, иначе счётчик показывал бы «51/1 слов отработано».
@@ -7560,8 +7578,10 @@ function buildQuestion(vocab, wrongMap, prefix, forbiddenEn, seenEnList, recentT
   const distractors = pickDistractors(vocab, correct, Math.min(OPTIONS_COUNT - 1, vocab.length - 1));
   const options = shuffle([correct, ...distractors]);
   const correctPos = options.indexOf(correct);
-  const keyboard = options.map((o, i) => [{ text: o.ru, callback_data: `a:${i}` }]);
-  const questionText = `🎯 Как переводится: *${mdEscape(correct.en)}*?`;
+  const reversed = direction === VOCAB_DIRECTION_RU_EN;
+  const keyboard = options.map((o, i) => [{ text: reversed ? o.en : o.ru, callback_data: `a:${i}` }]);
+  keyboard.push([vocabDirectionToggleButton(direction)]);
+  const questionText = reversed ? `🎯 Как по-английски: *${mdEscape(correct.ru)}*?` : `🎯 Как переводится: *${mdEscape(correct.en)}*?`;
   const text = prefix ? `${prefix}\n\n${questionText}` : questionText;
 
   const newSeenEn = resetCycle ? [correct.en] : seenEnSet.has(correct.en) ? seenEnList || [] : [...(seenEnList || []), correct.en];
@@ -7705,7 +7725,7 @@ async function sendQuestion(chatId, stats, prefix, modeOverride, levelOverride, 
   const seenEnList = prevPending && Array.isArray(prevPending.seenEn) ? prevPending.seenEn : [];
   const recentTailList = prevPending && Array.isArray(prevPending.recentTail) ? prevPending.recentTail : [];
 
-  const picked = buildQuestion(vocab, stats.wrong, prefix, null, seenEnList, recentTailList);
+  const picked = buildQuestion(vocab, stats.wrong, prefix, null, seenEnList, recentTailList, vocabDirectionOf(trialIdentity));
   picked.topic = topic;
   picked.shared = shared;
   await deliverQuestion(chatId, picked);
@@ -8818,6 +8838,20 @@ async function handleCallback(callbackQuery) {
     return;
   }
 
+  if (data === "vdir:toggle") {
+    const updated = await updateIdentity(chatId, (current) => ({
+      ...current,
+      vocabDirection: vocabDirectionOf(current) === VOCAB_DIRECTION_RU_EN ? VOCAB_DIRECTION_EN_RU : VOCAB_DIRECTION_RU_EN,
+    }));
+    const label =
+      vocabDirectionOf(updated) === VOCAB_DIRECTION_RU_EN
+        ? "🔁 Теперь спрашиваю по-русски, а ты выбираешь английское слово."
+        : "🔁 Теперь спрашиваю по-английски, а ты выбираешь перевод.";
+    const stats = await getStats(chatId);
+    await sendQuestion(chatId, stats, label, "vocab");
+    return;
+  }
+
   if (data === "start") {
     const stats = await getStats(chatId);
     await sendQuestion(chatId, stats);
@@ -9031,7 +9065,7 @@ async function handleCallback(callbackQuery) {
     } else if (mode === "idiomtranslate") {
       picked = buildIdiomTranslatePicked(resultText, pending.correctEn);
     } else if (vocab.length) {
-      picked = buildQuestion(vocab, s.wrong, resultText, pending.correctEn, seenEnList, recentTailList);
+      picked = buildQuestion(vocab, s.wrong, resultText, pending.correctEn, seenEnList, recentTailList, vocabDirectionOf(gateIdentity));
       picked.topic = pending.topic || null;
       picked.shared = pending.shared || null;
     }
