@@ -7722,12 +7722,13 @@ const BTN_VOCAB = "📚 Лексика";
 const BTN_IRREGULAR = "🔄 Неправильные глаголы";
 const BTN_GRAMMAR = "📝 Грамматика";
 const BTN_HIDE = "🔽 Скрыть меню";
+const BTN_REMINDERS = "🔔 Напоминания";
 
 async function mainReplyKeyboard(chatId) {
   const admin = await isAdmin(chatId);
   const rows = [
     [BTN_VOCAB, BTN_IRREGULAR, BTN_GRAMMAR],
-    ["/start", BTN_HIDE],
+    ["/start", BTN_REMINDERS, BTN_HIDE],
   ];
   if (admin) rows.push(["/students"]);
   return {
@@ -8078,8 +8079,10 @@ async function handleHelp(chatId) {
       "/play — новый вопрос\n" +
       "/score — статистика\n" +
       "/count — сколько слов в словаре\n" +
+      "/folders — какие у тебя папки и сколько в них слов\n" +
       "/delete <English> — удалить слово (можно сразу список, по одному на строку)\n" +
       "/reset — сбросить прогресс\n" +
+      "/reminders (или кнопка «🔔 Напоминания») — как часто напоминать о практике: каждый день, раз в 2–3 дня, раз в неделю или никогда\n" +
       "/hidemenu (или кнопка «🔽 Скрыть меню») — убрать нижнее меню (если на телефоне не видно переписку)\n" +
       "/showmenu — вернуть его обратно\n\n" +
       "Чтобы добавить слова — просто пришли строки вида «English . перевод», " +
@@ -8116,6 +8119,25 @@ async function handleReset(chatId) {
 async function handleCount(chatId) {
   const vocab = await getVocab(chatId);
   await tg("sendMessage", { chat_id: chatId, text: `В словаре сейчас ${vocab.length} слов.`, reply_markup: await mainReplyKeyboard(chatId) });
+}
+
+// /folders — какие папки есть у ученика и сколько в каждой слов, плюс
+// короткая подсказка, как завести новую.
+async function handleFolders(chatId) {
+  const vocab = await getVocab(chatId);
+  const counts = new Map();
+  for (const w of vocab) {
+    const key = w.topic || GENERAL_TOPIC;
+    counts.set(key, (counts.get(key) || 0) + 1);
+  }
+  const lines = [...counts.entries()]
+    .sort((a, b) => (a[0] === GENERAL_TOPIC ? -1 : b[0] === GENERAL_TOPIC ? 1 : a[0].localeCompare(b[0], "ru")))
+    .map(([key, n]) => `📁 ${topicLabel(key)} — ${n}`);
+  const text =
+    (lines.length ? `Твои папки:\n${lines.join("\n")}` : "Папок пока нет — словарь пустой.") +
+    "\n\nНовая папка создаётся сама: пришли сообщение, где первая строка — #название, а ниже слова в формате «English . перевод». " +
+    "Например:\n#лексика\nreliable . надёжный\n\nСлова, которые уже есть в словаре, при этом переедут в указанную папку.";
+  await tg("sendMessage", { chat_id: chatId, text, reply_markup: await mainReplyKeyboard(chatId) });
 }
 
 // Убрать/вернуть нижнее меню — на маленьких экранах оно занимает много
@@ -8262,23 +8284,19 @@ async function handleAddTo(chatId, argText) {
     return;
   }
 
-  const pairs = [];
-  for (const line of lines.slice(1)) {
-    const parsed = parseVocabLine(line);
-    if (parsed) {
-      if (topicRaw) parsed.topic = topicRaw;
-      pairs.push(parsed);
-    }
-  }
+  // Папку можно указать и на первой строке (/addto @user #тема), и как у
+  // учеников — отдельной строкой #тема перед словами.
+  const { topic, pairs } = await parseWordsWithTopic(targetId, lines.slice(1).join("\n"), topicRaw || null);
   if (!pairs.length) {
     await tg("sendMessage", { chat_id: chatId, text: "Не нашла ни одной пары «слово - перевод» после первой строки." });
     return;
   }
 
-  const { added, total } = await addWords(targetId, pairs);
-  const skippedDupes = pairs.length - added;
+  const { added, moved, total } = await addWords(targetId, pairs);
+  const skippedDupes = pairs.length - added - moved;
   let msg = `✅ Добавлено в словарь ${targetRaw}: ${added}. Всего у него в словаре: ${total}.`;
-  if (topicRaw) msg += `\nТема: ${topicRaw}.`;
+  if (topic) msg += `\n📁 Папка: ${topic}.`;
+  if (moved) msg += `\nУже были в словаре и перенесены в папку «${topic}»: ${moved}.`;
   if (skippedDupes) msg += `\nПропущено как дубли: ${skippedDupes}.`;
   await tg("sendMessage", { chat_id: chatId, text: msg });
 }
@@ -8454,6 +8472,51 @@ async function handleDeleteShared(chatId, argText) {
   await tg("sendMessage", { chat_id: chatId, text: msg });
 }
 
+// Только для админов: /broadcast <текст> — разослать сообщение всем, у кого
+// есть доступ к боту (одобренные ученики и те, у кого открыт пробный
+// доступ к фразам). Вместе с текстом каждому обновляется нижнее меню —
+// так новые кнопки (например «🔔 Напоминания») появляются у всех сразу,
+// а не только после следующей команды. Текст — всё, что после /broadcast,
+// можно в несколько строк.
+async function handleBroadcast(chatId, argText) {
+  if (!(await isAdmin(chatId))) {
+    await tg("sendMessage", { chat_id: chatId, text: "Эта команда недоступна." });
+    return;
+  }
+  const text = argText.trim();
+  if (!text) {
+    await tg("sendMessage", {
+      chat_id: chatId,
+      text: "Формат:\n/broadcast текст объявления\n(можно в несколько строк — уйдёт всем ученикам с доступом к боту)",
+    });
+    return;
+  }
+  const ids = await identityStore().list();
+  const entries = ids && ids.blobs ? ids.blobs : [];
+  let sent = 0;
+  let failed = 0;
+  let skipped = 0;
+  for (const entry of entries) {
+    const info = await identityStore().get(entry.key, { type: "json" });
+    if (!info) continue;
+    if (info.approved === false && !info.phrasesAccess) {
+      skipped += 1;
+      continue;
+    }
+    try {
+      const res = await tg("sendMessage", { chat_id: entry.key, text, reply_markup: await mainReplyKeyboard(entry.key) });
+      if (res && res.ok) sent += 1;
+      else failed += 1;
+    } catch (err) {
+      failed += 1;
+    }
+  }
+  await tg("sendMessage", {
+    chat_id: chatId,
+    text: `📣 Разослано: ${sent}.${failed ? ` Не доставлено (заблокировали бота и т.п.): ${failed}.` : ""}${skipped ? ` Без доступа, пропущено: ${skipped}.` : ""}`,
+  });
+}
+
 async function handleSharedList(chatId) {
   if (!(await isAdmin(chatId))) {
     await tg("sendMessage", { chat_id: chatId, text: "Эта команда недоступна." });
@@ -8570,30 +8633,34 @@ async function handleDelete(chatId, argText) {
 
 // Любой не-командный текст (или явный /add) пытаемся распарсить как одну
 // или несколько пар "слово - перевод" и добавить в словарь.
-async function handleBulkAdd(chatId, text) {
+// Разбор текста со словами, общий для трёх входов: сообщения ученика,
+// админской команды /addto и страницы /admin.html. Необязательная «папка»:
+// если первая непустая строка начинается с # — это название папки, и все
+// слова из этого текста попадают в неё (а уже имеющиеся в словаре —
+// переезжают, см. addWords). Слова без #папки идут в «Общие». Если у
+// владельца словаря уже есть папка с таким названием без учёта регистра,
+// берём её написание, чтобы не плодить «Школа»/«школа».
+// Раньше #папку понимали только сообщения ученика, а /addto и /admin.html
+// молча пропускали строку с # и клали слова в «Общие».
+async function parseWordsWithTopic(ownerChatId, text, forcedTopic) {
   const lines = text.split(/\r?\n/);
   const pairs = [];
   const badLines = [];
+  let topic = forcedTopic || null;
 
-  // Необязательная "папка": если первая непустая строка — это #тема (и не
-  // пара "слово - перевод"), все слова из этого сообщения попадают в эту
-  // тему. Так ученик сам делит свои слова на группы (например, слова с
-  // урока и #школа), не обращаясь к админу. Слова без #темы идут в "Общие".
-  let topic = null;
   const firstIdx = lines.findIndex((l) => l.trim());
   if (firstIdx !== -1) {
     const first = lines[firstIdx].trim();
-    if (first.startsWith("#") && !parseVocabLine(first)) {
+    if (first.startsWith("#")) {
       const name = first.replace(/^#+/, "").trim().slice(0, 40);
-      if (name) {
-        // Если у ученика уже есть тема с таким названием (без учёта
-        // регистра) — берём её написание, чтобы не плодить "Школа"/"школа".
-        const existing = await getVocab(chatId);
-        const match = existing.map((w) => w.topic).find((t) => t && t.toLowerCase() === name.toLowerCase());
-        topic = match || name;
-      }
+      if (name && !topic) topic = name;
       lines.splice(firstIdx, 1);
     }
+  }
+  if (topic) {
+    const existing = await getVocab(ownerChatId);
+    const match = existing.map((w) => w.topic).find((t) => t && t.toLowerCase() === topic.toLowerCase());
+    topic = match || topic;
   }
 
   for (const line of lines) {
@@ -8604,6 +8671,11 @@ async function handleBulkAdd(chatId, text) {
       pairs.push(parsed);
     } else badLines.push(line.trim());
   }
+  return { topic, pairs, badLines };
+}
+
+async function handleBulkAdd(chatId, text) {
+  const { topic, pairs, badLines } = await parseWordsWithTopic(chatId, text);
 
   if (!pairs.length) {
     await tg("sendMessage", {
@@ -8738,6 +8810,11 @@ async function handleCallback(callbackQuery) {
 
   if (data.startsWith("dash:")) {
     await handleDashboardCallback(chatId, messageId, data);
+    return;
+  }
+
+  if (data.startsWith("remfreq:")) {
+    await handleReminderFrequencyCallback(chatId, messageId, data);
     return;
   }
 
@@ -9243,12 +9320,48 @@ async function handleDashboardCallback(chatId, messageId, data) {
   }
 }
 
-// Напоминания о практике: если человек не появлялся дольше REMIND_AFTER_MS
-// (и мы не напоминали ему за последние REMIND_MIN_GAP_MS, чтобы не слать
-// каждый день подряд одному и тому же), присылаем ему короткий пинг.
-// Каждый может отключить это себе командой /reminders off.
-const REMIND_AFTER_MS = 2 * 24 * 60 * 60 * 1000; // 2 дня без активности
-const REMIND_MIN_GAP_MS = 3 * 24 * 60 * 60 * 1000; // не чаще раза в 3 дня
+// Напоминания о практике: если человек не появлялся дольше выбранного им
+// срока (и мы не напоминали ему за этот же срок), присылаем короткий пинг.
+// Каждый может отключить это себе через /reminders или кнопку «🔔 Напоминания».
+// Периодичность каждый ученик выбирает сам (/reminders или кнопка
+// «🔔 Напоминания»): раз в N дней, где N — из REMINDER_FREQUENCIES. Хранится
+// в identity.reminderEveryDays; если не выбрано — REMINDER_DEFAULT_DAYS.
+// Напоминание уходит, когда человек не появлялся N дней И прошлое
+// напоминание было не раньше, чем N дней назад. Проверки идут три раза в
+// день, поэтому из «N дней» вычитаем небольшой допуск, иначе ежедневное
+// напоминание сползало бы на следующую проверку (23 ч 59 мин < 24 ч).
+const DAY_MS = 24 * 60 * 60 * 1000;
+const REMIND_TOLERANCE_MS = 3 * 60 * 60 * 1000;
+const REMINDER_DEFAULT_DAYS = 3;
+const REMINDER_FREQUENCIES = [
+  { days: 1, label: "Каждый день" },
+  { days: 2, label: "Раз в 2 дня" },
+  { days: 3, label: "Раз в 3 дня" },
+  { days: 7, label: "Раз в неделю" },
+];
+
+function reminderDaysOf(identity) {
+  const d = identity && Number(identity.reminderEveryDays);
+  return REMINDER_FREQUENCIES.some((f) => f.days === d) ? d : REMINDER_DEFAULT_DAYS;
+}
+
+function reminderStatusText(identity) {
+  const enabled = !identity || identity.remindersEnabled !== false;
+  if (!enabled) return "Напоминания сейчас выключены.";
+  const days = reminderDaysOf(identity);
+  const label = REMINDER_FREQUENCIES.find((f) => f.days === days).label.toLowerCase();
+  return `Напоминания сейчас: ${label} (если за это время ты не заходил(а) позаниматься).`;
+}
+
+function reminderKeyboard(identity) {
+  const enabled = !identity || identity.remindersEnabled !== false;
+  const days = reminderDaysOf(identity);
+  const rows = REMINDER_FREQUENCIES.map((f) => [
+    { text: `${enabled && f.days === days ? "✅ " : ""}${f.label}`, callback_data: `remfreq:${f.days}` },
+  ]);
+  rows.push([{ text: `${enabled ? "" : "✅ "}🔕 Выключить`, callback_data: "remfreq:off" }]);
+  return { inline_keyboard: rows };
+}
 
 // Тексты напоминаний (список Маргариты). Каждому человеку фразы выдаются
 // без повторов, пока не израсходуется весь список, и только потом круг
@@ -9291,11 +9404,13 @@ async function sendReminders() {
     if (!info) continue;
     if (info.remindersEnabled === false) continue;
 
+    const gapMs = reminderDaysOf(info) * DAY_MS - REMIND_TOLERANCE_MS;
+
     const lastSeenMs = info.lastSeen ? new Date(info.lastSeen).getTime() : 0;
-    if (!lastSeenMs || now - lastSeenMs < REMIND_AFTER_MS) continue;
+    if (!lastSeenMs || now - lastSeenMs < gapMs) continue;
 
     const lastReminderMs = info.lastReminderSent ? new Date(info.lastReminderSent).getTime() : 0;
-    if (lastReminderMs && now - lastReminderMs < REMIND_MIN_GAP_MS) continue;
+    if (lastReminderMs && now - lastReminderMs < gapMs) continue;
 
     const chatId = entry.key;
     try {
@@ -9326,11 +9441,29 @@ async function handleReminders(chatId, argText) {
     await tg("sendMessage", { chat_id: chatId, text: "Готово, буду иногда напоминать о практике, если долго не будет активности." });
     return;
   }
-  const identity = await identityStore().get(String(chatId), { type: "json" });
-  const enabled = !identity || identity.remindersEnabled !== false;
+  const identity = await readIdentity(chatId);
   await tg("sendMessage", {
     chat_id: chatId,
-    text: `Напоминания сейчас ${enabled ? "включены" : "выключены"}.\n/reminders on — включить\n/reminders off — выключить`,
+    text: `${reminderStatusText(identity)}\n\nКак часто напоминать?`,
+    reply_markup: reminderKeyboard(identity),
+  });
+}
+
+// Нажатие на кнопку периодичности (remfreq:<дни> или remfreq:off) —
+// сохраняем выбор и перерисовываем то же сообщение с новой галочкой.
+async function handleReminderFrequencyCallback(chatId, messageId, data) {
+  const choice = data.slice("remfreq:".length);
+  const updated = await updateIdentity(chatId, (current) => {
+    if (choice === "off") return { ...current, remindersEnabled: false };
+    const days = parseInt(choice, 10);
+    if (!REMINDER_FREQUENCIES.some((f) => f.days === days)) return current;
+    return { ...current, remindersEnabled: true, reminderEveryDays: days };
+  });
+  await tg("editMessageText", {
+    chat_id: chatId,
+    message_id: messageId,
+    text: `${reminderStatusText(updated)}\n\nКак часто напоминать?`,
+    reply_markup: reminderKeyboard(updated),
   });
 }
 
@@ -9399,6 +9532,7 @@ async function handleMessage(message) {
 
   if (text === "/start" || /^\/start\s+\S+/.test(text)) return handleStart(chatId);
   if (text === BTN_VOCAB) return handleModeVocab(chatId);
+  if (text === BTN_REMINDERS) return handleReminders(chatId, "");
   if (text === BTN_IRREGULAR) return handleModeIrregular(chatId);
   if (text === BTN_GRAMMAR) return handleModeGrammar(chatId);
   if (text === "/mode") return handleMode(chatId);
@@ -9479,6 +9613,7 @@ async function handleMessage(message) {
   if (text === "/score" || text === "/stats") return handleScore(chatId);
   if (text === "/reset") return handleReset(chatId);
   if (text === "/count") return handleCount(chatId);
+  if (/^\/folders(@\w+)?$/i.test(text)) return handleFolders(chatId);
   if (text === "/migrate") return handleMigrate(chatId);
   if (/^\/clearvocab(@\w+)?\s*/i.test(text)) {
     return handleClearVocab(chatId, text.replace(/^\/clearvocab(@\w+)?\s*/i, ""));
@@ -9502,6 +9637,9 @@ async function handleMessage(message) {
     return handleDeleteShared(chatId, text.replace(/^\/deleteshared(@\w+)?\s*/i, ""));
   }
   if (text === "/sharedlist") return handleSharedList(chatId);
+  if (/^\/broadcast(@\w+)?(\s|$)/i.test(text)) {
+    return handleBroadcast(chatId, text.replace(/^\/broadcast(@\w+)?\s*/i, ""));
+  }
   if (/^\/viewvocab(@\w+)?\s*/i.test(text)) {
     return handleViewVocab(chatId, text.replace(/^\/viewvocab(@\w+)?\s*/i, ""));
   }
@@ -9557,20 +9695,23 @@ async function handleAdminApi(body) {
     });
   }
 
-  const wordsText = body.words || "";
-  const lines = wordsText.split(/\r?\n/);
-  const pairs = [];
-  for (const line of lines) {
-    const parsed = parseVocabLine(line);
-    if (parsed) pairs.push(parsed);
-  }
+  const { topic, pairs, badLines } = await parseWordsWithTopic(targetId, body.words || "");
   if (!pairs.length) {
     return new Response(JSON.stringify({ ok: false, error: "Не нашла ни одной пары «слово - перевод»." }), { status: 400, headers });
   }
 
-  const { added, total } = await addWords(targetId, pairs);
+  const { added, moved, total } = await addWords(targetId, pairs);
   return new Response(
-    JSON.stringify({ ok: true, added, total, skippedDupes: pairs.length - added, resolvedTarget: targetId }),
+    JSON.stringify({
+      ok: true,
+      added,
+      moved,
+      total,
+      topic,
+      skippedDupes: pairs.length - added - moved,
+      badLines: badLines.length,
+      resolvedTarget: targetId,
+    }),
     { status: 200, headers }
   );
 }

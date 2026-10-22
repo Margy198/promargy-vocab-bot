@@ -141,8 +141,8 @@
 
       <div class="field">
         <label for="words">Слова</label>
-        <textarea id="words" placeholder="English . перевод&#10;Another word . другой перевод"></textarea>
-        <div class="hint">По одной строке, формат «English . перевод» — как обычно для бота.</div>
+        <textarea id="words" placeholder="#папка (необязательно)&#10;English . перевод&#10;Another word . другой перевод"></textarea>
+        <div class="hint">По одной строке, формат «English . перевод» — как обычно для бота. Чтобы слова легли в папку ученика, первой строкой напиши #название (например #итальянский); слова, которые у него уже есть, переедут в эту папку.</div>
       </div>
 
       <button type="submit" id="submitBtn">Добавить</button>
@@ -202,7 +202,10 @@
       const data = await res.json();
       if (data.ok) {
         let msg = `Добавлено: ${data.added}. Всего у него в словаре: ${data.total}.`;
+        if (data.topic) msg += ` Папка: ${data.topic}.`;
+        if (data.moved) msg += ` Уже были и перенесены в папку: ${data.moved}.`;
         if (data.skippedDupes) msg += ` Пропущено как дубли: ${data.skippedDupes}.`;
+        if (data.badLines) msg += ` Не распознано строк: ${data.badLines}.`;
         showResult("ok", msg);
         document.getElementById("words").value = "";
       } else {
