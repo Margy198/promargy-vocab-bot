@@ -195,6 +195,109 @@ function emptyStats() {
   return { answered: 0, correct: 0, streak: 0, bestStreak: 0, wrong: {} };
 }
 
+// Склонение: pluralRu(5, ["день", "дня", "дней"]) → "дней".
+function pluralRu(n, forms) {
+  const a = Math.abs(n) % 100;
+  const b = a % 10;
+  if (a > 10 && a < 20) return forms[2];
+  if (b > 1 && b < 5) return forms[1];
+  if (b === 1) return forms[0];
+  return forms[2];
+}
+
+// --- Геймификация ---
+// Серия дней (stats.dayStreak / dayStreakLast / bestDayStreak): сколько дней
+// подряд (по мск) человек отвечал хотя бы на один вопрос. Дневная цель
+// (identity.dailyGoal, 0 = без цели): сколько ответов в день хочет ученик;
+// прогресс считается по stats.daily. Всё это показывается после ответа,
+// в /score, в напоминаниях и в итогах недели (sendWeeklySummaries).
+const DAILY_GOAL_CHOICES = [10, 20, 30];
+const DAILY_GOAL_DEFAULT = 10;
+
+function dailyGoalOf(identity) {
+  if (!identity || identity.dailyGoal == null) return DAILY_GOAL_DEFAULT;
+  const g = Number(identity.dailyGoal);
+  return DAILY_GOAL_CHOICES.includes(g) ? g : 0;
+}
+
+// Серия по истории daily, заканчивающаяся на endDate (для тех, у кого ещё
+// нет сохранённого dayStreak — чтобы после выкладки серия не начиналась с 1).
+function streakFromDaily(daily, endDate) {
+  let n = 0;
+  let cursor = Date.parse(`${endDate}T00:00:00Z`);
+  while ((daily || {})[new Date(cursor).toISOString().slice(0, 10)] > 0) {
+    n += 1;
+    cursor -= DAY_MS;
+  }
+  return n;
+}
+
+// Текущая серия с учётом «сегодня ещё не занимался, но вчера занимался —
+// серия жива». Возвращает 0, если серия уже прервана.
+function currentDayStreak(stats, nowMs = Date.now()) {
+  if (!stats) return 0;
+  const today = mskNow(nowMs).date;
+  const yesterday = mskNow(nowMs - DAY_MS).date;
+  if (stats.dayStreakLast === today || stats.dayStreakLast === yesterday) return stats.dayStreak || 0;
+  if (!stats.dayStreakLast) {
+    const d = stats.daily || {};
+    if (d[today] > 0) return streakFromDaily(d, today);
+    return streakFromDaily(d, yesterday);
+  }
+  return 0;
+}
+
+function streakLine(n) {
+  return `🔥 ${n} ${pluralRu(n, ["день", "дня", "дней"])} подряд`;
+}
+
+// Ачивки. Выданные хранятся в stats.achievements = { id: "YYYY-MM-DD" }.
+// Условия проверяются после каждого ответа (checkAchievements); момент
+// получения — короткая строка под ответом, список — /achievements.
+const ACHIEVEMENTS = [
+  { id: "words100", emoji: "💯", title: "Первые 100 слов", desc: "100 правильных ответов" },
+  { id: "words500", emoji: "🚀", title: "Пятьсот", desc: "500 правильных ответов" },
+  { id: "words1000", emoji: "🏔", title: "Тысяча", desc: "1000 правильных ответов" },
+  { id: "streak20", emoji: "🎯", title: "Снайпер", desc: "20 правильных ответов подряд" },
+  { id: "days7", emoji: "🔥", title: "Неделя без пропусков", desc: "7 дней занятий подряд" },
+  { id: "days30", emoji: "🌟", title: "Месяц без пропусков", desc: "30 дней занятий подряд" },
+  { id: "defeat5", emoji: "🏆", title: "Победитель", desc: "победить слово, в котором ошибался 5 раз" },
+  { id: "folder", emoji: "📁", title: "Папка пройдена", desc: "пройти все слова папки или словаря (от 5 слов)" },
+  { id: "blitz10", emoji: "⚡", title: "Блиц-мастер", desc: "10 из 10 в блице" },
+];
+
+// Сколько правильных ответов подряд нужно, чтобы слово ушло из списка
+// ошибок («победить» слово). Промежуточный счёт — stats.recover[en].
+const DEFEAT_STREAK = 3;
+const BLITZ_TOTAL = 10;
+
+// Проверяет условия и выдаёт новые ачивки прямо в объекте stats (s).
+// ctx: { defeated: {en, errors} | null, folderDone: bool, blitzPerfect: bool }.
+// Возвращает список только что полученных ачивок.
+function checkAchievements(s, ctx, today) {
+  s.achievements = { ...(s.achievements || {}) };
+  const got = [];
+  const award = (id) => {
+    if (s.achievements[id]) return;
+    s.achievements[id] = today;
+    got.push(ACHIEVEMENTS.find((a) => a.id === id));
+  };
+  if (s.correct >= 100) award("words100");
+  if (s.correct >= 500) award("words500");
+  if (s.correct >= 1000) award("words1000");
+  if (s.streak >= 20) award("streak20");
+  if ((s.dayStreak || 0) >= 7) award("days7");
+  if ((s.dayStreak || 0) >= 30) award("days30");
+  if (ctx.defeated && ctx.defeated.errors >= 5) award("defeat5");
+  if (ctx.folderDone) award("folder");
+  if (ctx.blitzPerfect) award("blitz10");
+  return got;
+}
+
+function achievementLine(a) {
+  return `🏅 Ачивка: ${a.emoji} ${a.title}!`;
+}
+
 // В журнал в Blobs раньше писалась КАЖДАЯ строчка: 5–10 записей на одно
 // нажатие, каждая — скачать весь журнал и записать обратно (а при двух
 // учениках одновременно — ещё и повторы из-за конфликтов). Теперь в Blobs
@@ -7615,6 +7718,7 @@ async function deliverQuestion(chatId, picked) {
     exerciseType: picked.exerciseType || null,
     topic: picked.topic !== undefined ? picked.topic : null,
     shared: picked.shared !== undefined ? picked.shared : null,
+    blitz: picked.blitz || null,
   });
 }
 
@@ -7760,7 +7864,7 @@ async function handleStart(chatId) {
       "То, в чём ошибаешься, будет попадаться чаще.\n\n" +
       "Чтобы добавить новые слова — просто вставь сюда строки вида «English . перевод» " +
       "(можно сразу много строк за раз), я сама их разберу.\n\n" +
-      "Команды: /mode, /play, /score, /count, /delete <слово>, /reset, /help",
+      "Подробная инструкция — /guide, список команд — /help.",
     reply_markup: await mainReplyKeyboard(chatId),
   });
   await handleMode(chatId);
@@ -8084,19 +8188,66 @@ async function handleMode(chatId) {
   });
 }
 
+// /guide (/instruction) — подробная инструкция для ученика: что где
+// нажимать. /help остаётся коротким списком команд.
+const GUIDE_TEXT =
+  "📖 Как пользоваться тренажёром\n" +
+  "\n" +
+  "1️⃣ Заниматься\n" +
+  "Внизу экрана три кнопки: 📚 Лексика, 🔄 Неправильные глаголы, 📝 Грамматика. Нажми любую — бот задаст вопрос с вариантами ответа. " +
+  "Отвечаешь кнопкой, бот показывает ✅ или ❌ с правильным ответом и сразу даёт следующий вопрос. Остановиться можно в любой момент, просто не отвечай.\n" +
+  "• Лексика → «Мой словарь» — твои слова; «Общая библиотека» — готовые наборы по уровням; «150 американских фраз» — разговорные выражения.\n" +
+  "• Слова, в которых ошибаешься, будут попадаться чаще, пока не ответишь верно 3 раза подряд — тогда бот напишет, что слово побеждено.\n" +
+  "• /swap — поменять направление: бот показывает русское слово, а ты выбираешь английское. Ещё раз /swap — обратно.\n" +
+  "• /blitz — 10 вопросов на время по всему словарю, с рекордом.\n" +
+  "\n" +
+  "2️⃣ Свои слова\n" +
+  "Просто пришли боту строки вида «слово . перевод» — хоть одну, хоть весь список с урока:\n" +
+  "reliable . надёжный\n" +
+  "keep up . не отставать\n" +
+  "• Папки: чтобы слова лежали отдельной группой, первой строкой напиши #название, например #школа, а ниже слова. Слово, которое уже есть, переедет в эту папку. Потом в «Мой словарь» можно выбрать папку или «Все темы вместе».\n" +
+  "• /folders — список твоих папок. /count — сколько всего слов. /delete слово — удалить (можно список, по одному на строку).\n" +
+  "\n" +
+  "3️⃣ Напоминания, время и цель\n" +
+  "Нажми 🔔 Напоминания внизу (или /reminders). В одном меню:\n" +
+  "• как часто: каждый день / раз в 2 дня / раз в 3 дня / раз в неделю;\n" +
+  "• во сколько: отметь галочками до 3 часов (время по мск) — сколько отметишь, столько раз в день и придёт;\n" +
+  "• 🎯 цель на день: 10 / 20 / 30 слов или без цели. Если цель на сегодня выполнена, напоминание не придёт;\n" +
+  "• 🔕 Выключить — напоминаний не будет совсем.\n" +
+  "Напоминание приходит, только если ты за это время не заходил(а) позаниматься.\n" +
+  "\n" +
+  "4️⃣ Прогресс\n" +
+  "• После ответа бот показывает прогресс по цели (🎯 7/20 за сегодня) и серию дней (🔥 5 дней подряд) — серия растёт, если отвечать хотя бы на один вопрос каждый день.\n" +
+  "• /score — статистика и слова, которые путаешь чаще всего.\n" +
+  "• /achievements — ачивки: первые 100 слов, 20 верных подряд, 7 дней подряд, побеждённое слово, пройденная папка, 10 из 10 в блице.\n" +
+  "• По воскресеньям вечером приходит итог недели.\n" +
+  "• /reset — сбросить весь прогресс (слова остаются).\n" +
+  "\n" +
+  "5️⃣ Мелочи\n" +
+  "• /start — главное меню. /help — короткий список команд.\n" +
+  "• 🔽 Скрыть меню (или /hidemenu) — убрать нижние кнопки, если на телефоне не видно переписку; /showmenu — вернуть.\n" +
+  "• Что-то не работает или непонятно — напиши преподавателю.";
+
+async function handleGuide(chatId) {
+  await tg("sendMessage", { chat_id: chatId, text: GUIDE_TEXT, reply_markup: await mainReplyKeyboard(chatId) });
+}
+
 async function handleHelp(chatId) {
   await tg("sendMessage", {
     chat_id: chatId,
     text:
+      "📖 Подробная инструкция — /guide\n\n" +
       "/mode — переключить лексика / грамматика\n" +
       "/play — новый вопрос\n" +
       "/score — статистика\n" +
       "/count — сколько слов в словаре\n" +
       "/folders — какие у тебя папки и сколько в них слов\n" +
+      "/blitz — 10 вопросов на время по всему словарю, с рекордом\n" +
+      "/achievements — твои ачивки\n" +
       "/swap — поменять направление в лексике: бот показывает русское слово, а ты выбираешь английское (и обратно)\n" +
       "/delete <English> — удалить слово (можно сразу список, по одному на строку)\n" +
       "/reset — сбросить прогресс\n" +
-      "/reminders (или кнопка «🔔 Напоминания») — как часто и во сколько напоминать о практике (каждый день, раз в 2–3 дня, раз в неделю или никогда; до 3 раз в день, время по мск)\n" +
+      "/reminders (или кнопка «🔔 Напоминания») — как часто и во сколько напоминать о практике (каждый день, раз в 2–3 дня, раз в неделю или никогда; до 3 раз в день, время по мск), и цель на день — 10/20/30 слов\n" +
       "/hidemenu (или кнопка «🔽 Скрыть меню») — убрать нижнее меню (если на телефоне не видно переписку)\n" +
       "/showmenu — вернуть его обратно\n\n" +
       "Чтобы добавить слова — просто пришли строки вида «English . перевод», " +
@@ -8118,9 +8269,16 @@ async function handleScore(chatId) {
     .slice(0, 5)
     .map(([w, c]) => `  • ${w} (${c})`)
     .join("\n");
+  const identity = await readIdentity(chatId);
+  const goal = dailyGoalOf(identity);
+  const todayCount = (stats.daily || {})[mskNow().date] || 0;
+  const dayStreak = currentDayStreak(stats);
+  const lines = [`📊 ${statsLine(practicedCount, vocab.length)}`];
+  if (goal) lines.push(todayCount >= goal ? `🎉 Цель на сегодня выполнена: ${todayCount}/${goal}` : `🎯 Сегодня: ${todayCount}/${goal}`);
+  if (dayStreak >= 1) lines.push(`${streakLine(dayStreak)}${stats.bestDayStreak > dayStreak ? ` (рекорд — ${stats.bestDayStreak})` : ""}`);
   await tg("sendMessage", {
     chat_id: chatId,
-    text: `📊 ${statsLine(practicedCount, vocab.length)}` + (missed ? `\n\nЧаще всего путаешь:\n${missed}` : ""),
+    text: lines.join("\n") + (missed ? `\n\nЧаще всего путаешь:\n${missed}` : ""),
     reply_markup: await mainReplyKeyboard(chatId),
   });
 }
@@ -8150,6 +8308,36 @@ async function handleSwapDirection(chatId) {
       : "🔁 Теперь спрашиваю по-английски, а ты выбираешь перевод. Поменять — /swap.";
   const stats = await getStats(chatId);
   await sendQuestion(chatId, stats, label, "vocab");
+}
+
+// /blitz — BLITZ_TOTAL вопросов по всему личному словарю на время.
+async function handleBlitz(chatId) {
+  const [vocab, stats, identity] = await Promise.all([getVocab(chatId), getStats(chatId), readIdentity(chatId)]);
+  if (vocab.length < 4) {
+    await tg("sendMessage", { chat_id: chatId, text: "Для блица нужно хотя бы 4 слова в словаре. Пришли слова в формате «English . перевод»." });
+    return;
+  }
+  const best = stats.blitzBest ? ` Рекорд: ${stats.blitzBest.correct}/${BLITZ_TOTAL} за ${stats.blitzBest.seconds} с.` : "";
+  const prefix = `⚡ Блиц: ${BLITZ_TOTAL} вопросов на время, по всему словарю.${best} Поехали!`;
+  const picked = buildQuestion(vocab, stats.wrong, prefix, null, [], [], vocabDirectionOf(identity));
+  picked.topic = null;
+  picked.shared = null;
+  picked.blitz = { total: BLITZ_TOTAL, answered: 0, correct: 0, startedAt: Date.now() };
+  await deliverQuestion(chatId, picked);
+}
+
+// /achievements — какие ачивки есть и какие ещё впереди.
+async function handleAchievements(chatId) {
+  const stats = await getStats(chatId);
+  const have = stats.achievements || {};
+  const lines = ACHIEVEMENTS.map((a) => (have[a.id] ? `✅ ${a.emoji} ${a.title} — ${have[a.id]}` : `⬜ ${a.emoji} ${a.title} — ${a.desc}`));
+  const n = Object.keys(have).filter((id) => ACHIEVEMENTS.some((a) => a.id === id)).length;
+  const blitz = stats.blitzBest ? `\n\n⚡ Рекорд блица: ${stats.blitzBest.correct}/${BLITZ_TOTAL} за ${stats.blitzBest.seconds} с` : "";
+  await tg("sendMessage", {
+    chat_id: chatId,
+    text: `🏅 Ачивки: ${n} из ${ACHIEVEMENTS.length}\n\n${lines.join("\n")}${blitz}`,
+    reply_markup: await mainReplyKeyboard(chatId),
+  });
 }
 
 async function handleFolders(chatId) {
@@ -8842,7 +9030,7 @@ async function handleCallback(callbackQuery) {
     return;
   }
 
-  if (data.startsWith("remfreq:") || data.startsWith("remhour:")) {
+  if (data.startsWith("remfreq:") || data.startsWith("remhour:") || data.startsWith("remgoal:")) {
     await handleReminderFrequencyCallback(chatId, messageId, data);
     return;
   }
@@ -9030,31 +9218,108 @@ async function handleCallback(callbackQuery) {
   const recentTailList = Array.isArray(pending.recentTail) ? pending.recentTail : [];
   let picked = null;
   let statsAfter = null;
+  let blitzSummary = null;
 
+  const dailyGoal = dailyGoalOf(gateIdentity);
   await withOptimisticUpdate(statsStore(), String(chatId), emptyStats, (current) => {
     const s = { ...current, wrong: { ...current.wrong }, daily: { ...(current.daily || {}) } };
     s.answered += 1;
-    const today = new Date().toISOString().slice(0, 10);
+    const nowMs = Date.now();
+    const today = mskNow(nowMs).date;
+    const yesterday = mskNow(nowMs - DAY_MS).date;
     s.daily[today] = (s.daily[today] || 0) + 1;
     // Храним только последние 30 дней — этого достаточно для "сегодня"/"за
-    // неделю" в дашборде, а запись не растёт бесконечно.
-    const cutoff = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+    // неделю" в дашборде и для итогов недели, а запись не растёт бесконечно.
+    const cutoff = mskNow(nowMs - 30 * DAY_MS).date;
     for (const day of Object.keys(s.daily)) {
       if (day < cutoff) delete s.daily[day];
     }
+
+    // Серия дней: первый ответ за сегодня продлевает её (если вчера
+    // занимался) или начинает заново.
+    let firstAnswerToday = false;
+    if (s.dayStreakLast !== today) {
+      firstAnswerToday = true;
+      if (s.dayStreakLast === yesterday) s.dayStreak = (s.dayStreak || 0) + 1;
+      else if (!s.dayStreakLast) s.dayStreak = streakFromDaily(s.daily, yesterday) + 1;
+      else s.dayStreak = 1;
+      s.dayStreakLast = today;
+      s.bestDayStreak = Math.max(s.bestDayStreak || 0, s.dayStreak);
+    }
+    const todayCount = s.daily[today];
+    const extraLines = [];
+    if (dailyGoal) {
+      if (todayCount === dailyGoal) {
+        extraLines.push(`🎉 Цель на сегодня выполнена: ${todayCount}/${dailyGoal}!`);
+        if (s.dayStreak >= 2) extraLines.push(streakLine(s.dayStreak));
+      } else if (todayCount < dailyGoal) {
+        extraLines.push(`🎯 ${todayCount}/${dailyGoal} за сегодня`);
+        if (firstAnswerToday && s.dayStreak >= 2) extraLines.push(streakLine(s.dayStreak));
+      }
+    } else if (firstAnswerToday && s.dayStreak >= 2) {
+      extraLines.push(streakLine(s.dayStreak));
+    }
+    // «Победить» слово: слово из списка ошибок уходит оттуда только после
+    // DEFEAT_STREAK правильных ответов подряд (раньше — после первого же).
+    s.recover = { ...(s.recover || {}) };
+    let defeated = null;
+    const en = pending.correctEn;
     if (isCorrect) {
       s.correct += 1;
       s.streak += 1;
       s.bestStreak = Math.max(s.bestStreak, s.streak);
-      delete s.wrong[pending.correctEn];
+      if (s.wrong[en]) {
+        s.recover[en] = (s.recover[en] || 0) + 1;
+        if (s.recover[en] >= DEFEAT_STREAK) {
+          defeated = { en, errors: s.wrong[en] };
+          delete s.wrong[en];
+          delete s.recover[en];
+        }
+      }
     } else {
       s.streak = 0;
-      s.wrong[pending.correctEn] = (s.wrong[pending.correctEn] || 0) + 1;
+      s.wrong[en] = (s.wrong[en] || 0) + 1;
+      delete s.recover[en];
+    }
+    if (defeated) extraLines.push(`🏆 «${defeated.en}» побеждено — ${DEFEAT_STREAK} раза подряд верно после ${defeated.errors} ${pluralRu(defeated.errors, ["ошибки", "ошибок", "ошибок"])}!`);
+
+    // Блиц: считаем ответы, на последнем — итог и рекорд.
+    let blitzNext = null;
+    let blitzFinal = null;
+    if (pending.blitz && pending.blitz.total) {
+      const b = { ...pending.blitz, answered: (pending.blitz.answered || 0) + 1, correct: (pending.blitz.correct || 0) + (isCorrect ? 1 : 0) };
+      if (b.answered >= b.total) {
+        const seconds = Math.max(1, Math.round((nowMs - (b.startedAt || nowMs)) / 1000));
+        const prev = s.blitzBest || null;
+        const isRecord = !prev || b.correct > prev.correct || (b.correct === prev.correct && seconds < prev.seconds);
+        if (isRecord) s.blitzBest = { correct: b.correct, seconds, date: today };
+        blitzFinal = { ...b, seconds, isRecord, prev };
+      } else {
+        blitzNext = b;
+      }
     }
 
+    const got = checkAchievements(s, { defeated, folderDone: false, blitzPerfect: !!(blitzFinal && blitzFinal.correct === blitzFinal.total) }, today);
+    extraLines.push(...got.map(achievementLine));
+
     const seenInVocab = mode === "vocab" ? seenEnList.filter((en) => vocab.some((w) => w.en === en)).length : 0;
-    const statsSuffix = mode === "vocab" ? `\n\n${statsLine(seenInVocab, vocab.length)}` : "";
+    const suffixLines = [];
+    if (mode === "vocab" && !pending.blitz) suffixLines.push(statsLine(seenInVocab, vocab.length));
+    if (blitzNext) suffixLines.push(`⚡ Блиц: ${blitzNext.answered}/${blitzNext.total}`);
+    suffixLines.push(...extraLines);
+    const statsSuffix = suffixLines.length ? `\n\n${suffixLines.join("\n")}` : "";
     const resultText = `${isCorrect ? "✅" : "❌"} *${mdEscape(pending.correctEn)}* — ${mdEscape(pending.correctRu)}${statsSuffix}`;
+
+    if (blitzFinal) {
+      const recLine = blitzFinal.isRecord
+        ? blitzFinal.prev
+          ? `🏆 Новый рекорд! (было ${blitzFinal.prev.correct}/${blitzFinal.total} за ${blitzFinal.prev.seconds} с)`
+          : "🏆 Это твой первый результат — теперь есть что побить."
+        : `Рекорд: ${blitzFinal.prev.correct}/${blitzFinal.total} за ${blitzFinal.prev.seconds} с.`;
+      blitzSummary = `${resultText}\n\n⚡ Блиц завершён: ${blitzFinal.correct}/${blitzFinal.total} за ${blitzFinal.seconds} с\n${recLine}\nЕщё раз — /blitz`;
+      statsAfter = s;
+      return s;
+    }
 
     if (mode === "grammar") {
       picked = buildGrammarPicked(resultText, pending.correctEn, pending.exerciseType || "tenses");
@@ -9068,6 +9333,14 @@ async function handleCallback(callbackQuery) {
       picked = buildQuestion(vocab, s.wrong, resultText, pending.correctEn, seenEnList, recentTailList, vocabDirectionOf(gateIdentity));
       picked.topic = pending.topic || null;
       picked.shared = pending.shared || null;
+      picked.blitz = blitzNext;
+      // «Папка пройдена»: все слова текущего списка показаны, цикл начался заново.
+      if (picked.resetCycle && vocab.length >= 5 && !pending.blitz) {
+        const gotFolder = checkAchievements(s, { defeated: null, folderDone: true, blitzPerfect: false }, today);
+        const doneLine = `📁 Все ${vocab.length} слов ${pending.shared ? "темы" : pending.topic ? `папки «${topicLabel(pending.topic)}»` : "словаря"} пройдены — начинаем новый круг!`;
+        const extra = [doneLine, ...gotFolder.map(achievementLine)].join("\n");
+        picked.text = picked.text.replace(resultText, `${resultText}\n${extra}`);
+      }
     }
 
     statsAfter = s;
@@ -9075,7 +9348,9 @@ async function handleCallback(callbackQuery) {
   });
   await log("[callback] step4: stats+next-question picked in one transaction:", JSON.stringify(statsAfter));
 
-  if (picked) {
+  if (blitzSummary) {
+    await tg("sendMessage", { chat_id: chatId, text: blitzSummary, parse_mode: "Markdown", reply_markup: await mainReplyKeyboard(chatId) });
+  } else if (picked) {
     await deliverQuestion(chatId, picked);
   } else {
     await tg("sendMessage", {
@@ -9172,10 +9447,10 @@ async function buildActivityReport() {
   const list = await identityStore().list();
   const entries = list && list.blobs ? list.blobs : [];
   const rows = [];
-  const today = new Date().toISOString().slice(0, 10);
+  const today = mskNow().date;
   const last7Days = [];
   for (let i = 0; i < 7; i++) {
-    last7Days.push(new Date(Date.now() - i * 86400000).toISOString().slice(0, 10));
+    last7Days.push(mskNow(Date.now() - i * DAY_MS).date);
   }
   for (const entry of entries) {
     const info = await identityStore().get(entry.key, { type: "json" });
@@ -9413,9 +9688,11 @@ function reminderStatusText(identity) {
   const days = reminderDaysOf(identity);
   const label = REMINDER_FREQUENCIES.find((f) => f.days === days).label.toLowerCase();
   const hours = reminderHoursOf(identity);
+  const goal = dailyGoalOf(identity);
   return (
     `Напоминания сейчас: ${label}, в ${hours.map(formatHour).join(", ")} по мск` +
-    ` (если за это время ты не заходил(а) позаниматься).`
+    ` (если за это время ты не заходил(а) позаниматься).` +
+    `\n🎯 Цель на день: ${goal ? `${goal} ${pluralRu(goal, ["слово", "слова", "слов"])}` : "не задана"}.`
   );
 }
 
@@ -9442,6 +9719,12 @@ function reminderKeyboard(identity) {
       }))
     );
   }
+  // Цель на день.
+  const goal = dailyGoalOf(identity);
+  rows.push([
+    ...DAILY_GOAL_CHOICES.map((g) => ({ text: `${goal === g ? "✅ " : ""}🎯 ${g}`, callback_data: `remgoal:${g}` })),
+    { text: `${goal === 0 ? "✅ " : ""}без цели`, callback_data: "remgoal:0" },
+  ]);
   rows.push([{ text: `${enabled ? "" : "✅ "}🔕 Выключить`, callback_data: "remfreq:off" }]);
   return { inline_keyboard: rows };
 }
@@ -9450,7 +9733,8 @@ function reminderMenuText(identity, note) {
   return (
     `${reminderStatusText(identity)}\n\n` +
     `Как часто напоминать — первые кнопки. Во сколько — отметь до ${REMINDER_MAX_HOURS} часов ` +
-    `(время по мск): сколько отметишь, столько раз в день и придёт.` +
+    `(время по мск): сколько отметишь, столько раз в день и придёт. ` +
+    `🎯 Цель на день — сколько слов ты хочешь отрабатывать; если цель на сегодня выполнена, напоминание не придёт.` +
     (note ? `\n\n${note}` : "")
   );
 }
@@ -9489,14 +9773,29 @@ function pickReminderPhrase(used) {
 // Какой из выбранных часов пора отправить этому человеку прямо сейчас
 // (или null). Вынесено отдельно, чтобы логику можно было проверить без
 // Telegram и хранилища.
-function dueReminderHour(info, nowMs = Date.now()) {
+function dueReminderHour(info, nowMs = Date.now(), stats = null) {
   if (!info || info.remindersEnabled === false) return null;
   const days = reminderDaysOf(info);
   const { date: today, hour: nowHour } = mskNow(nowMs);
 
-  // 1. Человек давно не появлялся?
-  const lastSeenMs = info.lastSeen ? new Date(info.lastSeen).getTime() : 0;
-  if (!lastSeenMs || nowMs - lastSeenMs < days * DAY_MS - REMIND_TOLERANCE_MS) return null;
+  // 0. Дневная цель уже закрыта — сегодня не тревожим.
+  const goal = dailyGoalOf(info);
+  const todayCount = stats && stats.daily ? stats.daily[today] || 0 : 0;
+  if (goal && todayCount >= goal) return null;
+
+  // 1. Пора ли напоминать: при ежедневных напоминаниях с целью — пока цель
+  //    на сегодня не выполнена; иначе — если человек не занимался N дней.
+  //    «Занимался» — это и сообщения (lastSeen), и ответы на кнопки
+  //    (stats.daily: раньше учитывались только сообщения, и человек,
+  //    который каждый день жмёт кнопки, но ничего не пишет, считался пропавшим).
+  if (!(days === 1 && goal)) {
+    const lastSeenMs = info.lastSeen ? new Date(info.lastSeen).getTime() : 0;
+    if (lastSeenMs && nowMs - lastSeenMs < days * DAY_MS - REMIND_TOLERANCE_MS) return null;
+    const activeDates = Object.keys((stats && stats.daily) || {}).filter((d) => (stats.daily[d] || 0) > 0).sort();
+    const lastActiveDate = activeDates.length ? activeDates[activeDates.length - 1] : null;
+    if (lastActiveDate && daysBetweenDates(lastActiveDate, today) < days) return null;
+    if (!lastSeenMs && !lastActiveDate) return null;
+  }
 
   // 2. Сегодня — «день напоминания»? (с прошлого дня напоминаний прошло ≥ N дней,
   //    либо это тот же самый день — тогда досылаем оставшиеся часы)
@@ -9518,14 +9817,22 @@ async function sendReminders() {
   let sentCount = 0;
   for (const entry of entries) {
     const info = await identityStore().get(entry.key, { type: "json" });
-    if (!info) continue;
-    const hour = dueReminderHour(info, now);
+    if (!info || info.remindersEnabled === false) continue;
+    const stats = await getStats(entry.key);
+    const hour = dueReminderHour(info, now, stats);
     if (hour == null) continue;
 
     const chatId = entry.key;
     try {
       const picked = pickReminderPhrase(info.reminderPhrasesUsed);
-      await tg("sendMessage", { chat_id: chatId, text: picked.text });
+      // Серия под угрозой (вчера занимался, сегодня ещё нет) и прогресс по цели.
+      const extra = [];
+      const streak = currentDayStreak(stats, now);
+      if (streak >= 2 && stats.dayStreakLast !== today) extra.push(`🔥 У тебя ${streak} ${pluralRu(streak, ["день", "дня", "дней"])} подряд — не теряй серию!`);
+      const goal = dailyGoalOf(info);
+      const todayCount = (stats.daily || {})[today] || 0;
+      if (goal && todayCount > 0) extra.push(`🎯 Сегодня ${todayCount}/${goal}.`);
+      await tg("sendMessage", { chat_id: chatId, text: [picked.text, ...extra].join("\n") });
       sentCount += 1;
       await updateIdentity(chatId, (current) => {
         const slots = current.reminderSentSlots && current.reminderSentSlots.date === today ? current.reminderSentSlots.hours || [] : [];
@@ -9542,6 +9849,71 @@ async function sendReminders() {
     }
   }
   return sentCount;
+}
+
+// Итог недели: по воскресеньям с WEEKLY_SUMMARY_HOUR (мск) всем, кто на
+// этой неделе хоть раз отвечал. Отметка identity.weeklySummaryFor = дата
+// воскресенья — чтобы не прислать дважды (проверки идут раз в час).
+const WEEKLY_SUMMARY_HOUR = 20;
+
+function weeklySummaryText(stats, vocab, nowMs) {
+  const daily = stats.daily || {};
+  const days = [];
+  for (let i = 6; i >= 0; i--) days.push(mskNow(nowMs - i * DAY_MS).date);
+  const prevDays = [];
+  for (let i = 13; i >= 7; i--) prevDays.push(mskNow(nowMs - i * DAY_MS).date);
+  const weekCount = days.reduce((sum, d) => sum + (daily[d] || 0), 0);
+  const prevCount = prevDays.reduce((sum, d) => sum + (daily[d] || 0), 0);
+  const activeDays = days.filter((d) => daily[d] > 0).length;
+  const streak = currentDayStreak(stats, nowMs);
+  const lines = ["📅 Итог недели"];
+  let cmp = "";
+  if (prevCount > 0 && weekCount !== prevCount) {
+    cmp = weekCount > prevCount ? ` (на ${weekCount - prevCount} больше, чем на прошлой)` : ` (на ${prevCount - weekCount} меньше, чем на прошлой)`;
+  }
+  lines.push(`📚 Отработано слов и упражнений: ${weekCount}${cmp}`);
+  lines.push(`📆 Дней с занятиями: ${activeDays} из 7`);
+  if (streak >= 1) {
+    lines.push(`${streakLine(streak)}${stats.bestDayStreak > streak ? ` (рекорд — ${stats.bestDayStreak})` : ""}`);
+  } else if (stats.bestDayStreak > 0) {
+    lines.push(`🔥 Серия сейчас прервана, рекорд — ${stats.bestDayStreak} ${pluralRu(stats.bestDayStreak, ["день", "дня", "дней"])}. Начни новую!`);
+  }
+  const worst = Object.entries(stats.wrong || {}).sort((a, b) => b[1] - a[1])[0];
+  if (worst && worst[1] >= 2) {
+    const w = (vocab || []).find((x) => x.en === worst[0]);
+    lines.push(`🧱 Самое упрямое слово: ${worst[0]}${w ? ` — ${w.ru}` : ""} (ошибки: ${worst[1]})`);
+  }
+  return lines.join("\n");
+}
+
+async function sendWeeklySummaries(nowMs = Date.now()) {
+  const d = new Date(nowMs + MSK_OFFSET_MS);
+  if (d.getUTCDay() !== 0 || d.getUTCHours() < WEEKLY_SUMMARY_HOUR) return 0;
+  const sunday = mskNow(nowMs).date;
+  const ids = await identityStore().list();
+  const entries = ids && ids.blobs ? ids.blobs : [];
+  let sent = 0;
+  for (const entry of entries) {
+    const info = await identityStore().get(entry.key, { type: "json" });
+    if (!info) continue;
+    if (info.approved === false && !info.phrasesAccess) continue;
+    if (info.weeklySummaryFor === sunday) continue;
+    const stats = await getStats(entry.key);
+    const daily = stats.daily || {};
+    let weekCount = 0;
+    for (let i = 0; i < 7; i++) weekCount += daily[mskNow(nowMs - i * DAY_MS).date] || 0;
+    // Отмечаем даже тех, кому не шлём (не занимался) — чтобы не перечитывать их каждый час.
+    await updateIdentity(entry.key, (current) => ({ ...current, weeklySummaryFor: sunday }));
+    if (weekCount === 0) continue;
+    try {
+      const vocab = await getVocab(entry.key);
+      await tg("sendMessage", { chat_id: entry.key, text: weeklySummaryText(stats, vocab, nowMs) });
+      sent += 1;
+    } catch (err) {
+      // не критично
+    }
+  }
+  return sent;
 }
 
 async function handleReminders(chatId, argText) {
@@ -9576,6 +9948,11 @@ async function handleReminderFrequencyCallback(chatId, messageId, data) {
       const days = parseInt(choice, 10);
       if (!REMINDER_FREQUENCIES.some((f) => f.days === days)) return current;
       return { ...current, remindersEnabled: true, reminderEveryDays: days };
+    }
+    if (data.startsWith("remgoal:")) {
+      const g = parseInt(data.slice("remgoal:".length), 10);
+      if (g !== 0 && !DAILY_GOAL_CHOICES.includes(g)) return current;
+      return { ...current, dailyGoal: g };
     }
     if (data.startsWith("remhour:")) {
       const h = parseInt(data.slice("remhour:".length), 10);
@@ -9753,6 +10130,8 @@ async function handleMessage(message) {
   if (text === "/score" || text === "/stats") return handleScore(chatId);
   if (text === "/reset") return handleReset(chatId);
   if (text === "/count") return handleCount(chatId);
+  if (/^\/blitz(@\w+)?$/i.test(text)) return handleBlitz(chatId);
+  if (/^\/achievements(@\w+)?$/i.test(text)) return handleAchievements(chatId);
   if (/^\/folders(@\w+)?$/i.test(text)) return handleFolders(chatId);
   if (/^\/swap(@\w+)?$/i.test(text)) return handleSwapDirection(chatId);
   if (text === "/migrate") return handleMigrate(chatId);
@@ -9785,6 +10164,7 @@ async function handleMessage(message) {
     return handleViewVocab(chatId, text.replace(/^\/viewvocab(@\w+)?\s*/i, ""));
   }
   if (text === "/help") return handleHelp(chatId);
+  if (/^\/(guide|instruction|instrauction)(@\w+)?$/i.test(text)) return handleGuide(chatId);
   if (/^\/delete(@\w+)?\s*/i.test(text)) {
     return handleDelete(chatId, text.replace(/^\/delete(@\w+)?\s*/i, ""));
   }
@@ -9877,7 +10257,8 @@ export default async (req) => {
       // давно не появлялся.
       if (url.searchParams.get("remind") === WEBHOOK_SECRET) {
         const count = await sendReminders();
-        return new Response(JSON.stringify({ ok: true, remindersSent: count }), {
+        const weekly = await sendWeeklySummaries();
+        return new Response(JSON.stringify({ ok: true, remindersSent: count, weeklySummariesSent: weekly }), {
           status: 200,
           headers: { "content-type": "application/json; charset=utf-8" },
         });
