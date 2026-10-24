@@ -7533,20 +7533,14 @@ const OPTIONS_COUNT = 6; // 1 правильный + 5 неверных вари
 // похода в другое хранилище.
 // Направление вопроса в лексике: "en-ru" (по умолчанию) — показываем
 // английское слово, варианты по-русски; "ru-en" — наоборот. Хранится в
-// записи ученика (identity.vocabDirection), переключается кнопкой
-// «🔁 …» под каждым вопросом (callback vdir:toggle).
+// записи ученика (identity.vocabDirection), переключается командой /swap
+// (кнопку под каждым вопросом убрали по просьбе Маргариты; callback
+// vdir:toggle оставлен, чтобы работали кнопки в уже отправленных сообщениях).
 const VOCAB_DIRECTION_EN_RU = "en-ru";
 const VOCAB_DIRECTION_RU_EN = "ru-en";
 
 function vocabDirectionOf(identity) {
   return identity && identity.vocabDirection === VOCAB_DIRECTION_RU_EN ? VOCAB_DIRECTION_RU_EN : VOCAB_DIRECTION_EN_RU;
-}
-
-function vocabDirectionToggleButton(direction) {
-  return {
-    text: direction === VOCAB_DIRECTION_RU_EN ? "🔁 Спрашивать по-английски" : "🔁 Спрашивать по-русски",
-    callback_data: "vdir:toggle",
-  };
 }
 
 function buildQuestion(vocab, wrongMap, prefix, forbiddenEn, seenEnList, recentTailList, direction = VOCAB_DIRECTION_EN_RU) {
@@ -7580,7 +7574,6 @@ function buildQuestion(vocab, wrongMap, prefix, forbiddenEn, seenEnList, recentT
   const correctPos = options.indexOf(correct);
   const reversed = direction === VOCAB_DIRECTION_RU_EN;
   const keyboard = options.map((o, i) => [{ text: reversed ? o.en : o.ru, callback_data: `a:${i}` }]);
-  keyboard.push([vocabDirectionToggleButton(direction)]);
   const questionText = reversed ? `🎯 Как по-английски: *${mdEscape(correct.ru)}*?` : `🎯 Как переводится: *${mdEscape(correct.en)}*?`;
   const text = prefix ? `${prefix}\n\n${questionText}` : questionText;
 
@@ -8100,9 +8093,10 @@ async function handleHelp(chatId) {
       "/score — статистика\n" +
       "/count — сколько слов в словаре\n" +
       "/folders — какие у тебя папки и сколько в них слов\n" +
+      "/swap — поменять направление в лексике: бот показывает русское слово, а ты выбираешь английское (и обратно)\n" +
       "/delete <English> — удалить слово (можно сразу список, по одному на строку)\n" +
       "/reset — сбросить прогресс\n" +
-      "/reminders (или кнопка «🔔 Напоминания») — как часто напоминать о практике: каждый день, раз в 2–3 дня, раз в неделю или никогда\n" +
+      "/reminders (или кнопка «🔔 Напоминания») — как часто и во сколько напоминать о практике (каждый день, раз в 2–3 дня, раз в неделю или никогда; до 3 раз в день, время по мск)\n" +
       "/hidemenu (или кнопка «🔽 Скрыть меню») — убрать нижнее меню (если на телефоне не видно переписку)\n" +
       "/showmenu — вернуть его обратно\n\n" +
       "Чтобы добавить слова — просто пришли строки вида «English . перевод», " +
@@ -8143,6 +8137,21 @@ async function handleCount(chatId) {
 
 // /folders — какие папки есть у ученика и сколько в каждой слов, плюс
 // короткая подсказка, как завести новую.
+// /swap — поменять направление в лексике: EN → RU (по умолчанию) или
+// RU → EN. Сразу присылает новый вопрос в текущей теме.
+async function handleSwapDirection(chatId) {
+  const updated = await updateIdentity(chatId, (current) => ({
+    ...current,
+    vocabDirection: vocabDirectionOf(current) === VOCAB_DIRECTION_RU_EN ? VOCAB_DIRECTION_EN_RU : VOCAB_DIRECTION_RU_EN,
+  }));
+  const label =
+    vocabDirectionOf(updated) === VOCAB_DIRECTION_RU_EN
+      ? "🔁 Теперь спрашиваю по-русски, а ты выбираешь английское слово. Вернуть обратно — /swap."
+      : "🔁 Теперь спрашиваю по-английски, а ты выбираешь перевод. Поменять — /swap.";
+  const stats = await getStats(chatId);
+  await sendQuestion(chatId, stats, label, "vocab");
+}
+
 async function handleFolders(chatId) {
   const vocab = await getVocab(chatId);
   const counts = new Map();
@@ -8833,22 +8842,13 @@ async function handleCallback(callbackQuery) {
     return;
   }
 
-  if (data.startsWith("remfreq:")) {
+  if (data.startsWith("remfreq:") || data.startsWith("remhour:")) {
     await handleReminderFrequencyCallback(chatId, messageId, data);
     return;
   }
 
   if (data === "vdir:toggle") {
-    const updated = await updateIdentity(chatId, (current) => ({
-      ...current,
-      vocabDirection: vocabDirectionOf(current) === VOCAB_DIRECTION_RU_EN ? VOCAB_DIRECTION_EN_RU : VOCAB_DIRECTION_RU_EN,
-    }));
-    const label =
-      vocabDirectionOf(updated) === VOCAB_DIRECTION_RU_EN
-        ? "🔁 Теперь спрашиваю по-русски, а ты выбираешь английское слово."
-        : "🔁 Теперь спрашиваю по-английски, а ты выбираешь перевод.";
-    const stats = await getStats(chatId);
-    await sendQuestion(chatId, stats, label, "vocab");
+    await handleSwapDirection(chatId);
     return;
   }
 
@@ -9357,16 +9357,24 @@ async function handleDashboardCallback(chatId, messageId, data) {
 // Напоминания о практике: если человек не появлялся дольше выбранного им
 // срока (и мы не напоминали ему за этот же срок), присылаем короткий пинг.
 // Каждый может отключить это себе через /reminders или кнопку «🔔 Напоминания».
-// Периодичность каждый ученик выбирает сам (/reminders или кнопка
-// «🔔 Напоминания»): раз в N дней, где N — из REMINDER_FREQUENCIES. Хранится
-// в identity.reminderEveryDays; если не выбрано — REMINDER_DEFAULT_DAYS.
-// Напоминание уходит, когда человек не появлялся N дней И прошлое
-// напоминание было не раньше, чем N дней назад. Проверки идут три раза в
-// день, поэтому из «N дней» вычитаем небольшой допуск, иначе ежедневное
-// напоминание сползало бы на следующую проверку (23 ч 59 мин < 24 ч).
+// Каждый ученик настраивает напоминания сам (/reminders или кнопка
+// «🔔 Напоминания»):
+//  - как часто: раз в N дней (REMINDER_FREQUENCIES) — identity.reminderEveryDays;
+//  - во сколько и сколько раз в день: до REMINDER_MAX_HOURS часов из сетки
+//    REMINDER_HOUR_CHOICES, по московскому времени — identity.reminderHours.
+// Напоминание уходит в «день напоминания» (человек не появлялся N дней, и
+// с прошлого дня напоминаний прошло не меньше N дней) в каждый из выбранных
+// часов. Проверки идут раз в час (см. .github/workflows/remind.yml); если
+// очередная проверка задержалась или пропала, час «догоняется» в пределах
+// REMINDER_CATCHUP_HOURS. Что уже отправлено сегодня — в identity.reminderSentSlots.
 const DAY_MS = 24 * 60 * 60 * 1000;
 const REMIND_TOLERANCE_MS = 3 * 60 * 60 * 1000;
+const MSK_OFFSET_MS = 3 * 60 * 60 * 1000; // Москва = UTC+3 круглый год
 const REMINDER_DEFAULT_DAYS = 3;
+const REMINDER_DEFAULT_HOURS = [10];
+const REMINDER_MAX_HOURS = 3;
+const REMINDER_CATCHUP_HOURS = 2;
+const REMINDER_HOUR_CHOICES = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22];
 const REMINDER_FREQUENCIES = [
   { days: 1, label: "Каждый день" },
   { days: 2, label: "Раз в 2 дня" },
@@ -9379,22 +9387,72 @@ function reminderDaysOf(identity) {
   return REMINDER_FREQUENCIES.some((f) => f.days === d) ? d : REMINDER_DEFAULT_DAYS;
 }
 
+function reminderHoursOf(identity) {
+  const raw = identity && Array.isArray(identity.reminderHours) ? identity.reminderHours : null;
+  const hours = raw ? [...new Set(raw.map(Number).filter((h) => REMINDER_HOUR_CHOICES.includes(h)))].sort((a, b) => a - b) : [];
+  return hours.length ? hours.slice(0, REMINDER_MAX_HOURS) : [...REMINDER_DEFAULT_HOURS];
+}
+
+// «Сейчас» по Москве: дата (YYYY-MM-DD) и час.
+function mskNow(nowMs = Date.now()) {
+  const d = new Date(nowMs + MSK_OFFSET_MS);
+  return { date: d.toISOString().slice(0, 10), hour: d.getUTCHours() };
+}
+
+function daysBetweenDates(fromDate, toDate) {
+  return Math.round((Date.parse(`${toDate}T00:00:00Z`) - Date.parse(`${fromDate}T00:00:00Z`)) / DAY_MS);
+}
+
+function formatHour(h) {
+  return `${String(h).padStart(2, "0")}:00`;
+}
+
 function reminderStatusText(identity) {
   const enabled = !identity || identity.remindersEnabled !== false;
   if (!enabled) return "Напоминания сейчас выключены.";
   const days = reminderDaysOf(identity);
   const label = REMINDER_FREQUENCIES.find((f) => f.days === days).label.toLowerCase();
-  return `Напоминания сейчас: ${label} (если за это время ты не заходил(а) позаниматься).`;
+  const hours = reminderHoursOf(identity);
+  return (
+    `Напоминания сейчас: ${label}, в ${hours.map(formatHour).join(", ")} по мск` +
+    ` (если за это время ты не заходил(а) позаниматься).`
+  );
 }
 
 function reminderKeyboard(identity) {
   const enabled = !identity || identity.remindersEnabled !== false;
   const days = reminderDaysOf(identity);
-  const rows = REMINDER_FREQUENCIES.map((f) => [
-    { text: `${enabled && f.days === days ? "✅ " : ""}${f.label}`, callback_data: `remfreq:${f.days}` },
-  ]);
+  const hours = reminderHoursOf(identity);
+  const rows = [];
+  // Как часто — по две кнопки в ряд.
+  for (let i = 0; i < REMINDER_FREQUENCIES.length; i += 2) {
+    rows.push(
+      REMINDER_FREQUENCIES.slice(i, i + 2).map((f) => ({
+        text: `${enabled && f.days === days ? "✅ " : ""}${f.label}`,
+        callback_data: `remfreq:${f.days}`,
+      }))
+    );
+  }
+  // Во сколько — сетка часов, по 4 в ряд; выбранные отмечены ✅.
+  for (let i = 0; i < REMINDER_HOUR_CHOICES.length; i += 4) {
+    rows.push(
+      REMINDER_HOUR_CHOICES.slice(i, i + 4).map((h) => ({
+        text: `${enabled && hours.includes(h) ? "✅ " : ""}${formatHour(h)}`,
+        callback_data: `remhour:${h}`,
+      }))
+    );
+  }
   rows.push([{ text: `${enabled ? "" : "✅ "}🔕 Выключить`, callback_data: "remfreq:off" }]);
   return { inline_keyboard: rows };
+}
+
+function reminderMenuText(identity, note) {
+  return (
+    `${reminderStatusText(identity)}\n\n` +
+    `Как часто напоминать — первые кнопки. Во сколько — отметь до ${REMINDER_MAX_HOURS} часов ` +
+    `(время по мск): сколько отметишь, столько раз в день и придёт.` +
+    (note ? `\n\n${note}` : "")
+  );
 }
 
 // Тексты напоминаний (список Маргариты). Каждому человеку фразы выдаются
@@ -9428,34 +9486,57 @@ function pickReminderPhrase(used) {
   return { text: REMINDER_PHRASES[idx], used: [...(Array.isArray(used) ? used : []), idx] };
 }
 
+// Какой из выбранных часов пора отправить этому человеку прямо сейчас
+// (или null). Вынесено отдельно, чтобы логику можно было проверить без
+// Telegram и хранилища.
+function dueReminderHour(info, nowMs = Date.now()) {
+  if (!info || info.remindersEnabled === false) return null;
+  const days = reminderDaysOf(info);
+  const { date: today, hour: nowHour } = mskNow(nowMs);
+
+  // 1. Человек давно не появлялся?
+  const lastSeenMs = info.lastSeen ? new Date(info.lastSeen).getTime() : 0;
+  if (!lastSeenMs || nowMs - lastSeenMs < days * DAY_MS - REMIND_TOLERANCE_MS) return null;
+
+  // 2. Сегодня — «день напоминания»? (с прошлого дня напоминаний прошло ≥ N дней,
+  //    либо это тот же самый день — тогда досылаем оставшиеся часы)
+  let lastDay = info.lastReminderDay || null;
+  if (!lastDay && info.lastReminderSent) lastDay = mskNow(new Date(info.lastReminderSent).getTime()).date;
+  if (lastDay && lastDay !== today && daysBetweenDates(lastDay, today) < days) return null;
+
+  // 3. Какой час из выбранных наступил и ещё не отправлялся сегодня?
+  const sentToday = info.reminderSentSlots && info.reminderSentSlots.date === today ? info.reminderSentSlots.hours || [] : [];
+  const due = reminderHoursOf(info).filter((h) => h <= nowHour && nowHour - h < REMINDER_CATCHUP_HOURS && !sentToday.includes(h));
+  return due.length ? due[due.length - 1] : null;
+}
+
 async function sendReminders() {
   const ids = await identityStore().list();
   const entries = ids && ids.blobs ? ids.blobs : [];
   const now = Date.now();
+  const { date: today } = mskNow(now);
   let sentCount = 0;
   for (const entry of entries) {
     const info = await identityStore().get(entry.key, { type: "json" });
     if (!info) continue;
-    if (info.remindersEnabled === false) continue;
-
-    const gapMs = reminderDaysOf(info) * DAY_MS - REMIND_TOLERANCE_MS;
-
-    const lastSeenMs = info.lastSeen ? new Date(info.lastSeen).getTime() : 0;
-    if (!lastSeenMs || now - lastSeenMs < gapMs) continue;
-
-    const lastReminderMs = info.lastReminderSent ? new Date(info.lastReminderSent).getTime() : 0;
-    if (lastReminderMs && now - lastReminderMs < gapMs) continue;
+    const hour = dueReminderHour(info, now);
+    if (hour == null) continue;
 
     const chatId = entry.key;
     try {
       const picked = pickReminderPhrase(info.reminderPhrasesUsed);
       await tg("sendMessage", { chat_id: chatId, text: picked.text });
       sentCount += 1;
-      await updateIdentity(chatId, (current) => ({
-        ...current,
-        lastReminderSent: new Date().toISOString(),
-        reminderPhrasesUsed: picked.used,
-      }));
+      await updateIdentity(chatId, (current) => {
+        const slots = current.reminderSentSlots && current.reminderSentSlots.date === today ? current.reminderSentSlots.hours || [] : [];
+        return {
+          ...current,
+          lastReminderSent: new Date(now).toISOString(),
+          lastReminderDay: today,
+          reminderSentSlots: { date: today, hours: [...slots, hour] },
+          reminderPhrasesUsed: picked.used,
+        };
+      });
     } catch (err) {
       // не критично — пропускаем этого человека (например, заблокировал бота) и идём дальше
     }
@@ -9478,25 +9559,50 @@ async function handleReminders(chatId, argText) {
   const identity = await readIdentity(chatId);
   await tg("sendMessage", {
     chat_id: chatId,
-    text: `${reminderStatusText(identity)}\n\nКак часто напоминать?`,
+    text: reminderMenuText(identity),
     reply_markup: reminderKeyboard(identity),
   });
 }
 
-// Нажатие на кнопку периодичности (remfreq:<дни> или remfreq:off) —
-// сохраняем выбор и перерисовываем то же сообщение с новой галочкой.
+// Нажатия в меню напоминаний: remfreq:<дни> / remfreq:off — как часто,
+// remhour:<час> — включить/выключить час (не больше REMINDER_MAX_HOURS).
+// Сохраняем выбор и перерисовываем то же сообщение с новыми галочками.
 async function handleReminderFrequencyCallback(chatId, messageId, data) {
-  const choice = data.slice("remfreq:".length);
+  let note = "";
   const updated = await updateIdentity(chatId, (current) => {
-    if (choice === "off") return { ...current, remindersEnabled: false };
-    const days = parseInt(choice, 10);
-    if (!REMINDER_FREQUENCIES.some((f) => f.days === days)) return current;
-    return { ...current, remindersEnabled: true, reminderEveryDays: days };
+    if (data.startsWith("remfreq:")) {
+      const choice = data.slice("remfreq:".length);
+      if (choice === "off") return { ...current, remindersEnabled: false };
+      const days = parseInt(choice, 10);
+      if (!REMINDER_FREQUENCIES.some((f) => f.days === days)) return current;
+      return { ...current, remindersEnabled: true, reminderEveryDays: days };
+    }
+    if (data.startsWith("remhour:")) {
+      const h = parseInt(data.slice("remhour:".length), 10);
+      if (!REMINDER_HOUR_CHOICES.includes(h)) return current;
+      const hours = reminderHoursOf(current);
+      let next;
+      if (hours.includes(h)) {
+        next = hours.filter((x) => x !== h);
+        if (!next.length) {
+          note = "Хотя бы один час должен остаться — чтобы не получать напоминания совсем, нажми «🔕 Выключить».";
+          return current;
+        }
+      } else {
+        if (hours.length >= REMINDER_MAX_HOURS) {
+          note = `Можно выбрать не больше ${REMINDER_MAX_HOURS} часов — сначала сними галочку с одного из них.`;
+          return current;
+        }
+        next = [...hours, h].sort((a, b) => a - b);
+      }
+      return { ...current, remindersEnabled: true, reminderHours: next };
+    }
+    return current;
   });
   await tg("editMessageText", {
     chat_id: chatId,
     message_id: messageId,
-    text: `${reminderStatusText(updated)}\n\nКак часто напоминать?`,
+    text: reminderMenuText(updated, note),
     reply_markup: reminderKeyboard(updated),
   });
 }
@@ -9648,6 +9754,7 @@ async function handleMessage(message) {
   if (text === "/reset") return handleReset(chatId);
   if (text === "/count") return handleCount(chatId);
   if (/^\/folders(@\w+)?$/i.test(text)) return handleFolders(chatId);
+  if (/^\/swap(@\w+)?$/i.test(text)) return handleSwapDirection(chatId);
   if (text === "/migrate") return handleMigrate(chatId);
   if (/^\/clearvocab(@\w+)?\s*/i.test(text)) {
     return handleClearVocab(chatId, text.replace(/^\/clearvocab(@\w+)?\s*/i, ""));
