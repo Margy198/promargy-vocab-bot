@@ -5696,6 +5696,63 @@ const SEED_SHARED_LIBRARY_PHRASES = {
   },
 };
 
+// Деловые темы: в исходных наборах их было по 8–12 мелких на уровень
+// («деловой_встречи», «деловой_право» …). Для учеников они собираются в
+// пять групп (решение Маргариты), а слово «деловой» заменено на «business».
+// Сопоставление применяется при загрузке набора (seedSharedLibraryOnce) и
+// при переносе уже залитых старых тем (migrateLegacyBusinessTopics).
+const BUSINESS_TOPIC_GROUPS = {
+  "деловой_компания": "business компания и карьера",
+  "деловой_карьера": "business компания и карьера",
+  "деловой_встречи": "business общение",
+  "деловой_переговоры": "business общение",
+  "деловой_переписка": "business общение",
+  "деловой_проекты": "business проекты и маркетинг",
+  "деловой_задачи": "business проекты и маркетинг",
+  "деловой_маркетинг": "business проекты и маркетинг",
+  "деловой_финансы": "business финансы и право",
+  "деловой_право": "business финансы и право",
+  "деловой_поставки": "business финансы и право",
+  "деловой_глаголы": "business глаголы",
+};
+
+// На A1 и C1 деловых слов мало (25 и 48 на весь уровень), и дробить их на
+// пять групп по 1–8 слов нет смысла — там всё деловое лежит одной темой.
+const BUSINESS_SINGLE_GROUP_LEVELS = new Set(["a1", "c1"]);
+
+function targetSharedTopic(topic, difficulty) {
+  const group = BUSINESS_TOPIC_GROUPS[slugifyLevel(topic)];
+  if (!group) return topic;
+  return BUSINESS_SINGLE_GROUP_LEVELS.has(slugifyLevel(difficulty)) ? "business" : group;
+}
+
+// Переносит уже залитые в хранилище старые деловые темы в новые группы:
+// слова добавляются в группу (дубли пропускаются, вручную добавленное
+// через /addshared не теряется), старый ключ удаляется, индекс обновляется.
+// Безопасно вызывать повторно.
+async function migrateLegacyBusinessTopics() {
+  const list = await sharedLibraryStore().list({ prefix: "shared:" });
+  const entries = list && list.blobs ? list.blobs : [];
+  let migratedTopics = 0;
+  let migratedWords = 0;
+  for (const entry of entries) {
+    const parts = entry.key.split(":");
+    if (parts.length !== 3) continue;
+    const [, difficultySlug, topicSlug] = parts;
+    if (!BUSINESS_TOPIC_GROUPS[topicSlug]) continue;
+    const target = targetSharedTopic(topicSlug, difficultySlug);
+    const words = await sharedLibraryStore().get(entry.key, { type: "json" });
+    if (Array.isArray(words) && words.length) {
+      const { added } = await addSharedWords(difficultySlug, target, words);
+      migratedWords += added;
+    }
+    await sharedLibraryStore().delete(entry.key);
+    await setSharedIndexCount(entry.key, 0);
+    migratedTopics += 1;
+  }
+  return { migratedTopics, migratedWords };
+}
+
 async function seedSharedLibraryOnce() {
   let addedTopics = 0;
   let addedWords = 0;
@@ -5713,13 +5770,20 @@ async function seedSharedLibraryOnce() {
     SEED_SHARED_LIBRARY_PHRASES,
   ];
   for (const level of allLevels) {
+    // Сливаем темы по группам ДО записи, чтобы одна группа писалась одним разом.
+    const grouped = new Map();
     for (const [topic, pairs] of Object.entries(level.topics)) {
+      const target = targetSharedTopic(topic, level.difficulty);
+      grouped.set(target, [...(grouped.get(target) || []), ...pairs]);
+    }
+    for (const [topic, pairs] of grouped) {
       const { added } = await addSharedWords(level.difficulty, topic, pairs);
       if (added > 0) addedTopics += 1;
       addedWords += added;
     }
   }
-  return { addedTopics, addedWords };
+  const migrated = await migrateLegacyBusinessTopics();
+  return { addedTopics, addedWords, ...migrated };
 }
 
 // в пару {en, ru}. Делит по языку, а не по конкретному символу — так надёжнее
@@ -5890,7 +5954,18 @@ async function tg(method, payload) {
 // На случай если в словаре попадутся символы Markdown (*, _, [, `) —
 // чтобы бот не падал с ошибкой форматирования у Telegram.
 function mdEscape(s) {
-  return String(s).replace(/([_*`[])/g, "\\$1");
+  return String(s).replace(/([\\_*`[])/g, "\\$1");
+}
+
+// Человеческое название темы/уровня общей библиотеки из слага ключа:
+// "деловой_компания" → "деловой компания", "b1" → "B1". Слаг с подчёркиваниями
+// нельзя вставлять в Markdown-текст как есть: одиночное «_» ломает разметку,
+// и Telegram отклоняет всё сообщение (так «не открывались» деловые темы).
+function prettySharedTopic(slug) {
+  return String(slug).replace(/_/g, " ");
+}
+function prettySharedDifficulty(slug) {
+  return String(slug).toUpperCase();
 }
 
 function shuffle(arr) {
@@ -9056,7 +9131,7 @@ async function handleCallback(callbackQuery) {
     const [vocab, stats] = await Promise.all([getVocab(chatId), getStats(chatId)]);
     const topics = getDistinctTopics(vocab);
     const topic = sel === "all" ? null : topics[parseInt(sel, 10)] || null;
-    const label = `📚 Режим: Лексика — ${topic ? topicLabel(topic) : "все темы"}`;
+    const label = `📚 Режим: Лексика — ${topic ? mdEscape(topicLabel(topic)) : "все темы"}`;
     await sendQuestion(chatId, stats, label, "vocab", undefined, undefined, topic, null);
     return;
   }
@@ -9099,7 +9174,7 @@ async function handleCallback(callbackQuery) {
       chat_id: chatId,
       text: "Общая библиотека — какая сложность?",
       reply_markup: {
-        inline_keyboard: difficulties.map((d, i) => [{ text: d, callback_data: `vshareddiff:${i}` }]),
+        inline_keyboard: difficulties.map((d, i) => [{ text: prettySharedDifficulty(d), callback_data: `vshareddiff:${i}` }]),
       },
     });
     return;
@@ -9114,9 +9189,9 @@ async function handleCallback(callbackQuery) {
     const topicsForDifficulty = entries.filter((e) => e.difficultySlug === difficulty);
     await tg("sendMessage", {
       chat_id: chatId,
-      text: `${difficulty} — какая тема?`,
+      text: `${prettySharedDifficulty(difficulty)} — какая тема?`,
       reply_markup: {
-        inline_keyboard: topicsForDifficulty.map((t, i) => [{ text: `${t.topicSlug} (${t.count})`, callback_data: `vsharedtopic:${diffIdx}:${i}` }]),
+        inline_keyboard: topicsForDifficulty.map((t, i) => [{ text: `${prettySharedTopic(t.topicSlug)} (${t.count})`, callback_data: `vsharedtopic:${diffIdx}:${i}` }]),
       },
     });
     return;
@@ -9133,7 +9208,7 @@ async function handleCallback(callbackQuery) {
     const topicsForDifficulty = entries.filter((e) => e.difficultySlug === difficulty);
     const chosen = topicsForDifficulty[topicIdx];
     if (!chosen) return;
-    const label = `📖 Общая библиотека — ${difficulty} — ${chosen.topicSlug}`;
+    const label = `📖 Общая библиотека — ${prettySharedDifficulty(difficulty)} — ${mdEscape(prettySharedTopic(chosen.topicSlug))}`;
     const stats = await getStats(chatId);
     await sendQuestion(chatId, stats, label, "vocab", undefined, undefined, null, {
       difficulty: chosen.difficultySlug,
@@ -9337,7 +9412,7 @@ async function handleCallback(callbackQuery) {
       // «Папка пройдена»: все слова текущего списка показаны, цикл начался заново.
       if (picked.resetCycle && vocab.length >= 5 && !pending.blitz) {
         const gotFolder = checkAchievements(s, { defeated: null, folderDone: true, blitzPerfect: false }, today);
-        const doneLine = `📁 Все ${vocab.length} слов ${pending.shared ? "темы" : pending.topic ? `папки «${topicLabel(pending.topic)}»` : "словаря"} пройдены — начинаем новый круг!`;
+        const doneLine = `📁 Все ${vocab.length} слов ${pending.shared ? "темы" : pending.topic ? `папки «${mdEscape(topicLabel(pending.topic))}»` : "словаря"} пройдены — начинаем новый круг!`;
         const extra = [doneLine, ...gotFolder.map(achievementLine)].join("\n");
         picked.text = picked.text.replace(resultText, `${resultText}\n${extra}`);
       }
