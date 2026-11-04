@@ -326,6 +326,8 @@ const ACHIEVEMENTS = [
   { id: "defeat5", emoji: "🏆", title: "Победитель", desc: "победить слово, в котором ошибался 5 раз" },
   { id: "folder", emoji: "📁", title: "Папка пройдена", desc: "пройти все слова папки или словаря (от 5 слов)" },
   { id: "blitz10", emoji: "⚡", title: "Блиц-мастер", desc: "10 из 10 в блице" },
+  { id: "perfectweek", emoji: "🗓", title: "Идеальная неделя", desc: "7 дней подряд с выполненной целью дня" },
+  { id: "victories10", emoji: "🛡", title: "Десять побед", desc: "победить 10 слов из списка ошибок" },
 ];
 
 // Сколько правильных ответов подряд нужно, чтобы слово ушло из списка
@@ -355,6 +357,8 @@ function checkAchievements(s, ctx, today) {
   if (ctx.defeated && ctx.defeated.errors >= 5) award("defeat5");
   if (ctx.folderDone) award("folder");
   if (ctx.blitzPerfect) award("blitz10");
+  if (ctx.perfectWeek) award("perfectweek");
+  if ((s.victories || []).length >= 10) award("victories10");
   return got;
 }
 
@@ -8588,12 +8592,14 @@ const GUIDE_TEXT =
   "• 🔕 Выключить — напоминаний не будет совсем.\n" +
   "Напоминание приходит, только если ты за это время не заходил(а) позаниматься.\n" +
   "\n" +
-  "4️⃣ Прогресс\n" +
-  "• После ответа бот показывает прогресс по цели (🎯 7/20 за сегодня) и серию дней (🔥 5 дней подряд) — серия растёт, если отвечать хотя бы на один вопрос каждый день.\n" +
-  "• /score — статистика и слова, которые путаешь чаще всего.\n" +
-  "• /achievements — ачивки: первые 100 слов, 20 верных подряд, 7 дней подряд, побеждённое слово, пройденная папка, 10 из 10 в блице.\n" +
-  "• По воскресеньям вечером приходит итог недели.\n" +
-  "• /reset — сбросить весь прогресс (слова остаются).\n" +
+  "4️⃣ Серия, XP, квесты\n" +
+  "• 🔥 Серия дней растёт, если отвечать хотя бы на один вопрос каждый день. За каждые 7 дней — 🧊 заморозка (до 2 в запасе): пропустишь день, серия не сгорит. Вечером в 20:00 бот предупредит, если сегодня ещё не занимался(ась). Переходишь из Duolingo со своей серией — напиши преподавателю, её перенесут.\n" +
+  "• ⭐ XP идёт за всё: ответы, цель дня, победы над словами, блиц, квесты. По XP растёт уровень (Beginner → … → Interview-ready) — смотри /score.\n" +
+  "• 📋 /quests — три задания на день, +15 XP за каждое и +50 за все три.\n" +
+  "• 🏆 /league — лига недели по XP среди учеников: участие по желанию, можно анонимно. Итоги в воскресенье.\n" +
+  "• /score — статистика, цель, серия, уровень и слова, которые путаешь. /achievements — ачивки. /victories — побеждённые слова.\n" +
+  "• Слова повторяются по расписанию: верно ответил(а) — слово вернётся через 1, потом 3, 7, 14, 30 дней; ошибся(ась) — завтра снова.\n" +
+  "• По воскресеньям вечером приходит итог недели. /reset — сбросить весь прогресс (слова остаются).\n" +
   "\n" +
   "5️⃣ Мелочи\n" +
   "• /start — главное меню. /help — короткий список команд.\n" +
@@ -8618,6 +8624,7 @@ async function handleHelp(chatId) {
       "/achievements — твои ачивки\n" +
       "/quests — три задания на сегодня (+XP за каждое)\n" +
       "/league — лига недели по XP среди учеников (участие по желанию, можно анонимно)\n" +
+      "/victories — побеждённые слова\n" +
       "/swap — поменять направление в лексике: бот показывает русское слово, а ты выбираешь английское (и обратно)\n" +
       "/delete <English> — удалить слово (можно сразу список, по одному на строку)\n" +
       "/reset — сбросить прогресс\n" +
@@ -8829,6 +8836,18 @@ async function checkClassGoal(nowMs = Date.now()) {
     }
   }
   return sent;
+}
+
+// /victories — побеждённые слова (были в списке ошибок, отвечены верно 3 раза подряд).
+async function handleVictories(chatId) {
+  const stats = await getStats(chatId);
+  const v = stats.victories || [];
+  if (!v.length) {
+    await tg("sendMessage", { chat_id: chatId, text: "Побеждённых слов пока нет. Слово из списка ошибок считается побеждённым после 3 верных ответов подряд — список ошибок смотри в /score.", reply_markup: await mainReplyKeyboard(chatId) });
+    return;
+  }
+  const lines = [...v].reverse().slice(0, 30).map((x) => `🏆 ${x.en}${x.ru ? ` — ${x.ru}` : ""} (ошибок было ${x.errors}, ${x.date.slice(8)}.${x.date.slice(5, 7)})`);
+  await tg("sendMessage", { chat_id: chatId, text: `🛡 Побеждённые слова: ${v.length}\n\n${lines.join("\n")}${v.length > 30 ? "\n…" : ""}`, reply_markup: await mainReplyKeyboard(chatId) });
 }
 
 // /quests — задания на сегодня и прогресс по ним.
@@ -9918,6 +9937,16 @@ async function handleCallback(callbackQuery) {
       const keys = Object.keys(s.srs);
       if (keys.length > 4000) for (const k of keys.slice(0, keys.length - 4000)) delete s.srs[k];
     }
+    if (defeated) {
+      s.victories = [...(s.victories || []), { en: defeated.en, ru: pending.correctRu, errors: defeated.errors, date: today }].slice(-200);
+    }
+    // Идеальная неделя: 7 дней подряд с закрытой целью (stats.goalDays).
+    let perfectWeek = false;
+    if (dailyGoal && todayCount === dailyGoal) {
+      s.goalDays = { ...(s.goalDays || {}), [today]: true };
+      for (const k of Object.keys(s.goalDays)) if (daysBetweenDates(k, today) > 14) delete s.goalDays[k];
+      perfectWeek = [0, 1, 2, 3, 4, 5, 6].every((i) => s.goalDays[addDays(today, -i)]);
+    }
     if (defeated) extraLines.push(`🏆 «${defeated.en}» побеждено — ${DEFEAT_STREAK} раза подряд верно после ${defeated.errors} ${pluralRu(defeated.errors, ["ошибки", "ошибок", "ошибок"])}!`);
 
     // Блиц: считаем ответы, на последнем — итог и рекорд.
@@ -9956,7 +9985,7 @@ async function handleCallback(callbackQuery) {
     const levelAfter = levelOf(s.xp);
     if (levelAfter.idx > levelBefore) extraLines.push(`⬆️ Новый уровень ${levelAfter.number}: ${levelAfter.name}! (${s.xp} XP)`);
 
-    const got = checkAchievements(s, { defeated, folderDone: false, blitzPerfect: !!(blitzFinal && blitzFinal.correct === blitzFinal.total) }, today);
+    const got = checkAchievements(s, { defeated, folderDone: false, blitzPerfect: !!(blitzFinal && blitzFinal.correct === blitzFinal.total), perfectWeek }, today);
     extraLines.push(...got.map(achievementLine));
 
     const seenInVocab = mode === "vocab" ? seenEnList.filter((en) => vocab.some((w) => w.en === en)).length : 0;
@@ -9965,7 +9994,9 @@ async function handleCallback(callbackQuery) {
     if (blitzNext) suffixLines.push(`⚡ Блиц: ${blitzNext.answered}/${blitzNext.total}`);
     suffixLines.push(...extraLines);
     const statsSuffix = suffixLines.length ? `\n\n${suffixLines.join("\n")}` : "";
-    const resultText = `${isCorrect ? "✅" : "❌"} *${mdEscape(pending.correctEn)}* — ${mdEscape(pending.correctRu)}${statsSuffix}`;
+    const CORRECT_MARKS = ["✅", "✅ 👍", "✅ 👌", "✅ 💪", "✅ 🙌"];
+    const mark = isCorrect ? (s.streak > 0 && s.streak % 10 === 0 ? `✅ 🔥 ${s.streak} подряд!` : s.streak > 0 && s.streak % 5 === 0 ? `✅ 🎯 ${s.streak} подряд!` : CORRECT_MARKS[s.answered % CORRECT_MARKS.length]) : "❌";
+    const resultText = `${mark} *${mdEscape(pending.correctEn)}* — ${mdEscape(pending.correctRu)}${statsSuffix}`;
 
     if (blitzFinal) {
       const recLine = blitzFinal.isRecord
@@ -10849,6 +10880,7 @@ async function handleMessage(message) {
   if (/^\/blitz(@\w+)?$/i.test(text)) return handleBlitz(chatId);
   if (/^\/achievements(@\w+)?$/i.test(text)) return handleAchievements(chatId);
   if (/^\/quests(@\w+)?$/i.test(text)) return handleQuests(chatId);
+  if (/^\/victories(@\w+)?$/i.test(text)) return handleVictories(chatId);
   if (/^\/league(@\w+)?$/i.test(text)) return handleLeague(chatId);
   if (/^\/challenge(@\w+)?(\s|$)/i.test(text)) return handleChallenge(chatId, text);
   if (/^\/classgoal(@\w+)?(\s|$)/i.test(text)) return handleClassGoal(chatId, text);
