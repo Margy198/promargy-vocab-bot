@@ -31,6 +31,9 @@ const debugStore = () => getStore("vocab-bot-debug", { consistency: "strong" });
 const identityStore = () => getStore("vocab-bot-identities", { consistency: "strong" });
 const adminStore = () => getStore("vocab-bot-admins", { consistency: "strong" });
 const sharedLibraryStore = () => getStore("vocab-bot-shared-library", { consistency: "strong" });
+// Общие настройки бота, которые задаёт преподаватель (вызов для блица,
+// общая цель класса): ключ → JSON.
+const configStore = () => getStore("vocab-bot-config", { consistency: "strong" });
 
 // Секретное слово для самостоятельного получения прав администратора —
 // команда /claimadmin <секрет>. Кто пришлёт верный секрет, тот сразу
@@ -475,6 +478,86 @@ function advanceQuests(s, today, events) {
     lines.push(`🏆 Все квесты дня выполнены! +${XP.allQuests} XP`);
   }
   return lines;
+}
+
+// --- Лига недели, вызов преподавателя, общая цель класса ---
+// Неделя — с понедельника по мск. Участие в лиге по желанию
+// (identity.leagueOptIn), можно анонимно (identity.leagueAnon).
+function weekStartOf(date) {
+  const t = Date.parse(`${date}T00:00:00Z`);
+  const dow = (new Date(t).getUTCDay() + 6) % 7; // 0 = понедельник
+  return new Date(t - dow * DAY_MS).toISOString().slice(0, 10);
+}
+
+function xpSinceWeekStart(stats, nowMs) {
+  const today = mskNow(nowMs).date;
+  const start = weekStartOf(today);
+  const d = stats.xpDaily || {};
+  let sum = 0;
+  for (const [day, xp] of Object.entries(d)) if (day >= start && day <= today) sum += xp;
+  return sum;
+}
+
+function answersSinceWeekStart(stats, nowMs) {
+  const today = mskNow(nowMs).date;
+  const start = weekStartOf(today);
+  const d = stats.daily || {};
+  let sum = 0;
+  for (const [day, n] of Object.entries(d)) if (day >= start && day <= today) sum += n;
+  return sum;
+}
+
+function leagueDisplayName(chatId, info) {
+  if (info.leagueAnon) return `Ученик №${(hashDate(String(chatId)) % 900) + 100}`;
+  return info.firstName || (info.username ? `@${info.username}` : `Ученик ${chatId}`);
+}
+
+// Таблица лиги: все участники с их XP за неделю, по убыванию.
+// Заодно считает общий прогресс класса (ответы за неделю всех с доступом).
+async function leagueStandings(nowMs = Date.now()) {
+  const ids = await identityStore().list();
+  const entries = ids && ids.blobs ? ids.blobs : [];
+  const rows = [];
+  let classAnswers = 0;
+  for (const entry of entries) {
+    const info = await identityStore().get(entry.key, { type: "json" });
+    if (!info) continue;
+    if (info.approved === false && !info.phrasesAccess) continue;
+    const stats = await getStats(entry.key);
+    classAnswers += answersSinceWeekStart(stats, nowMs);
+    if (!info.leagueOptIn) continue;
+    rows.push({ chatId: entry.key, name: leagueDisplayName(entry.key, info), xp: xpSinceWeekStart(stats, nowMs) });
+  }
+  rows.sort((a, b) => b.xp - a.xp);
+  return { rows, classAnswers };
+}
+
+function leagueTableText(rows, meChatId, limit = 10) {
+  if (!rows.length) return "В лиге пока никого — будь первым(ой)!";
+  const medals = ["🥇", "🥈", "🥉"];
+  const lines = rows.slice(0, limit).map((r, i) => `${medals[i] || `${i + 1}.`} ${r.name} — ${r.xp} XP${String(r.chatId) === String(meChatId) ? " ← ты" : ""}`);
+  const myIdx = rows.findIndex((r) => String(r.chatId) === String(meChatId));
+  if (myIdx >= limit) lines.push(`…\n${myIdx + 1}. ${rows[myIdx].name} — ${rows[myIdx].xp} XP ← ты`);
+  return lines.join("\n");
+}
+
+async function getBotConfig(key) {
+  try {
+    return await configStore().get(key, { type: "json" });
+  } catch (err) {
+    return null;
+  }
+}
+
+async function setBotConfig(key, value) {
+  if (value == null) await configStore().delete(key);
+  else await configStore().setJSON(key, value);
+}
+
+function classGoalLine(goal, classAnswers) {
+  if (!goal || !goal.target) return "";
+  const pct = Math.min(100, Math.round((classAnswers / goal.target) * 100));
+  return `🎯 Общая цель класса на неделю: ${classAnswers}/${goal.target} ${progressBar(classAnswers / goal.target)} ${pct}%`;
 }
 
 function questsText(s, today) {
@@ -8507,6 +8590,7 @@ async function handleHelp(chatId) {
       "/blitz — 10 вопросов на время по всему словарю, с рекордом\n" +
       "/achievements — твои ачивки\n" +
       "/quests — три задания на сегодня (+XP за каждое)\n" +
+      "/league — лига недели по XP среди учеников (участие по желанию, можно анонимно)\n" +
       "/swap — поменять направление в лексике: бот показывает русское слово, а ты выбираешь английское (и обратно)\n" +
       "/delete <English> — удалить слово (можно сразу список, по одному на строку)\n" +
       "/reset — сбросить прогресс\n" +
@@ -8584,12 +8668,136 @@ async function handleBlitz(chatId) {
     return;
   }
   const best = stats.blitzBest ? ` Рекорд: ${stats.blitzBest.correct}/${BLITZ_TOTAL} за ${stats.blitzBest.seconds} с.` : "";
-  const prefix = `⚡ Блиц: ${BLITZ_TOTAL} вопросов на время, по всему словарю.${best} Поехали!`;
+  const challenge = await getBotConfig("challenge");
+  const ch = challenge ? ` 🎓 Вызов преподавателя: ${challenge.correct}/${BLITZ_TOTAL} за ${challenge.seconds} с — побьёшь?` : "";
+  const prefix = `⚡ Блиц: ${BLITZ_TOTAL} вопросов на время, по всему словарю.${best}${ch} Поехали!`;
   const picked = buildQuestion(vocab, stats.wrong, prefix, null, [], [], vocabDirectionOf(identity));
   picked.topic = null;
   picked.shared = null;
   picked.blitz = { total: BLITZ_TOTAL, answered: 0, correct: 0, startedAt: Date.now() };
   await deliverQuestion(chatId, picked);
+}
+
+// /league — таблица недели по XP, участие и анонимность кнопками.
+function leagueKeyboard(info) {
+  const inLeague = !!info.leagueOptIn;
+  const rows = [[{ text: inLeague ? "🚪 Выйти из лиги" : "🏁 Участвовать", callback_data: inLeague ? "league:leave" : "league:join" }]];
+  if (inLeague) rows.push([{ text: info.leagueAnon ? "👤 Показывать моё имя" : "🕶 Участвовать анонимно", callback_data: info.leagueAnon ? "league:named" : "league:anon" }]);
+  return { inline_keyboard: rows };
+}
+
+async function leagueText(chatId, info, nowMs = Date.now()) {
+  const { rows, classAnswers } = await leagueStandings(nowMs);
+  const start = weekStartOf(mskNow(nowMs).date);
+  const lines = [`🏆 Лига недели (с ${start.slice(8)}.${start.slice(5, 7)}, по XP)`, leagueTableText(rows, chatId)];
+  if (!info.leagueOptIn) lines.push("\nТы пока не участвуешь. В лиге видно только имя (или «Ученик №…», если анонимно) и XP за неделю.");
+  const goal = await getBotConfig("classgoal");
+  const goalLine = classGoalLine(goal, classAnswers);
+  if (goalLine) lines.push("", goalLine);
+  lines.push("", "Итоги — в воскресенье вечером, вместе с итогом недели.");
+  return lines.join("\n");
+}
+
+async function handleLeague(chatId) {
+  const info = (await readIdentity(chatId)) || {};
+  await tg("sendMessage", { chat_id: chatId, text: await leagueText(chatId, info), reply_markup: leagueKeyboard(info) });
+}
+
+async function handleLeagueCallback(chatId, messageId, data) {
+  const action = data.slice("league:".length);
+  const updated = await updateIdentity(chatId, (current) => {
+    if (action === "join") return { ...current, leagueOptIn: true };
+    if (action === "leave") return { ...current, leagueOptIn: false };
+    if (action === "anon") return { ...current, leagueAnon: true };
+    if (action === "named") return { ...current, leagueAnon: false };
+    return current;
+  });
+  await tg("editMessageText", { chat_id: chatId, message_id: messageId, text: await leagueText(chatId, updated), reply_markup: leagueKeyboard(updated) });
+}
+
+// Только для админов: /challenge 9/10 45 — вызов для блица («побьёшь
+// преподавателя?»); /challenge off — убрать; /challenge — показать.
+async function handleChallenge(chatId, text) {
+  if (!(await isAdmin(chatId))) {
+    await tg("sendMessage", { chat_id: chatId, text: "Эта команда недоступна." });
+    return;
+  }
+  const arg = text.replace(/^\/challenge(@\w+)?\s*/i, "").trim();
+  if (!arg) {
+    const c = await getBotConfig("challenge");
+    await tg("sendMessage", { chat_id: chatId, text: c ? `Сейчас вызов: ${c.correct}/${BLITZ_TOTAL} за ${c.seconds} с.\nПоменять: /challenge 9/10 45. Убрать: /challenge off.` : "Вызова нет. Задать: /challenge 9/10 45 (результат блица: верных из 10 и секунды)." });
+    return;
+  }
+  if (/^off$/i.test(arg)) {
+    await setBotConfig("challenge", null);
+    await tg("sendMessage", { chat_id: chatId, text: "Вызов убран." });
+    return;
+  }
+  const m = arg.match(/^(\d{1,2})\s*\/\s*10\s+(\d{1,4})$/);
+  if (!m) {
+    await tg("sendMessage", { chat_id: chatId, text: "Формат: /challenge 9/10 45 — девять верных из десяти за 45 секунд." });
+    return;
+  }
+  const c = { correct: Math.min(10, parseInt(m[1], 10)), seconds: parseInt(m[2], 10), setAt: new Date().toISOString() };
+  await setBotConfig("challenge", c);
+  await tg("sendMessage", { chat_id: chatId, text: `🎓 Вызов задан: ${c.correct}/${BLITZ_TOTAL} за ${c.seconds} с. Ученики увидят его в /blitz.` });
+}
+
+// Только для админов: /classgoal 5000 — общая цель класса на текущую
+// неделю (ответов всех вместе); /classgoal off — убрать; /classgoal — прогресс.
+async function handleClassGoal(chatId, text) {
+  if (!(await isAdmin(chatId))) {
+    await tg("sendMessage", { chat_id: chatId, text: "Эта команда недоступна." });
+    return;
+  }
+  const arg = text.replace(/^\/classgoal(@\w+)?\s*/i, "").trim();
+  if (/^off$/i.test(arg)) {
+    await setBotConfig("classgoal", null);
+    await tg("sendMessage", { chat_id: chatId, text: "Общая цель убрана." });
+    return;
+  }
+  if (arg) {
+    const n = parseInt(arg, 10);
+    if (!(n > 0)) {
+      await tg("sendMessage", { chat_id: chatId, text: "Формат: /classgoal 5000 (ответов всем классом за неделю). Убрать: /classgoal off." });
+      return;
+    }
+    await setBotConfig("classgoal", { target: n, weekStart: weekStartOf(mskNow().date), announcedFor: null });
+  }
+  const goal = await getBotConfig("classgoal");
+  if (!goal) {
+    await tg("sendMessage", { chat_id: chatId, text: "Общей цели нет. Задать: /classgoal 5000." });
+    return;
+  }
+  const { classAnswers } = await leagueStandings();
+  await tg("sendMessage", { chat_id: chatId, text: `${classGoalLine(goal, classAnswers)}\nУченики видят прогресс в /league и в итоге недели.` });
+}
+
+// Раз в час: если общая цель класса выполнена и об этом ещё не объявляли —
+// объявляем всем. Цель действует на ту неделю, на которой задана.
+async function checkClassGoal(nowMs = Date.now()) {
+  const goal = await getBotConfig("classgoal");
+  if (!goal || !goal.target) return 0;
+  const week = weekStartOf(mskNow(nowMs).date);
+  if (goal.weekStart && goal.weekStart !== week) return 0;
+  if (goal.announcedFor === week) return 0;
+  const { classAnswers } = await leagueStandings(nowMs);
+  if (classAnswers < goal.target) return 0;
+  await setBotConfig("classgoal", { ...goal, announcedFor: week });
+  const ids = await identityStore().list();
+  const entries = ids && ids.blobs ? ids.blobs : [];
+  let sent = 0;
+  for (const entry of entries) {
+    const info = await identityStore().get(entry.key, { type: "json" });
+    if (!info || (info.approved === false && !info.phrasesAccess)) continue;
+    try {
+      await tg("sendMessage", { chat_id: entry.key, text: `🎉 Общая цель класса выполнена: ${classAnswers} из ${goal.target} ответов за неделю! Спасибо каждому, кто вложился.` });
+      sent += 1;
+    } catch (err) {
+      // не критично
+    }
+  }
+  return sent;
 }
 
 // /quests — задания на сегодня и прогресс по ним.
@@ -9336,6 +9544,11 @@ async function handleCallback(callbackQuery) {
     return;
   }
 
+  if (data.startsWith("league:")) {
+    await handleLeagueCallback(chatId, messageId, data);
+    return;
+  }
+
   if (data.startsWith("remfreq:") || data.startsWith("remhour:") || data.startsWith("remgoal:")) {
     await handleReminderFrequencyCallback(chatId, messageId, data);
     return;
@@ -9525,6 +9738,7 @@ async function handleCallback(callbackQuery) {
   let picked = null;
   let statsAfter = null;
   let blitzSummary = null;
+  let blitzResult = null;
 
   const dailyGoal = dailyGoalOf(gateIdentity);
   await withOptimisticUpdate(statsStore(), String(chatId), emptyStats, (current) => {
@@ -9635,7 +9849,8 @@ async function handleCallback(callbackQuery) {
           ? `🏆 Новый рекорд! (было ${blitzFinal.prev.correct}/${blitzFinal.total} за ${blitzFinal.prev.seconds} с)`
           : "🏆 Это твой первый результат — теперь есть что побить."
         : `Рекорд: ${blitzFinal.prev.correct}/${blitzFinal.total} за ${blitzFinal.prev.seconds} с.`;
-      blitzSummary = `${resultText}\n\n⚡ Блиц завершён: ${blitzFinal.correct}/${blitzFinal.total} за ${blitzFinal.seconds} с\n${recLine}\nЕщё раз — /blitz`;
+      blitzSummary = `${resultText}\n\n⚡ Блиц завершён: ${blitzFinal.correct}/${blitzFinal.total} за ${blitzFinal.seconds} с\n${recLine}`;
+      blitzResult = blitzFinal;
       statsAfter = s;
       return s;
     }
@@ -9668,6 +9883,14 @@ async function handleCallback(callbackQuery) {
   await log("[callback] step4: stats+next-question picked in one transaction:", JSON.stringify(statsAfter));
 
   if (blitzSummary) {
+    const challenge = await getBotConfig("challenge");
+    if (challenge && blitzResult) {
+      const beat = blitzResult.correct > challenge.correct || (blitzResult.correct === challenge.correct && blitzResult.seconds < challenge.seconds);
+      blitzSummary += beat
+        ? `\n🎓 Ты побил(а) вызов преподавателя (${challenge.correct}/${BLITZ_TOTAL} за ${challenge.seconds} с)! 🎉`
+        : `\n🎓 Вызов преподавателя пока держится: ${challenge.correct}/${BLITZ_TOTAL} за ${challenge.seconds} с.`;
+    }
+    blitzSummary += "\nЕщё раз — /blitz";
     await tg("sendMessage", { chat_id: chatId, text: blitzSummary, parse_mode: "Markdown", reply_markup: await mainReplyKeyboard(chatId) });
   } else if (picked) {
     await deliverQuestion(chatId, picked);
@@ -10249,6 +10472,8 @@ async function sendWeeklySummaries(nowMs = Date.now()) {
   const ids = await identityStore().list();
   const entries = ids && ids.blobs ? ids.blobs : [];
   let sent = 0;
+  let league = null; // считаем один раз, только если кому-то нужно
+  const goal = await getBotConfig("classgoal");
   for (const entry of entries) {
     const info = await identityStore().get(entry.key, { type: "json" });
     if (!info) continue;
@@ -10263,7 +10488,18 @@ async function sendWeeklySummaries(nowMs = Date.now()) {
     if (weekCount === 0) continue;
     try {
       const vocab = await getVocab(entry.key);
-      await tg("sendMessage", { chat_id: entry.key, text: weeklySummaryText(stats, vocab, nowMs) });
+      let text = weeklySummaryText(stats, vocab, nowMs);
+      if (info.leagueOptIn || (goal && goal.target)) {
+        if (!league) league = await leagueStandings(nowMs);
+        if (info.leagueOptIn) {
+          const place = league.rows.findIndex((r) => String(r.chatId) === String(entry.key)) + 1;
+          const top = league.rows.slice(0, 3).map((r, i) => `${["🥇", "🥈", "🥉"][i]} ${r.name} — ${r.xp} XP`).join("\n");
+          text += `\n\n🏆 Лига недели: ты на ${place} месте из ${league.rows.length}.\n${top}`;
+        }
+        const goalLine = classGoalLine(goal, league.classAnswers);
+        if (goalLine) text += `\n\n${goalLine}${league.classAnswers >= goal.target ? " — выполнена! 🎉" : ""}`;
+      }
+      await tg("sendMessage", { chat_id: entry.key, text });
       sent += 1;
     } catch (err) {
       // не критично
@@ -10489,6 +10725,9 @@ async function handleMessage(message) {
   if (/^\/blitz(@\w+)?$/i.test(text)) return handleBlitz(chatId);
   if (/^\/achievements(@\w+)?$/i.test(text)) return handleAchievements(chatId);
   if (/^\/quests(@\w+)?$/i.test(text)) return handleQuests(chatId);
+  if (/^\/league(@\w+)?$/i.test(text)) return handleLeague(chatId);
+  if (/^\/challenge(@\w+)?(\s|$)/i.test(text)) return handleChallenge(chatId, text);
+  if (/^\/classgoal(@\w+)?(\s|$)/i.test(text)) return handleClassGoal(chatId, text);
   if (/^\/folders(@\w+)?$/i.test(text)) return handleFolders(chatId);
   if (/^\/swap(@\w+)?$/i.test(text)) return handleSwapDirection(chatId);
   if (text === "/migrate") return handleMigrate(chatId);
@@ -10617,7 +10856,8 @@ export default async (req) => {
         const count = await sendReminders();
         const weekly = await sendWeeklySummaries();
         const warned = await sendStreakWarnings();
-        return new Response(JSON.stringify({ ok: true, remindersSent: count, weeklySummariesSent: weekly, streakWarningsSent: warned }), {
+        const classGoalAnnounced = await checkClassGoal();
+        return new Response(JSON.stringify({ ok: true, remindersSent: count, weeklySummariesSent: weekly, streakWarningsSent: warned, classGoalAnnounced }), {
           status: 200,
           headers: { "content-type": "application/json; charset=utf-8" },
         });
