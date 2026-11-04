@@ -7944,12 +7944,39 @@ function pickRandomQuestionWord(vocab, wrongMap, excludeSet) {
 //     круга (seenEn сбрасывается) начинается заново.
 // seenEnSet передаётся явно (не из общего хранилища счёта) — см. комментарий
 // у buildQuestion ниже про то, откуда он теперь берётся.
-function pickQuestionWord(vocab, wrongMap, seenEnSet, excludeSet) {
+// Интервальное повторение (stats.srs = { en: { iv, due } }): после верного
+// ответа слово «уезжает» на iv дней (1 → 3 → 7 → 14 → 30 → 60), после
+// неверного возвращается на завтра. При выборе следующего слова внутри
+// круга сначала берутся слова, которым «пора» (due ≤ сегодня) или которые
+// ещё не отвечались; остальные — когда таких не осталось.
+const SRS_INTERVALS = [1, 3, 7, 14, 30, 60];
+
+function srsNextInterval(iv) {
+  const i = SRS_INTERVALS.indexOf(iv);
+  return i === -1 ? SRS_INTERVALS[0] : SRS_INTERVALS[Math.min(i + 1, SRS_INTERVALS.length - 1)];
+}
+
+function addDays(date, n) {
+  return new Date(Date.parse(`${date}T00:00:00Z`) + n * DAY_MS).toISOString().slice(0, 10);
+}
+
+function srsIsDue(srs, en, today) {
+  const e = srs && srs[en];
+  return !e || !e.due || e.due <= today;
+}
+
+function srsDueCount(srs, vocab, today) {
+  return vocab.filter((w) => srsIsDue(srs, w.en, today)).length;
+}
+
+function pickQuestionWord(vocab, wrongMap, seenEnSet, excludeSet, srs = null, today = null) {
   const unseen = vocab.filter((v) => !seenEnSet.has(v.en));
   const unseenAndNotRecent = excludeSet && excludeSet.size ? unseen.filter((v) => !excludeSet.has(v.en)) : unseen;
 
   if (unseenAndNotRecent.length) {
-    return { word: unseenAndNotRecent[unseenAndNotRecent.length - 1], resetCycle: false };
+    const due = srs && today ? unseenAndNotRecent.filter((v) => srsIsDue(srs, v.en, today)) : [];
+    const pool = due.length ? due : unseenAndNotRecent;
+    return { word: pool[pool.length - 1], resetCycle: false };
   }
 
   if (unseen.length) {
@@ -7990,7 +8017,7 @@ function vocabDirectionOf(identity) {
   return identity && identity.vocabDirection === VOCAB_DIRECTION_RU_EN ? VOCAB_DIRECTION_RU_EN : VOCAB_DIRECTION_EN_RU;
 }
 
-function buildQuestion(vocab, wrongMap, prefix, forbiddenEn, seenEnList, recentTailList, direction = VOCAB_DIRECTION_EN_RU) {
+function buildQuestion(vocab, wrongMap, prefix, forbiddenEn, seenEnList, recentTailList, direction = VOCAB_DIRECTION_EN_RU, srs = null) {
   // История «отработанных» слов могла накопиться в другой папке/источнике
   // (ученик переключил тему) — оставляем только те, что есть в текущем
   // списке, иначе счётчик показывал бы «51/1 слов отработано».
@@ -8005,7 +8032,7 @@ function buildQuestion(vocab, wrongMap, prefix, forbiddenEn, seenEnList, recentT
   const excludeSet = new Set(tail.slice(-maxExclude));
   if (forbiddenEn) excludeSet.add(forbiddenEn);
 
-  let { word: correct, resetCycle } = pickQuestionWord(vocab, wrongMap, seenEnSet, excludeSet);
+  let { word: correct, resetCycle } = pickQuestionWord(vocab, wrongMap, seenEnSet, excludeSet, srs, mskNow().date);
 
   // Железная гарантия, не зависящая от хранилища: forbiddenEn — это слово,
   // которое только что отвечали, мы его знаем напрямую из текущего запроса.
@@ -8167,7 +8194,7 @@ async function sendQuestion(chatId, stats, prefix, modeOverride, levelOverride, 
   const seenEnList = prevPending && Array.isArray(prevPending.seenEn) ? prevPending.seenEn : [];
   const recentTailList = prevPending && Array.isArray(prevPending.recentTail) ? prevPending.recentTail : [];
 
-  const picked = buildQuestion(vocab, stats.wrong, prefix, null, seenEnList, recentTailList, vocabDirectionOf(trialIdentity));
+  const picked = buildQuestion(vocab, stats.wrong, prefix, null, seenEnList, recentTailList, vocabDirectionOf(trialIdentity), stats.srs);
   picked.topic = topic;
   picked.shared = shared;
   await deliverQuestion(chatId, picked);
@@ -8626,6 +8653,10 @@ async function handleScore(chatId) {
   if (stats.freezes) lines.push(`🧊 Заморозок серии в запасе: ${stats.freezes} из ${FREEZE_MAX}`);
   lines.push(levelLine(stats.xp || 0));
   lines.push(`⭐ Сегодня: +${(stats.xpDaily || {})[mskNow().date] || 0} XP, за неделю: ${xpWeek(stats, Date.now())} XP`);
+  if (vocab.length) {
+    const due = srsDueCount(stats.srs, vocab, mskNow().date);
+    lines.push(due ? `📅 Пора повторить: ${due} ${pluralRu(due, ["слово", "слова", "слов"])} из твоего словаря` : "📅 На сегодня всё повторено — слова вернутся по расписанию");
+  }
   await tg("sendMessage", {
     chat_id: chatId,
     text: lines.join("\n") + (missed ? `\n\nЧаще всего путаешь:\n${missed}` : ""),
@@ -8671,7 +8702,7 @@ async function handleBlitz(chatId) {
   const challenge = await getBotConfig("challenge");
   const ch = challenge ? ` 🎓 Вызов преподавателя: ${challenge.correct}/${BLITZ_TOTAL} за ${challenge.seconds} с — побьёшь?` : "";
   const prefix = `⚡ Блиц: ${BLITZ_TOTAL} вопросов на время, по всему словарю.${best}${ch} Поехали!`;
-  const picked = buildQuestion(vocab, stats.wrong, prefix, null, [], [], vocabDirectionOf(identity));
+  const picked = buildQuestion(vocab, stats.wrong, prefix, null, [], [], vocabDirectionOf(identity), stats.srs);
   picked.topic = null;
   picked.shared = null;
   picked.blitz = { total: BLITZ_TOTAL, answered: 0, correct: 0, startedAt: Date.now() };
@@ -9207,6 +9238,91 @@ async function handleSetStreak(chatId, text) {
   } catch (err) {
     // не критично
   }
+}
+
+// Только для админов: /praise @user текст — личное сообщение ученику от
+// преподавателя (приходит как «💬 От преподавателя: …»).
+async function handlePraise(chatId, text) {
+  if (!(await isAdmin(chatId))) {
+    await tg("sendMessage", { chat_id: chatId, text: "Эта команда недоступна." });
+    return;
+  }
+  const m = text.trim().match(/^\/praise(?:@\w+)?\s+(\S+)\s+([\s\S]+)$/i);
+  if (!m) {
+    await tg("sendMessage", { chat_id: chatId, text: "Формат: /praise @username текст — ученик получит «💬 От преподавателя: текст»." });
+    return;
+  }
+  const targetId = await resolveTarget(m[1]);
+  if (!targetId) {
+    await tg("sendMessage", { chat_id: chatId, text: `Не нашла ${m[1]} — проверь @username или chat_id.` });
+    return;
+  }
+  const res = await tg("sendMessage", { chat_id: targetId, text: `💬 От преподавателя: ${m[2].trim()}` });
+  await tg("sendMessage", { chat_id: chatId, text: res && res.ok ? `✅ Отправлено ${m[1]}.` : `Не доставлено ${m[1]} (возможно, заблокировал(а) бота).` });
+}
+
+// Дайджест преподавателю по понедельникам в TEACHER_DIGEST_HOUR мск: кто
+// занимался, топ по XP, длинные серии, кто сорвал серию, кто пропал.
+const TEACHER_DIGEST_HOUR = 9;
+
+async function sendTeacherDigest(nowMs = Date.now()) {
+  const d = new Date(nowMs + MSK_OFFSET_MS);
+  if (d.getUTCDay() !== 1 || d.getUTCHours() < TEACHER_DIGEST_HOUR) return 0;
+  const today = mskNow(nowMs).date;
+  const thisWeek = weekStartOf(today);
+  const marker = await getBotConfig("teacherDigestFor");
+  if (marker && marker.week === thisWeek) return 0;
+  await setBotConfig("teacherDigestFor", { week: thisWeek });
+  const prevStart = addDays(thisWeek, -7);
+  const prevEnd = addDays(thisWeek, -1);
+  const ids = await identityStore().list();
+  const entries = ids && ids.blobs ? ids.blobs : [];
+  const people = [];
+  for (const entry of entries) {
+    const info = await identityStore().get(entry.key, { type: "json" });
+    if (!info || (info.approved === false && !info.phrasesAccess)) continue;
+    if (await isAdmin(entry.key)) continue;
+    const stats = await getStats(entry.key);
+    const daily = stats.daily || {};
+    const xpDaily = stats.xpDaily || {};
+    let answers = 0;
+    let xp = 0;
+    for (const [day, n] of Object.entries(daily)) if (day >= prevStart && day <= prevEnd) answers += n;
+    for (const [day, n] of Object.entries(xpDaily)) if (day >= prevStart && day <= prevEnd) xp += n;
+    const activeDates = Object.keys(daily).filter((k) => daily[k] > 0).sort();
+    const lastActive = activeDates.length ? activeDates[activeDates.length - 1] : info.lastSeen ? mskNow(new Date(info.lastSeen).getTime()).date : null;
+    const streak = currentDayStreak(stats, nowMs);
+    const brokenStreak = streak === 0 && stats.dayStreakLast && stats.dayStreakLast >= prevStart && (stats.dayStreak || 0) >= 3 ? stats.dayStreak : 0;
+    people.push({ name: info.firstName || (info.username ? `@${info.username}` : entry.key), username: info.username, answers, xp, streak, brokenStreak, lastActive });
+  }
+  const active = people.filter((p) => p.answers > 0);
+  const totalAnswers = people.reduce((a, p) => a + p.answers, 0);
+  const top = [...people].filter((p) => p.xp > 0).sort((a, b) => b.xp - a.xp).slice(0, 3);
+  const streaks = [...people].filter((p) => p.streak >= 3).sort((a, b) => b.streak - a.streak).slice(0, 5);
+  const broken = people.filter((p) => p.brokenStreak > 0);
+  const gone = people.filter((p) => p.lastActive && daysBetweenDates(p.lastActive, today) >= 7);
+  const who = (p) => (p.username ? `${p.name} (@${p.username})` : p.name);
+  const lines = [
+    `🎓 Дайджест за неделю ${prevStart.slice(8)}.${prevStart.slice(5, 7)}–${prevEnd.slice(8)}.${prevEnd.slice(5, 7)}`,
+    `👥 Занимались: ${active.length} из ${people.length} · ответов всего: ${totalAnswers}`,
+  ];
+  if (top.length) lines.push(`🏆 Топ по XP: ${top.map((p) => `${who(p)} ${p.xp}`).join(", ")}`);
+  if (streaks.length) lines.push(`🔥 Серии: ${streaks.map((p) => `${who(p)} ${p.streak}`).join(", ")}`);
+  if (broken.length) lines.push(`💔 Сорвали серию: ${broken.map((p) => `${who(p)} (было ${p.brokenStreak})`).join(", ")}`);
+  if (gone.length) lines.push(`😴 Не заходили 7+ дней: ${gone.map(who).join(", ")}`);
+  lines.push("", "Похвалить лично: /praise @username текст. Вызов для блица: /challenge 9/10 45. Общая цель: /classgoal 5000.");
+  const text = lines.join("\n");
+  const admins = await adminStore().list();
+  let sent = 0;
+  for (const a of admins && admins.blobs ? admins.blobs : []) {
+    try {
+      await tg("sendMessage", { chat_id: a.key, text });
+      sent += 1;
+    } catch (err) {
+      // не критично
+    }
+  }
+  return sent;
 }
 
 async function handleBroadcast(chatId, argText) {
@@ -9794,6 +9910,14 @@ async function handleCallback(callbackQuery) {
       s.wrong[en] = (s.wrong[en] || 0) + 1;
       delete s.recover[en];
     }
+    // Интервальное повторение: верно — интервал растёт, неверно — завтра снова.
+    if (mode === "vocab") {
+      s.srs = { ...(s.srs || {}) };
+      const prevIv = s.srs[en] ? s.srs[en].iv : 0;
+      s.srs[en] = isCorrect ? { iv: srsNextInterval(prevIv), due: addDays(today, srsNextInterval(prevIv)) } : { iv: 1, due: addDays(today, 1) };
+      const keys = Object.keys(s.srs);
+      if (keys.length > 4000) for (const k of keys.slice(0, keys.length - 4000)) delete s.srs[k];
+    }
     if (defeated) extraLines.push(`🏆 «${defeated.en}» побеждено — ${DEFEAT_STREAK} раза подряд верно после ${defeated.errors} ${pluralRu(defeated.errors, ["ошибки", "ошибок", "ошибок"])}!`);
 
     // Блиц: считаем ответы, на последнем — итог и рекорд.
@@ -9864,7 +9988,7 @@ async function handleCallback(callbackQuery) {
     } else if (mode === "idiomtranslate") {
       picked = buildIdiomTranslatePicked(resultText, pending.correctEn);
     } else if (vocab.length) {
-      picked = buildQuestion(vocab, s.wrong, resultText, pending.correctEn, seenEnList, recentTailList, vocabDirectionOf(gateIdentity));
+      picked = buildQuestion(vocab, s.wrong, resultText, pending.correctEn, seenEnList, recentTailList, vocabDirectionOf(gateIdentity), s.srs);
       picked.topic = pending.topic || null;
       picked.shared = pending.shared || null;
       picked.blitz = blitzNext;
@@ -10754,6 +10878,7 @@ async function handleMessage(message) {
   }
   if (text === "/sharedlist") return handleSharedList(chatId);
   if (/^\/setstreak(@\w+)?\s/i.test(text)) return handleSetStreak(chatId, text);
+  if (/^\/praise(@\w+)?(\s|$)/i.test(text)) return handlePraise(chatId, text);
   if (/^\/broadcast(@\w+)?(\s|$)/i.test(text)) {
     return handleBroadcast(chatId, text.replace(/^\/broadcast(@\w+)?\s*/i, ""));
   }
@@ -10857,7 +10982,8 @@ export default async (req) => {
         const weekly = await sendWeeklySummaries();
         const warned = await sendStreakWarnings();
         const classGoalAnnounced = await checkClassGoal();
-        return new Response(JSON.stringify({ ok: true, remindersSent: count, weeklySummariesSent: weekly, streakWarningsSent: warned, classGoalAnnounced }), {
+        const digest = await sendTeacherDigest();
+        return new Response(JSON.stringify({ ok: true, remindersSent: count, weeklySummariesSent: weekly, streakWarningsSent: warned, classGoalAnnounced, teacherDigestsSent: digest }), {
           status: 200,
           headers: { "content-type": "application/json; charset=utf-8" },
         });
