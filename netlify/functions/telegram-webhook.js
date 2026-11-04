@@ -512,8 +512,10 @@ function answersSinceWeekStart(stats, nowMs) {
 }
 
 function leagueDisplayName(chatId, info) {
-  if (info.leagueAnon) return `Ученик №${(hashDate(String(chatId)) % 900) + 100}`;
-  return info.firstName || (info.username ? `@${info.username}` : `Ученик ${chatId}`);
+  const a = avatarOf(info);
+  const prefix = a ? `${a} ` : "";
+  if (info.leagueAnon) return `${prefix}Ученик №${(hashDate(String(chatId)) % 900) + 100}`;
+  return `${prefix}${info.firstName || (info.username ? `@${info.username}` : `Ученик ${chatId}`)}`;
 }
 
 // Таблица лиги: все участники с их XP за неделю, по убыванию.
@@ -6199,12 +6201,41 @@ async function deleteWords(chatId, terms) {
   return { removedCount, total };
 }
 
+// Обращение по полу. В текстах пишем формы в скобках — «заходил(а)»,
+// «ошибся(ась)», «первым(ой)», «побил(а)» — а здесь, зная пол ученика
+// (identity.gender: "f" / "m" / не задан), раскрываем их. Если пол не
+// задан, текст уходит как есть, со скобками.
+const GENDER_PATTERNS = /\(а\)|\(ась\)|\(ой\)|\(ла\)/;
+
+function genderize(text, gender) {
+  if (!text || !GENDER_PATTERNS.test(text)) return text;
+  if (gender !== "f" && gender !== "m") return text;
+  const f = gender === "f";
+  return text
+    // «занимался(ась)» → «занималась» / «занимался»; «ошибся(ась)» → «ошиблась» / «ошибся»
+    .replace(/(\S+?)ся\(ась\)/g, (m, stem) => (f ? (stem.endsWith("л") ? `${stem}ась` : `${stem}лась`) : `${stem}ся`))
+    .replace(/\(ась\)/g, f ? "ась" : "")
+    .replace(/первым\(ой\)/g, f ? "первой" : "первым")
+    .replace(/\(ой\)/g, f ? "ой" : "")
+    .replace(/\(ла\)/g, f ? "ла" : "л")
+    .replace(/\(а\)/g, f ? "а" : "");
+}
+
 async function tg(method, payload) {
   // Пауза, чтобы не слать больше ~1 сообщения в секунду в один и тот же чат
   // (см. комментарий у MIN_MS_BETWEEN_MESSAGES) — применяется ко всем
   // sendMessage/sendAudio-вызовам автоматически, не только к вопросам.
   if ((method === "sendMessage" || method === "sendAudio") && payload && payload.chat_id != null) {
     await waitForRateLimit(payload.chat_id);
+  }
+  // Обращение по полу — для всех исходящих текстов, у которых есть формы в скобках.
+  if ((method === "sendMessage" || method === "editMessageText") && payload && payload.text && payload.chat_id != null && GENDER_PATTERNS.test(payload.text)) {
+    try {
+      const identity = await readIdentity(payload.chat_id);
+      if (identity && identity.gender) payload = { ...payload, text: genderize(payload.text, identity.gender) };
+    } catch (err) {
+      // не критично
+    }
   }
 
   const res = await fetch(`${API}/${method}`, {
@@ -8602,6 +8633,7 @@ const GUIDE_TEXT =
   "• По воскресеньям вечером приходит итог недели. /reset — сбросить весь прогресс (слова остаются).\n" +
   "\n" +
   "5️⃣ Мелочи\n" +
+  "• /profile — выбери аватар (эмодзи рядом с именем в лиге) и пол, чтобы бот обращался правильно.\n" +
   "• /start — главное меню. /help — короткий список команд.\n" +
   "• 🔽 Скрыть меню (или /hidemenu) — убрать нижние кнопки, если на телефоне не видно переписку; /showmenu — вернуть.\n" +
   "• Что-то не работает или непонятно — напиши преподавателю.";
@@ -8625,6 +8657,7 @@ async function handleHelp(chatId) {
       "/quests — три задания на сегодня (+XP за каждое)\n" +
       "/league — лига недели по XP среди учеников (участие по желанию, можно анонимно)\n" +
       "/victories — побеждённые слова\n" +
+      "/profile — аватар и как к тебе обращаться (девушка / мужчина)\n" +
       "/swap — поменять направление в лексике: бот показывает русское слово, а ты выбираешь английское (и обратно)\n" +
       "/delete <English> — удалить слово (можно сразу список, по одному на строку)\n" +
       "/reset — сбросить прогресс\n" +
@@ -8654,7 +8687,7 @@ async function handleScore(chatId) {
   const goal = dailyGoalOf(identity);
   const todayCount = (stats.daily || {})[mskNow().date] || 0;
   const dayStreak = currentDayStreak(stats);
-  const lines = [`📊 ${statsLine(practicedCount, vocab.length)}`];
+  const lines = [`📊 ${avatarOf(identity) ? `${avatarOf(identity)} ` : ""}${statsLine(practicedCount, vocab.length)}`];
   if (goal) lines.push(todayCount >= goal ? `🎉 Цель на сегодня выполнена: ${todayCount}/${goal}` : `🎯 Сегодня: ${todayCount}/${goal}`);
   if (dayStreak >= 1) lines.push(`${streakLine(dayStreak)}${stats.bestDayStreak > dayStreak ? ` (рекорд — ${stats.bestDayStreak})` : ""}`);
   if (stats.freezes) lines.push(`🧊 Заморозок серии в запасе: ${stats.freezes} из ${FREEZE_MAX}`);
@@ -8836,6 +8869,55 @@ async function checkClassGoal(nowMs = Date.now()) {
     }
   }
   return sent;
+}
+
+// /profile — аватар (эмодзи рядом с именем в лиге и статистике) и пол
+// (как бот обращается: «заходила» / «заходил»).
+const AVATARS = ["🦊", "🐱", "🐼", "🦁", "🐸", "🦄", "🐧", "🐯", "🦋", "🐙", "🐺", "🦉", "🐨", "🦖", "🚀", "🎓"];
+
+function avatarOf(identity) {
+  return identity && identity.avatar && AVATARS.includes(identity.avatar) ? identity.avatar : "";
+}
+
+function profileText(identity) {
+  const g = identity && identity.gender;
+  const gText = g === "f" ? "девушка (бот пишет «заходила», «ответила»)" : g === "m" ? "мужчина (бот пишет «заходил», «ответил»)" : "не указан (бот пишет «заходил(а)»)";
+  const a = avatarOf(identity);
+  return `👤 Профиль\n\nАватар: ${a || "не выбран"} — показывается рядом с именем в лиге и статистике.\nПол: ${gText}.\n\nВыбери ниже, что поменять.`;
+}
+
+function profileKeyboard(identity) {
+  const g = identity && identity.gender;
+  const a = avatarOf(identity);
+  const rows = [[
+    { text: `${g === "f" ? "✅ " : ""}Я девушка`, callback_data: "prof:g:f" },
+    { text: `${g === "m" ? "✅ " : ""}Я мужчина`, callback_data: "prof:g:m" },
+    { text: `${!g ? "✅ " : ""}Не указывать`, callback_data: "prof:g:none" },
+  ]];
+  for (let i = 0; i < AVATARS.length; i += 8) {
+    rows.push(AVATARS.slice(i, i + 8).map((e) => ({ text: e === a ? `✅${e}` : e, callback_data: `prof:a:${AVATARS.indexOf(e)}` })));
+  }
+  rows.push([{ text: `${a ? "" : "✅ "}Без аватара`, callback_data: "prof:a:none" }]);
+  return { inline_keyboard: rows };
+}
+
+async function handleProfile(chatId) {
+  const identity = (await readIdentity(chatId)) || {};
+  await tg("sendMessage", { chat_id: chatId, text: profileText(identity), reply_markup: profileKeyboard(identity) });
+}
+
+async function handleProfileCallback(chatId, messageId, data) {
+  const [, kind, value] = data.split(":");
+  const updated = await updateIdentity(chatId, (current) => {
+    if (kind === "g") return { ...current, gender: value === "f" || value === "m" ? value : null };
+    if (kind === "a") {
+      if (value === "none") return { ...current, avatar: null };
+      const e = AVATARS[parseInt(value, 10)];
+      return e ? { ...current, avatar: e } : current;
+    }
+    return current;
+  });
+  await tg("editMessageText", { chat_id: chatId, message_id: messageId, text: profileText(updated), reply_markup: profileKeyboard(updated) });
 }
 
 // /victories — побеждённые слова (были в списке ошибок, отвечены верно 3 раза подряд).
@@ -9681,6 +9763,11 @@ async function handleCallback(callbackQuery) {
 
   if (data.startsWith("league:")) {
     await handleLeagueCallback(chatId, messageId, data);
+    return;
+  }
+
+  if (data.startsWith("prof:")) {
+    await handleProfileCallback(chatId, messageId, data);
     return;
   }
 
@@ -10881,6 +10968,7 @@ async function handleMessage(message) {
   if (/^\/achievements(@\w+)?$/i.test(text)) return handleAchievements(chatId);
   if (/^\/quests(@\w+)?$/i.test(text)) return handleQuests(chatId);
   if (/^\/victories(@\w+)?$/i.test(text)) return handleVictories(chatId);
+  if (/^\/profile(@\w+)?$/i.test(text)) return handleProfile(chatId);
   if (/^\/league(@\w+)?$/i.test(text)) return handleLeague(chatId);
   if (/^\/challenge(@\w+)?(\s|$)/i.test(text)) return handleChallenge(chatId, text);
   if (/^\/classgoal(@\w+)?(\s|$)/i.test(text)) return handleClassGoal(chatId, text);
