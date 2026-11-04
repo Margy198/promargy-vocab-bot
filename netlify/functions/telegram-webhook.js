@@ -359,6 +359,131 @@ function achievementLine(a) {
   return `🏅 Ачивка: ${a.emoji} ${a.title}!`;
 }
 
+// --- XP и уровни ---
+// XP начисляется за всё (stats.xp — всего, stats.xpDaily — по дням, 30 дней).
+const XP = { correct: 10, wrong: 2, goal: 20, blitz: 30, blitzPerfect: 50, defeat: 25, quest: 15, allQuests: 50 };
+const LEVELS = [
+  { min: 0, name: "Beginner" },
+  { min: 250, name: "Learner" },
+  { min: 750, name: "Confident" },
+  { min: 1500, name: "Advanced" },
+  { min: 3000, name: "Fluent" },
+  { min: 5000, name: "Interview-ready" },
+  { min: 8000, name: "Master" },
+  { min: 12000, name: "Legend" },
+];
+
+function addXp(s, amount, today) {
+  s.xp = (s.xp || 0) + amount;
+  s.xpDaily = { ...(s.xpDaily || {}) };
+  s.xpDaily[today] = (s.xpDaily[today] || 0) + amount;
+  const cutoff = mskNow(Date.now() - 30 * DAY_MS).date;
+  for (const d of Object.keys(s.xpDaily)) if (d < cutoff) delete s.xpDaily[d];
+}
+
+function levelOf(xp) {
+  let idx = 0;
+  for (let i = 0; i < LEVELS.length; i++) if (xp >= LEVELS[i].min) idx = i;
+  const cur = LEVELS[idx];
+  const next = LEVELS[idx + 1] || null;
+  return { idx, name: cur.name, number: idx + 1, next, toNext: next ? next.min - xp : 0, progress: next ? (xp - cur.min) / (next.min - cur.min) : 1 };
+}
+
+function progressBar(ratio, width = 10) {
+  const filled = Math.max(0, Math.min(width, Math.round(ratio * width)));
+  return "█".repeat(filled) + "░".repeat(width - filled);
+}
+
+function levelLine(xp) {
+  const l = levelOf(xp);
+  return `⭐ ${xp} XP · уровень ${l.number} ${l.name}` + (l.next ? ` ${progressBar(l.progress)} ещё ${l.toNext} XP до «${l.next.name}»` : " (максимум)");
+}
+
+function xpWeek(stats, nowMs) {
+  const d = stats.xpDaily || {};
+  let sum = 0;
+  for (let i = 0; i < 7; i++) sum += d[mskNow(nowMs - i * DAY_MS).date] || 0;
+  return sum;
+}
+
+// --- Ежедневные квесты ---
+// Три задания на день, одинаковые для всех (выбор детерминирован датой).
+// Прогресс — stats.quests = { date, items: [{ id, target, progress, done }] }.
+const QUEST_POOL = [
+  { id: "answers15", title: "Ответить на 15 вопросов", target: 15, metric: "answers" },
+  { id: "answers25", title: "Ответить на 25 вопросов", target: 25, metric: "answers" },
+  { id: "correct10", title: "10 верных ответов", target: 10, metric: "correct" },
+  { id: "row5", title: "5 верных подряд", target: 5, metric: "row" },
+  { id: "row8", title: "8 верных подряд", target: 8, metric: "row" },
+  { id: "blitz1", title: "Сыграть блиц (/blitz)", target: 1, metric: "blitz" },
+  { id: "defeat1", title: "Победить 1 слово из списка ошибок", target: 1, metric: "defeat" },
+  { id: "grammar5", title: "5 упражнений по грамматике", target: 5, metric: "grammar" },
+  { id: "irregular5", title: "5 неправильных глаголов", target: 5, metric: "irregular" },
+  { id: "swap10", title: "10 ответов в режиме RU → EN (/swap)", target: 10, metric: "swap" },
+];
+
+function hashDate(date) {
+  let h = 0;
+  for (const ch of date) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  // Перемешивание, чтобы соседние даты давали непохожие наборы.
+  h ^= h >>> 16;
+  h = Math.imul(h, 0x45d9f3b) >>> 0;
+  h ^= h >>> 16;
+  h = Math.imul(h, 0x45d9f3b) >>> 0;
+  h ^= h >>> 16;
+  return h >>> 0;
+}
+
+function questsForDate(date) {
+  const h = hashDate(date);
+  const first = QUEST_POOL[h % 3]; // одно «объёмное» задание из первых трёх
+  const rest = QUEST_POOL.slice(3);
+  const a = rest[(h >>> 4) % rest.length];
+  let b = rest[(h >>> 12) % rest.length];
+  if (b.id === a.id) b = rest[((h >>> 12) + 1) % rest.length];
+  return [first, a, b].map((q) => ({ id: q.id, target: q.target, progress: 0, done: false }));
+}
+
+function questTitle(id) {
+  const q = QUEST_POOL.find((x) => x.id === id);
+  return q ? q.title : id;
+}
+
+// Обновляет прогресс квестов по событиям одного ответа. events: { answers,
+// correct, row (текущая серия верных), blitz, defeat, grammar, irregular, swap }.
+// Возвращает строки для сообщения; XP начисляет сам.
+function advanceQuests(s, today, events) {
+  if (!s.quests || s.quests.date !== today) s.quests = { date: today, items: questsForDate(today) };
+  s.quests = { ...s.quests, items: s.quests.items.map((q) => ({ ...q })) };
+  const lines = [];
+  for (const q of s.quests.items) {
+    if (q.done) continue;
+    const def = QUEST_POOL.find((x) => x.id === q.id);
+    if (!def) continue;
+    const v = events[def.metric] || 0;
+    if (def.metric === "row") q.progress = Math.max(q.progress, v);
+    else q.progress = Math.min(q.target, q.progress + v);
+    if (q.progress >= q.target) {
+      q.done = true;
+      addXp(s, XP.quest, today);
+      lines.push(`✅ Квест: ${def.title} (+${XP.quest} XP)`);
+    }
+  }
+  if (s.quests.items.every((q) => q.done) && !s.quests.allDone) {
+    s.quests.allDone = true;
+    addXp(s, XP.allQuests, today);
+    lines.push(`🏆 Все квесты дня выполнены! +${XP.allQuests} XP`);
+  }
+  return lines;
+}
+
+function questsText(s, today) {
+  const q = s.quests && s.quests.date === today ? s.quests : { items: questsForDate(today) };
+  const lines = q.items.map((it) => `${it.done ? "✅" : "⬜"} ${questTitle(it.id)} — ${Math.min(it.progress, it.target)}/${it.target}`);
+  const done = q.items.filter((it) => it.done).length;
+  return `📋 Квесты на сегодня (${done}/${q.items.length}, за каждый +${XP.quest} XP, за все три ещё +${XP.allQuests}):\n${lines.join("\n")}`;
+}
+
 // В журнал в Blobs раньше писалась КАЖДАЯ строчка: 5–10 записей на одно
 // нажатие, каждая — скачать весь журнал и записать обратно (а при двух
 // учениках одновременно — ещё и повторы из-за конфликтов). Теперь в Blobs
@@ -7819,7 +7944,7 @@ function buildQuestion(vocab, wrongMap, prefix, forbiddenEn, seenEnList, recentT
   const newSeenEn = resetCycle ? [correct.en] : seenEnSet.has(correct.en) ? seenEnList || [] : [...(seenEnList || []), correct.en];
   const newTail = [...tail, correct.en].slice(-RECENT_HISTORY_SIZE);
 
-  return { correct, correctPos, keyboard, text, resetCycle, newSeenEn, newTail };
+  return { correct, correctPos, keyboard, text, resetCycle, newSeenEn, newTail, direction };
 }
 
 // Отправляет уже выбранный вопрос и запоминает pending — используется и из
@@ -7855,6 +7980,7 @@ async function deliverQuestion(chatId, picked) {
     topic: picked.topic !== undefined ? picked.topic : null,
     shared: picked.shared !== undefined ? picked.shared : null,
     blitz: picked.blitz || null,
+    direction: picked.direction || null,
   });
 }
 
@@ -8380,6 +8506,7 @@ async function handleHelp(chatId) {
       "/folders — какие у тебя папки и сколько в них слов\n" +
       "/blitz — 10 вопросов на время по всему словарю, с рекордом\n" +
       "/achievements — твои ачивки\n" +
+      "/quests — три задания на сегодня (+XP за каждое)\n" +
       "/swap — поменять направление в лексике: бот показывает русское слово, а ты выбираешь английское (и обратно)\n" +
       "/delete <English> — удалить слово (можно сразу список, по одному на строку)\n" +
       "/reset — сбросить прогресс\n" +
@@ -8413,6 +8540,8 @@ async function handleScore(chatId) {
   if (goal) lines.push(todayCount >= goal ? `🎉 Цель на сегодня выполнена: ${todayCount}/${goal}` : `🎯 Сегодня: ${todayCount}/${goal}`);
   if (dayStreak >= 1) lines.push(`${streakLine(dayStreak)}${stats.bestDayStreak > dayStreak ? ` (рекорд — ${stats.bestDayStreak})` : ""}`);
   if (stats.freezes) lines.push(`🧊 Заморозок серии в запасе: ${stats.freezes} из ${FREEZE_MAX}`);
+  lines.push(levelLine(stats.xp || 0));
+  lines.push(`⭐ Сегодня: +${(stats.xpDaily || {})[mskNow().date] || 0} XP, за неделю: ${xpWeek(stats, Date.now())} XP`);
   await tg("sendMessage", {
     chat_id: chatId,
     text: lines.join("\n") + (missed ? `\n\nЧаще всего путаешь:\n${missed}` : ""),
@@ -8461,6 +8590,12 @@ async function handleBlitz(chatId) {
   picked.shared = null;
   picked.blitz = { total: BLITZ_TOTAL, answered: 0, correct: 0, startedAt: Date.now() };
   await deliverQuestion(chatId, picked);
+}
+
+// /quests — задания на сегодня и прогресс по ним.
+async function handleQuests(chatId) {
+  const stats = await getStats(chatId);
+  await tg("sendMessage", { chat_id: chatId, text: questsText(stats, mskNow().date), reply_markup: await mainReplyKeyboard(chatId) });
 }
 
 // /achievements — какие ачивки есть и какие ещё впереди.
@@ -9463,6 +9598,26 @@ async function handleCallback(callbackQuery) {
       }
     }
 
+    // XP за ответ и события; уровень; квесты дня.
+    const levelBefore = levelOf(s.xp || 0).idx;
+    addXp(s, isCorrect ? XP.correct : XP.wrong, today);
+    if (dailyGoal && todayCount === dailyGoal) addXp(s, XP.goal, today);
+    if (defeated) addXp(s, XP.defeat, today);
+    if (blitzFinal) addXp(s, blitzFinal.correct === blitzFinal.total ? XP.blitz + XP.blitzPerfect : XP.blitz, today);
+    const questLines = advanceQuests(s, today, {
+      answers: 1,
+      correct: isCorrect ? 1 : 0,
+      row: s.streak,
+      blitz: blitzFinal ? 1 : 0,
+      defeat: defeated ? 1 : 0,
+      grammar: mode === "grammar" ? 1 : 0,
+      irregular: mode === "irregular" ? 1 : 0,
+      swap: mode === "vocab" && pending.direction === VOCAB_DIRECTION_RU_EN ? 1 : 0,
+    });
+    extraLines.push(...questLines);
+    const levelAfter = levelOf(s.xp);
+    if (levelAfter.idx > levelBefore) extraLines.push(`⬆️ Новый уровень ${levelAfter.number}: ${levelAfter.name}! (${s.xp} XP)`);
+
     const got = checkAchievements(s, { defeated, folderDone: false, blitzPerfect: !!(blitzFinal && blitzFinal.correct === blitzFinal.total) }, today);
     extraLines.push(...got.map(achievementLine));
 
@@ -10037,6 +10192,7 @@ function weeklySummaryText(stats, vocab, nowMs) {
   }
   lines.push(`📚 Отработано слов и упражнений: ${weekCount}${cmp}`);
   lines.push(`📆 Дней с занятиями: ${activeDays} из 7`);
+  lines.push(`⭐ XP за неделю: ${xpWeek(stats, nowMs)} · ${levelLine(stats.xp || 0).replace(/^⭐ /, "")}`);
   if (streak >= 1) {
     lines.push(`${streakLine(streak)}${stats.bestDayStreak > streak ? ` (рекорд — ${stats.bestDayStreak})` : ""}`);
   } else if (stats.bestDayStreak > 0) {
@@ -10332,6 +10488,7 @@ async function handleMessage(message) {
   if (text === "/count") return handleCount(chatId);
   if (/^\/blitz(@\w+)?$/i.test(text)) return handleBlitz(chatId);
   if (/^\/achievements(@\w+)?$/i.test(text)) return handleAchievements(chatId);
+  if (/^\/quests(@\w+)?$/i.test(text)) return handleQuests(chatId);
   if (/^\/folders(@\w+)?$/i.test(text)) return handleFolders(chatId);
   if (/^\/swap(@\w+)?$/i.test(text)) return handleSwapDirection(chatId);
   if (text === "/migrate") return handleMigrate(chatId);
