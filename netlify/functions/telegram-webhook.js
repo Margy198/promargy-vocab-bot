@@ -244,11 +244,68 @@ function currentDayStreak(stats, nowMs = Date.now()) {
     if (d[today] > 0) return streakFromDaily(d, today);
     return streakFromDaily(d, yesterday);
   }
+  // Пропущены дни, но заморозок хватает — серия ещё жива (спасётся при
+  // следующем ответе).
+  const missed = daysBetweenDates(stats.dayStreakLast, today) - 1;
+  if (missed > 0 && missed <= (stats.freezes || 0)) return stats.dayStreak || 0;
   return 0;
 }
 
 function streakLine(n) {
   return `🔥 ${n} ${pluralRu(n, ["день", "дня", "дней"])} подряд`;
+}
+
+// Заморозки серии (как в Duolingo): пропустил день — серия не сгорает,
+// тратится заморозка. Зарабатывается по одной за каждые FREEZE_EARN_EVERY
+// дней серии, в запасе не больше FREEZE_MAX. Хранится в stats.freezes;
+// stats.freezeEarnedAt — на какой длине серии выдали последнюю.
+const FREEZE_MAX = 2;
+const FREEZE_EARN_EVERY = 7;
+// Вехи серии — отдельное поздравление (и ачивки на 7/30 — см. ACHIEVEMENTS).
+const STREAK_MILESTONES = [7, 14, 30, 50, 100, 200, 365, 500, 1000];
+// Вечернее предупреждение «серия сгорит»: час по мск и минимальная серия.
+const STREAK_WARN_HOUR = 20;
+const STREAK_WARN_MIN = 3;
+
+// Учитывает серию при первом ответе за день: продлевает, спасает
+// заморозками или начинает заново. Возвращает строки для сообщения.
+function advanceDayStreak(s, today, yesterday) {
+  const lines = [];
+  if (s.dayStreakLast === today) return lines;
+  let continued = false;
+  if (s.dayStreakLast === yesterday) {
+    continued = true;
+  } else if (!s.dayStreakLast) {
+    // Старая запись без сохранённой серии — подхватываем из истории.
+    s.dayStreak = streakFromDaily(s.daily, yesterday);
+    continued = s.dayStreak > 0;
+  } else {
+    const missed = daysBetweenDates(s.dayStreakLast, today) - 1;
+    const freezes = s.freezes || 0;
+    if (missed > 0 && missed <= freezes) {
+      s.freezes = freezes - missed;
+      continued = true;
+      lines.push(`🧊 Серия спасена: ${missed === 1 ? "пропущенный день закрыла заморозка" : `${missed} пропущенных дня закрыли заморозки`} (осталось ${s.freezes}).`);
+    }
+  }
+  s.dayStreak = continued ? (s.dayStreak || 0) + 1 : 1;
+  s.dayStreakLast = today;
+  s.bestDayStreak = Math.max(s.bestDayStreak || 0, s.dayStreak);
+  // Новая заморозка за каждые FREEZE_EARN_EVERY дней серии.
+  const earnedAt = s.freezeEarnedAt || 0;
+  if (s.dayStreak >= FREEZE_EARN_EVERY && s.dayStreak - earnedAt >= FREEZE_EARN_EVERY) {
+    s.freezeEarnedAt = s.dayStreak;
+    if ((s.freezes || 0) < FREEZE_MAX) {
+      s.freezes = (s.freezes || 0) + 1;
+      lines.push(`🧊 +1 заморозка серии за ${s.dayStreak} ${pluralRu(s.dayStreak, ["день", "дня", "дней"])} подряд (в запасе ${s.freezes} из ${FREEZE_MAX}). Пропустишь день — серия не сгорит.`);
+    }
+  }
+  return lines;
+}
+
+// Строка про серию под ответом: на вехе — с поздравлением.
+function streakLineForToday(n) {
+  return STREAK_MILESTONES.includes(n) ? `🎉 Веха: ${streakLine(n)}! Так держать.` : streakLine(n);
 }
 
 // Ачивки. Выданные хранятся в stats.achievements = { id: "YYYY-MM-DD" }.
@@ -261,6 +318,8 @@ const ACHIEVEMENTS = [
   { id: "streak20", emoji: "🎯", title: "Снайпер", desc: "20 правильных ответов подряд" },
   { id: "days7", emoji: "🔥", title: "Неделя без пропусков", desc: "7 дней занятий подряд" },
   { id: "days30", emoji: "🌟", title: "Месяц без пропусков", desc: "30 дней занятий подряд" },
+  { id: "days100", emoji: "💎", title: "Сто дней", desc: "100 дней занятий подряд" },
+  { id: "days365", emoji: "👑", title: "Год без пропусков", desc: "365 дней занятий подряд" },
   { id: "defeat5", emoji: "🏆", title: "Победитель", desc: "победить слово, в котором ошибался 5 раз" },
   { id: "folder", emoji: "📁", title: "Папка пройдена", desc: "пройти все слова папки или словаря (от 5 слов)" },
   { id: "blitz10", emoji: "⚡", title: "Блиц-мастер", desc: "10 из 10 в блице" },
@@ -288,6 +347,8 @@ function checkAchievements(s, ctx, today) {
   if (s.streak >= 20) award("streak20");
   if ((s.dayStreak || 0) >= 7) award("days7");
   if ((s.dayStreak || 0) >= 30) award("days30");
+  if ((s.dayStreak || 0) >= 100) award("days100");
+  if ((s.dayStreak || 0) >= 365) award("days365");
   if (ctx.defeated && ctx.defeated.errors >= 5) award("defeat5");
   if (ctx.folderDone) award("folder");
   if (ctx.blitzPerfect) award("blitz10");
@@ -8351,6 +8412,7 @@ async function handleScore(chatId) {
   const lines = [`📊 ${statsLine(practicedCount, vocab.length)}`];
   if (goal) lines.push(todayCount >= goal ? `🎉 Цель на сегодня выполнена: ${todayCount}/${goal}` : `🎯 Сегодня: ${todayCount}/${goal}`);
   if (dayStreak >= 1) lines.push(`${streakLine(dayStreak)}${stats.bestDayStreak > dayStreak ? ` (рекорд — ${stats.bestDayStreak})` : ""}`);
+  if (stats.freezes) lines.push(`🧊 Заморозок серии в запасе: ${stats.freezes} из ${FREEZE_MAX}`);
   await tg("sendMessage", {
     chat_id: chatId,
     text: lines.join("\n") + (missed ? `\n\nЧаще всего путаешь:\n${missed}` : ""),
@@ -8770,6 +8832,40 @@ async function handleDeleteShared(chatId, argText) {
 // так новые кнопки (например «🔔 Напоминания») появляются у всех сразу,
 // а не только после следующей команды. Текст — всё, что после /broadcast,
 // можно в несколько строк.
+// Только для админов: /setstreak @user N — выставить ученику серию дней
+// (перенос из Duolingo и т.п.). Серия считается «живой» на сегодня.
+async function handleSetStreak(chatId, text) {
+  if (!(await isAdmin(chatId))) {
+    await tg("sendMessage", { chat_id: chatId, text: "Эта команда недоступна." });
+    return;
+  }
+  const m = text.trim().match(/^\/setstreak(?:@\w+)?\s+(\S+)\s+(\d+)\s*$/i);
+  if (!m) {
+    await tg("sendMessage", { chat_id: chatId, text: "Формат: /setstreak @username 3000 (или chat_id вместо @username)." });
+    return;
+  }
+  const targetId = await resolveTarget(m[1]);
+  if (!targetId) {
+    await tg("sendMessage", { chat_id: chatId, text: `Не нашла ${m[1]} — проверь @username или chat_id.` });
+    return;
+  }
+  const n = Math.max(0, parseInt(m[2], 10));
+  const today = mskNow().date;
+  await withOptimisticUpdate(statsStore(), String(targetId), emptyStats, (current) => ({
+    ...current,
+    dayStreak: n,
+    dayStreakLast: today,
+    bestDayStreak: Math.max(current.bestDayStreak || 0, n),
+    freezeEarnedAt: n,
+  }));
+  await tg("sendMessage", { chat_id: chatId, text: `✅ Серия ${m[1]}: ${n} ${pluralRu(n, ["день", "дня", "дней"])}. Чтобы не сгорела, сегодня ему(ей) уже засчитано.` });
+  try {
+    await tg("sendMessage", { chat_id: targetId, text: `🔥 Преподаватель перенёс твою серию: ${n} ${pluralRu(n, ["день", "дня", "дней"])} подряд. Продолжаем здесь — не теряй!` });
+  } catch (err) {
+    // не критично
+  }
+}
+
 async function handleBroadcast(chatId, argText) {
   if (!(await isAdmin(chatId))) {
     await tg("sendMessage", { chat_id: chatId, text: "Эта команда недоступна." });
@@ -9312,27 +9408,20 @@ async function handleCallback(callbackQuery) {
 
     // Серия дней: первый ответ за сегодня продлевает её (если вчера
     // занимался) или начинает заново.
-    let firstAnswerToday = false;
-    if (s.dayStreakLast !== today) {
-      firstAnswerToday = true;
-      if (s.dayStreakLast === yesterday) s.dayStreak = (s.dayStreak || 0) + 1;
-      else if (!s.dayStreakLast) s.dayStreak = streakFromDaily(s.daily, yesterday) + 1;
-      else s.dayStreak = 1;
-      s.dayStreakLast = today;
-      s.bestDayStreak = Math.max(s.bestDayStreak || 0, s.dayStreak);
-    }
+    const firstAnswerToday = s.dayStreakLast !== today;
+    const streakLines = advanceDayStreak(s, today, yesterday);
     const todayCount = s.daily[today];
-    const extraLines = [];
+    const extraLines = [...streakLines];
     if (dailyGoal) {
       if (todayCount === dailyGoal) {
         extraLines.push(`🎉 Цель на сегодня выполнена: ${todayCount}/${dailyGoal}!`);
-        if (s.dayStreak >= 2) extraLines.push(streakLine(s.dayStreak));
+        if (s.dayStreak >= 2) extraLines.push(streakLineForToday(s.dayStreak));
       } else if (todayCount < dailyGoal) {
         extraLines.push(`🎯 ${todayCount}/${dailyGoal} за сегодня`);
-        if (firstAnswerToday && s.dayStreak >= 2) extraLines.push(streakLine(s.dayStreak));
+        if (firstAnswerToday && s.dayStreak >= 2) extraLines.push(streakLineForToday(s.dayStreak));
       }
     } else if (firstAnswerToday && s.dayStreak >= 2) {
-      extraLines.push(streakLine(s.dayStreak));
+      extraLines.push(streakLineForToday(s.dayStreak));
     }
     // «Победить» слово: слово из списка ошибок уходит оттуда только после
     // DEFEAT_STREAK правильных ответов подряд (раньше — после первого же).
@@ -9961,6 +10050,42 @@ function weeklySummaryText(stats, vocab, nowMs) {
   return lines.join("\n");
 }
 
+// Вечернее предупреждение: серия ≥ STREAK_WARN_MIN, сегодня ещё не
+// занимался, напоминания не выключены — в STREAK_WARN_HOUR по мск одно
+// сообщение (identity.streakWarnFor = дата). Независимо от выбранной
+// частоты напоминаний: это не напоминание «позаниматься», а защита серии.
+async function sendStreakWarnings(nowMs = Date.now()) {
+  const { date: today, hour } = mskNow(nowMs);
+  if (hour < STREAK_WARN_HOUR || hour > STREAK_WARN_HOUR + 1) return 0;
+  const ids = await identityStore().list();
+  const entries = ids && ids.blobs ? ids.blobs : [];
+  let sent = 0;
+  for (const entry of entries) {
+    const info = await identityStore().get(entry.key, { type: "json" });
+    if (!info || info.remindersEnabled === false) continue;
+    if (info.approved === false && !info.phrasesAccess) continue;
+    if (info.streakWarnFor === today) continue;
+    const stats = await getStats(entry.key);
+    if (stats.dayStreakLast === today) continue;
+    const streak = currentDayStreak(stats, nowMs);
+    if (streak < STREAK_WARN_MIN) continue;
+    const hoursLeft = 24 - hour;
+    const freezes = stats.freezes || 0;
+    const text =
+      `⏰ Серия ${streak} ${pluralRu(streak, ["день", "дня", "дней"])} сгорит через ${hoursLeft} ${pluralRu(hoursLeft, ["час", "часа", "часов"])}. ` +
+      `Хватит ответить на пару вопросов — жми любую кнопку внизу.` +
+      (freezes ? `\n🧊 Если не успеешь, спасёт заморозка (в запасе ${freezes}).` : "");
+    try {
+      await tg("sendMessage", { chat_id: entry.key, text, reply_markup: await mainReplyKeyboard(entry.key) });
+      sent += 1;
+    } catch (err) {
+      // не критично
+    }
+    await updateIdentity(entry.key, (current) => ({ ...current, streakWarnFor: today }));
+  }
+  return sent;
+}
+
 async function sendWeeklySummaries(nowMs = Date.now()) {
   const d = new Date(nowMs + MSK_OFFSET_MS);
   if (d.getUTCDay() !== 0 || d.getUTCHours() < WEEKLY_SUMMARY_HOUR) return 0;
@@ -10232,6 +10357,7 @@ async function handleMessage(message) {
     return handleDeleteShared(chatId, text.replace(/^\/deleteshared(@\w+)?\s*/i, ""));
   }
   if (text === "/sharedlist") return handleSharedList(chatId);
+  if (/^\/setstreak(@\w+)?\s/i.test(text)) return handleSetStreak(chatId, text);
   if (/^\/broadcast(@\w+)?(\s|$)/i.test(text)) {
     return handleBroadcast(chatId, text.replace(/^\/broadcast(@\w+)?\s*/i, ""));
   }
@@ -10333,7 +10459,8 @@ export default async (req) => {
       if (url.searchParams.get("remind") === WEBHOOK_SECRET) {
         const count = await sendReminders();
         const weekly = await sendWeeklySummaries();
-        return new Response(JSON.stringify({ ok: true, remindersSent: count, weeklySummariesSent: weekly }), {
+        const warned = await sendStreakWarnings();
+        return new Response(JSON.stringify({ ok: true, remindersSent: count, weeklySummariesSent: weekly, streakWarningsSent: warned }), {
           status: 200,
           headers: { "content-type": "application/json; charset=utf-8" },
         });
