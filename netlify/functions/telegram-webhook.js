@@ -9322,6 +9322,22 @@ async function handleDeleteShared(chatId, argText) {
 // так новые кнопки (например «🔔 Напоминания») появляются у всех сразу,
 // а не только после следующей команды. Текст — всё, что после /broadcast,
 // можно в несколько строк.
+// Только для админов: /appbutton — поставить всем кнопку меню (слева от
+// поля ввода) с мини-приложением. Заменяет настройку через BotFather.
+async function handleAppButton(chatId) {
+  if (!(await isAdmin(chatId))) {
+    await tg("sendMessage", { chat_id: chatId, text: "Эта команда недоступна." });
+    return;
+  }
+  const url = miniAppUrl();
+  if (!url) {
+    await tg("sendMessage", { chat_id: chatId, text: "Не знаю адрес сайта (нет переменной URL/MINI_APP_URL в Netlify) — кнопку поставить не могу." });
+    return;
+  }
+  const res = await tg("setChatMenuButton", { menu_button: { type: "web_app", text: "Приложение", web_app: { url } } });
+  await tg("sendMessage", { chat_id: chatId, text: res && res.ok ? `✅ Кнопка меню «Приложение» включена для всех: ${url}` : `Не удалось: ${res && res.description ? res.description : "ошибка Telegram"}` });
+}
+
 // Только для админов: /setstreak @user N — выставить ученику серию дней
 // (перенос из Duolingo и т.п.). Серия считается «живой» на сегодня.
 async function handleSetStreak(chatId, text) {
@@ -10836,6 +10852,16 @@ async function handleReminderFrequencyCallback(chatId, messageId, data) {
 async function handleMessage(message) {
   const chatId = message.chat.id;
   const text = (message.text || "").trim();
+  // Данные из мини-приложения (кнопка «Начать блиц» и т.п.) приходят как
+  // обычное сообщение с полем web_app_data.
+  if (message.web_app_data && message.web_app_data.data) {
+    await rememberIdentity(chatId, message.from);
+    const cmd = String(message.web_app_data.data);
+    if (cmd === "blitz") return handleBlitz(chatId);
+    if (cmd === "practice") return handleModeVocab(chatId);
+    if (cmd === "grammar") return handleModeGrammar(chatId);
+    return;
+  }
   // rememberIdentity сама читает-и-обновляет запись о чате и возвращает
   // свежую версию — не читаем её отдельно ещё два раза, как раньше.
   const remembered = await rememberIdentity(chatId, message.from);
@@ -11013,6 +11039,7 @@ async function handleMessage(message) {
   }
   if (text === "/sharedlist") return handleSharedList(chatId);
   if (/^\/setstreak(@\w+)?\s/i.test(text)) return handleSetStreak(chatId, text);
+  if (/^\/appbutton(@\w+)?$/i.test(text)) return handleAppButton(chatId);
   if (/^\/praise(@\w+)?(\s|$)/i.test(text)) return handlePraise(chatId, text);
   if (/^\/broadcast(@\w+)?(\s|$)/i.test(text)) {
     return handleBroadcast(chatId, text.replace(/^\/broadcast(@\w+)?\s*/i, ""));
@@ -11154,6 +11181,90 @@ async function appProfilePayload(chatId, identity, nowMs = Date.now()) {
   };
 }
 
+// Словарь для экрана «Словарь»: папки с количеством и все слова.
+async function appVocabPayload(chatId) {
+  const [vocab, stats] = await Promise.all([getVocab(chatId), getStats(chatId)]);
+  const today = mskNow().date;
+  const counts = new Map();
+  for (const w of vocab) {
+    const key = w.topic || GENERAL_TOPIC;
+    counts.set(key, (counts.get(key) || 0) + 1);
+  }
+  const folders = [...counts.entries()]
+    .sort((a, b) => (a[0] === GENERAL_TOPIC ? -1 : b[0] === GENERAL_TOPIC ? 1 : a[0].localeCompare(b[0], "ru")))
+    .map(([key, n]) => ({ key, label: topicLabel(key), count: n, isGeneral: key === GENERAL_TOPIC }));
+  const words = vocab.map((w) => ({
+    en: w.en,
+    ru: w.ru,
+    topic: w.topic || null,
+    errors: (stats.wrong || {})[w.en] || 0,
+    due: srsIsDue(stats.srs, w.en, today),
+  }));
+  return { folders, words, total: vocab.length };
+}
+
+// Перенос слов в папку (null — в «Общие»). Папка с таким названием без
+// учёта регистра переиспользуется.
+async function moveWordsToTopic(chatId, ens, topicRaw) {
+  const set = new Set(ens.map((e) => String(e).toLowerCase()));
+  let topic = topicRaw ? String(topicRaw).trim().slice(0, 40) : null;
+  let moved = 0;
+  await withOptimisticUpdate(
+    wordsStore(),
+    `words:${chatId}`,
+    () => [],
+    (vocab) => {
+      if (topic) {
+        const match = vocab.map((w) => w.topic).find((t) => t && t.toLowerCase() === topic.toLowerCase());
+        if (match) topic = match;
+      }
+      moved = 0;
+      return vocab.map((w) => {
+        if (!set.has(w.en.toLowerCase())) return w;
+        if ((w.topic || null) === topic) return w;
+        moved += 1;
+        const next = { ...w };
+        if (topic) next.topic = topic;
+        else delete next.topic;
+        return next;
+      });
+    }
+  );
+  return { moved, topic };
+}
+
+async function renameTopic(chatId, from, to) {
+  const target = String(to || "").trim().slice(0, 40);
+  if (!target) return { renamed: 0 };
+  let renamed = 0;
+  await withOptimisticUpdate(
+    wordsStore(),
+    `words:${chatId}`,
+    () => [],
+    (vocab) => {
+      renamed = 0;
+      return vocab.map((w) => {
+        if ((w.topic || "") !== from) return w;
+        renamed += 1;
+        return { ...w, topic: target };
+      });
+    }
+  );
+  return { renamed, topic: target };
+}
+
+async function appLeaguePayload(chatId, identity) {
+  const { rows, classAnswers } = await leagueStandings();
+  const goal = await getBotConfig("classgoal");
+  return {
+    weekStart: weekStartOf(mskNow().date),
+    optIn: !!identity.leagueOptIn,
+    anon: !!identity.leagueAnon,
+    rows: rows.map((r, i) => ({ place: i + 1, name: r.name, xp: r.xp, me: String(r.chatId) === String(chatId) })),
+    classGoal: goal && goal.target ? { target: goal.target, progress: classAnswers } : null,
+  };
+}
+
 async function handleAppApi(body) {
   const user = verifyInitData(body.initData);
   if (!user || !user.id) return appJson({ ok: false, error: "auth" }, 401);
@@ -11163,8 +11274,81 @@ async function handleAppApi(body) {
   if (!hasAccess) return appJson({ ok: false, error: "no_access" }, 403);
   try {
     switch (body.action) {
-      case "me":
-        return appJson({ ok: true, ...(await appProfilePayload(chatId, identity)) });
+      case "me": {
+        const challenge = await getBotConfig("challenge");
+        return appJson({ ok: true, ...(await appProfilePayload(chatId, identity)), challenge: challenge || null });
+      }
+      case "vocab":
+        return appJson({ ok: true, ...(await appVocabPayload(chatId)) });
+      case "addWords": {
+        const { topic, pairs, badLines } = await parseWordsWithTopic(chatId, String(body.text || ""), body.topic ? String(body.topic) : null);
+        if (!pairs.length) return appJson({ ok: false, error: "no_pairs", badLines });
+        const r = await addWords(chatId, pairs);
+        return appJson({ ok: true, ...r, topic, badLines, ...(await appVocabPayload(chatId)) });
+      }
+      case "deleteWords": {
+        const ens = Array.isArray(body.ens) ? body.ens.map(String) : [];
+        if (!ens.length) return appJson({ ok: false, error: "empty" });
+        const r = await deleteWords(chatId, ens);
+        return appJson({ ok: true, ...r, ...(await appVocabPayload(chatId)) });
+      }
+      case "moveWords": {
+        const ens = Array.isArray(body.ens) ? body.ens.map(String) : [];
+        if (!ens.length) return appJson({ ok: false, error: "empty" });
+        const r = await moveWordsToTopic(chatId, ens, body.topic);
+        return appJson({ ok: true, ...r, ...(await appVocabPayload(chatId)) });
+      }
+      case "renameFolder": {
+        const r = await renameTopic(chatId, String(body.from || ""), String(body.to || ""));
+        return appJson({ ok: true, ...r, ...(await appVocabPayload(chatId)) });
+      }
+      case "league":
+        return appJson({ ok: true, ...(await appLeaguePayload(chatId, identity)) });
+      case "leagueSet": {
+        const updated = await updateIdentity(chatId, (current) => ({
+          ...current,
+          ...(body.optIn !== undefined ? { leagueOptIn: !!body.optIn } : {}),
+          ...(body.anon !== undefined ? { leagueAnon: !!body.anon } : {}),
+        }));
+        return appJson({ ok: true, ...(await appLeaguePayload(chatId, updated)) });
+      }
+      case "settings": {
+        const updated = await updateIdentity(chatId, (current) => {
+          const next = { ...current };
+          if (body.remindersEnabled !== undefined) next.remindersEnabled = !!body.remindersEnabled;
+          if (body.everyDays !== undefined && REMINDER_FREQUENCIES.some((f) => f.days === Number(body.everyDays))) next.reminderEveryDays = Number(body.everyDays);
+          if (Array.isArray(body.hours)) {
+            const hours = [...new Set(body.hours.map(Number).filter((h) => REMINDER_HOUR_CHOICES.includes(h)))].sort((a, b) => a - b).slice(0, REMINDER_MAX_HOURS);
+            if (hours.length) next.reminderHours = hours;
+          }
+          if (body.goal !== undefined && (Number(body.goal) === 0 || DAILY_GOAL_CHOICES.includes(Number(body.goal)))) next.dailyGoal = Number(body.goal);
+          if (body.gender !== undefined) next.gender = body.gender === "f" || body.gender === "m" ? body.gender : null;
+          if (body.avatar === null) next.avatar = null;
+          else if (typeof body.avatar === "string" && AVATARS.includes(body.avatar)) next.avatar = body.avatar;
+          return next;
+        });
+        return appJson({
+          ok: true,
+          reminders: { enabled: updated.remindersEnabled !== false, everyDays: reminderDaysOf(updated), hours: reminderHoursOf(updated) },
+          goal: dailyGoalOf(updated),
+          gender: updated.gender || null,
+          avatar: avatarOf(updated) || null,
+        });
+      }
+      case "options":
+        return appJson({ ok: true, avatars: AVATARS, hours: REMINDER_HOUR_CHOICES, frequencies: REMINDER_FREQUENCIES, goals: DAILY_GOAL_CHOICES, maxHours: REMINDER_MAX_HOURS });
+      // Запуск занятия из приложения: бот присылает вопрос в чат, а
+      // приложение закрывается. Надёжнее, чем web_app_data (оно работает
+      // только при запуске с клавиатурной кнопки).
+      case "startBlitz":
+        await handleBlitz(chatId);
+        return appJson({ ok: true });
+      case "startPractice":
+        await handleModeVocab(chatId);
+        return appJson({ ok: true });
+      case "startGrammar":
+        await handleModeGrammar(chatId);
+        return appJson({ ok: true });
       default:
         return appJson({ ok: false, error: "unknown_action" }, 400);
     }
