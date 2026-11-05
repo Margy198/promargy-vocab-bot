@@ -14,6 +14,7 @@
 // нажатия кнопки не затирали прогресс друг друга.
 
 import { getStore } from "@netlify/blobs";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { VOCAB as DEFAULT_VOCAB } from "../../data/vocab.mjs";
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -8247,6 +8248,15 @@ const BTN_IRREGULAR = "🔄 Неправильные глаголы";
 const BTN_GRAMMAR = "📝 Грамматика";
 const BTN_HIDE = "🔽 Скрыть меню";
 const BTN_REMINDERS = "🔔 Напоминания";
+const BTN_APP = "📱 Приложение";
+
+// Адрес мини-приложения: страница public/app/ того же сайта Netlify.
+// MINI_APP_URL в настройках Netlify переопределяет (например, свой домен).
+function miniAppUrl() {
+  const base = process.env.MINI_APP_URL || process.env.URL || "";
+  if (!base || !/^https:/i.test(base)) return "";
+  return base.replace(/\/+$/, "") + (process.env.MINI_APP_URL ? "" : "/app/");
+}
 
 async function mainReplyKeyboard(chatId) {
   const admin = await isAdmin(chatId);
@@ -8255,8 +8265,13 @@ async function mainReplyKeyboard(chatId) {
     ["/start", BTN_REMINDERS, BTN_HIDE],
   ];
   if (admin) rows.push(["/students"]);
+  const keyboard = rows.map((row) => row.map((text) => ({ text })));
+  // Кнопка мини-приложения (Telegram Web App). Telegram принимает только
+  // https-адрес, поэтому кнопка появляется, когда известен адрес сайта.
+  const appUrl = miniAppUrl();
+  if (appUrl) keyboard.splice(1, 0, [{ text: BTN_APP, web_app: { url: appUrl } }]);
   return {
-    keyboard: rows.map((row) => row.map((text) => ({ text }))),
+    keyboard,
     resize_keyboard: true,
     is_persistent: true,
   };
@@ -11040,6 +11055,125 @@ async function claimUpdateOnce(updateId) {
 // Обрабатывает запрос от /admin.html — тот же смысл, что у /addto в
 // Telegram, но по HTTP и в JSON, чтобы страница могла вызвать это через
 // fetch(). Проверка — тем же секретом, что и /claimadmin.
+// --- API мини-приложения (public/app/) ---
+// Страница открывается внутри Telegram и шлёт сюда POST { initData, action,
+// ... }. initData — строка от Telegram с подписью (hash) на токене бота:
+// проверяем подпись и свежесть, из неё берём user.id. Отдельной авторизации
+// нет: доступ тот же, что и в чате (approved / phrasesAccess).
+const MINI_APP_INITDATA_MAX_AGE_S = 24 * 60 * 60;
+
+function verifyInitData(initData) {
+  if (!initData || typeof initData !== "string" || !TOKEN) return null;
+  const params = new URLSearchParams(initData);
+  const hash = params.get("hash");
+  if (!hash) return null;
+  params.delete("hash");
+  const dataCheck = [...params.entries()]
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([k, v]) => `${k}=${v}`)
+    .join("\n");
+  const secret = createHmac("sha256", "WebAppData").update(TOKEN).digest();
+  const expected = createHmac("sha256", secret).update(dataCheck).digest("hex");
+  const a = Buffer.from(expected, "hex");
+  const b = Buffer.from(hash, "hex");
+  if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
+  const authDate = parseInt(params.get("auth_date") || "0", 10);
+  if (!authDate || Date.now() / 1000 - authDate > MINI_APP_INITDATA_MAX_AGE_S) return null;
+  try {
+    return JSON.parse(params.get("user") || "null");
+  } catch {
+    return null;
+  }
+}
+
+function appJson(obj, status = 200) {
+  return new Response(JSON.stringify(obj), { status, headers: { "content-type": "application/json; charset=utf-8" } });
+}
+
+// Сводка для экрана «Прогресс»: всё, что бот и так показывает в /score,
+// /quests, /achievements, одним объектом.
+async function appProfilePayload(chatId, identity, nowMs = Date.now()) {
+  const [stats, vocab] = await Promise.all([getStats(chatId), getVocab(chatId)]);
+  const today = mskNow(nowMs).date;
+  const goal = dailyGoalOf(identity);
+  const todayCount = (stats.daily || {})[today] || 0;
+  const level = levelOf(stats.xp || 0);
+  const quests = (stats.quests && stats.quests.date === today ? stats.quests : { items: questsForDate(today) }).items.map((q) => ({
+    id: q.id,
+    title: questTitle(q.id),
+    target: q.target,
+    progress: Math.min(q.progress, q.target),
+    done: !!q.done,
+  }));
+  const have = stats.achievements || {};
+  const achievements = ACHIEVEMENTS.map((a) => ({ id: a.id, emoji: a.emoji, title: a.title, desc: a.desc, date: have[a.id] || null }));
+  const wrongTop = Object.entries(stats.wrong || {})
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([en, n]) => ({ en, ru: (vocab.find((w) => w.en === en) || {}).ru || null, errors: n }));
+  const days = [];
+  for (let i = 13; i >= 0; i--) {
+    const d = mskNow(nowMs - i * DAY_MS).date;
+    days.push({ date: d, answers: (stats.daily || {})[d] || 0, xp: (stats.xpDaily || {})[d] || 0 });
+  }
+  return {
+    user: {
+      chatId: String(chatId),
+      firstName: identity.firstName || null,
+      username: identity.username || null,
+      avatar: avatarOf(identity) || null,
+      gender: identity.gender || null,
+    },
+    streak: currentDayStreak(stats, nowMs),
+    bestStreak: stats.bestDayStreak || 0,
+    practicedToday: stats.dayStreakLast === today,
+    freezes: stats.freezes || 0,
+    freezesMax: FREEZE_MAX,
+    xp: stats.xp || 0,
+    level: { number: level.number, name: level.name, next: level.next ? level.next.name : null, toNext: level.toNext, progress: level.progress },
+    xpToday: (stats.xpDaily || {})[today] || 0,
+    xpWeek: xpSinceWeekStart(stats, nowMs),
+    goal,
+    todayCount,
+    answered: stats.answered || 0,
+    correct: stats.correct || 0,
+    vocabCount: vocab.length,
+    dueCount: vocab.length ? srsDueCount(stats.srs, vocab, today) : 0,
+    victories: (stats.victories || []).length,
+    blitzBest: stats.blitzBest || null,
+    quests,
+    achievements,
+    wrongTop,
+    days,
+    reminders: {
+      enabled: identity.remindersEnabled !== false,
+      everyDays: reminderDaysOf(identity),
+      hours: reminderHoursOf(identity),
+    },
+    league: { optIn: !!identity.leagueOptIn, anon: !!identity.leagueAnon },
+  };
+}
+
+async function handleAppApi(body) {
+  const user = verifyInitData(body.initData);
+  if (!user || !user.id) return appJson({ ok: false, error: "auth" }, 401);
+  const chatId = user.id;
+  const identity = (await readIdentity(chatId)) || {};
+  const hasAccess = !(identity.approved === false && !identity.phrasesAccess) && (identity.approved === true || identity.phrasesAccess || (await isAdmin(chatId)));
+  if (!hasAccess) return appJson({ ok: false, error: "no_access" }, 403);
+  try {
+    switch (body.action) {
+      case "me":
+        return appJson({ ok: true, ...(await appProfilePayload(chatId, identity)) });
+      default:
+        return appJson({ ok: false, error: "unknown_action" }, 400);
+    }
+  } catch (err) {
+    await log("[app] ERROR:", body.action, String(err));
+    return appJson({ ok: false, error: "server" }, 500);
+  }
+}
+
 async function handleAdminApi(body) {
   const headers = { "content-type": "application/json; charset=utf-8" };
   if (body.adminSecret !== CLAIM_ADMIN_SECRET) {
@@ -11162,6 +11296,10 @@ export default async (req) => {
   // Telegram наличием поля adminSecret (у Telegram такого поля не бывает).
   if (body && body.adminSecret !== undefined) {
     return handleAdminApi(body);
+  }
+  // Запросы мини-приложения (см. handleAppApi): у них есть initData.
+  if (body && body.initData !== undefined && body.action !== undefined) {
+    return handleAppApi(body);
   }
 
   if (WEBHOOK_SECRET) {
