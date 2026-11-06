@@ -667,6 +667,7 @@
     if (sec("why")) list.push({ kind: "why", title: "Зачем эта тема", icon: "🎯" });
     const th = sec("theory");
     if (th) (th.pages && th.pages.length ? th.pages : [{ title: "Теория", html: th.html }]).forEach((p, i) => list.push({ kind: "theory", idx: i, title: p.title || `Теория ${i + 1}`, icon: "📖" }));
+    if (tenseInfo(t)) list.push({ kind: "algorithm", title: "Правила, показатели и алгоритм", icon: "🧭" });
     for (const k of ["native", "narrative", "examples", "pitfalls"]) if (sec(k)) list.push({ kind: k, title: SECTION_META[k][1], icon: SECTION_META[k][0] });
     for (const s of t.sections) if (s.key === "other") list.push({ kind: "other", title: strip(s.title), icon: "📄", sidx: t.sections.indexOf(s) });
     if (t.exercises.length) list.push({ kind: "exercises", title: `Упражнения (${t.exercises.length})`, icon: "✍️" });
@@ -675,6 +676,36 @@
     return list;
   }
   const strip = (h) => String(h).replace(/<[^>]+>/g, "");
+  // «Алгоритм» и «Показатели» — методика Маргариты для времён (из макета и методички по маркерам)
+  const TENSE_MARKERS = [
+    [/present simple/i, "Present Simple", ["always — всегда", "often — часто", "usually — обычно", "sometimes — иногда", "regularly — регулярно", "seldom — изредка", "from time to time — время от времени", "rarely — редко", "never — никогда", "every day / week — каждый день / неделю", "every month / year — каждый месяц / год", "on Mondays — по понедельникам и т.д."]],
+    [/present continuous/i, "Present Continuous", ["now — сейчас", "right now — прямо сейчас", "at the moment — в данный момент", "Look! — Смотри!", "Listen! — Слушай!", "today — сегодня", "this week — на этой неделе"]],
+    [/past simple|past continuous/i, "Past Simple", ["yesterday — вчера", "ago — назад (two days ago)", "last week / month / year — на прошлой неделе / в прошлом месяце / году", "in 2010 — в 2010 году", "when I was a child — когда я был ребёнком"]],
+    [/будущее|future|will/i, "Future Simple", ["tomorrow — завтра", "next week / month / year — на следующей неделе / в следующем месяце / году", "soon — скоро", "in an hour — через час", "I think / I'm sure / I hope / I promise / Don't worry — я думаю / уверен / надеюсь / обещаю / не волнуйся"]],
+    [/present perfect/i, "Present Perfect", ["already — уже", "yet — ещё (в вопросах и отрицаниях)", "just — только что", "ever — когда-либо", "never — никогда", "since — с (момента)", "for — в течение"]],
+    [/past perfect/i, "Past Perfect", ["by the time — к тому времени, как", "before — до того, как", "after — после того, как", "already — уже (к тому моменту)"]],
+    [/future perfect|future continuous/i, "Future Perfect", ["by tomorrow — к завтрашнему дню", "by then — к тому времени", "by the end of the week — к концу недели"]],
+  ];
+  const PRESENT_SIMPLE_RULES = `<ol>
+    <li><b>Повторяющиеся события, постоянные ситуации, периодические ситуации:</b><br><i>Каждое утро я выгуливаю свою собаку</i> — Every morning I walk my dog<br><i>Раз в три года я езжу на юг</i> — Once every three years I go south</li>
+    <li><b>Мы можем подставить слово «всегда»:</b><br><i>Я кладу 3 ложки сахара в чай</i> — I put 3 teaspoons of sugar in my tea.</li>
+    <li><b>Расписание транспорта, режим работы:</b><br><i>Кафе открывается в 8:00</i> — Café opens at 8:00<br><i>Поезд прибывает в 16:00</i> — Train arrives at 16:00</li>
+    <li><b>«Кэп очевидность»: законы природы и общеизвестные факты:</b><br><i>Солнце восходит на востоке.</i> — The sun rises in the east.</li></ol>`;
+  function tenseInfo(t) { const hay = t.title + " " + (t.description || ""); for (const [rx, name, markers] of TENSE_MARKERS) if (rx.test(hay)) return { name, markers }; return null; }
+  function algorithmHtml(t) {
+    const info = tenseInfo(t); if (!info) return "";
+    const isPS = /present simple/i.test(t.title) && !/continuous/i.test(t.title);
+    return `${isPS ? `<h3>Правила употребления</h3>${PRESENT_SIMPLE_RULES}` : ""}
+      <h3>Показатели ${esc(info.name)}</h3><div class="callout"><div>${info.markers.map((m) => esc(m)).join("<br>")}</div></div>
+      <h3>Алгоритм</h3><ol>
+      <li>Есть ли глагол в предложении?</li>
+      <li>Ищем показатель:<ol><li>или слово в тексте (см. показатели выше);</li><li>или добавляем русское слово «всегда» / «сейчас» / «вчера» / «завтра»;</li><li>или понимаем по контексту (предыдущее предложение было в ${esc(info.name)});</li><li>выписываем показатель <code>__________</code></li></ol></li>
+      <li>По показателю определяем время и выписываем его <code>__________</code></li>
+      <li>Выбираем глагол:<ol><li>to be</li><li>to have</li><li>остальные</li><li>если глагола нет — добавляем to be</li><li>выписываем его инфинитив <code>__________</code></li></ol></li>
+      <li>Определяем местоимение (I / you / he / she / it / we / they)</li>
+      <li>Определяем тип: утверждение, отрицание или вопрос — и собираем предложение по формуле.</li></ol>
+      <blockquote>💡 Привычка: сначала показатель → потом время → потом форма глагола. Так ошибок почти не бывает.</blockquote>`;
+  }
   const readKey = (id) => `read:${id}`;
   function renderTopic(root) {
     const id = state.study.id; const f = findTopicMeta(id); const meta = f ? f.meta : null; const lv = f ? f.level : null;
@@ -711,6 +742,7 @@
     const sec = (k) => t.sections.find((s) => s.key === k);
     if (l.kind === "theory") { const th = sec("theory"); const p = th.pages && th.pages.length ? th.pages[l.idx] : { html: th.html }; return p.html; }
     if (l.kind === "other") return t.sections[l.sidx].html;
+    if (l.kind === "algorithm") return algorithmHtml(t);
     const s = sec(l.kind); return s ? s.html : "";
   }
   function lessonHeader(t, l, i, total, extraClass) {
