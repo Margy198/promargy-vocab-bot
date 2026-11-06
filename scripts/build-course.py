@@ -283,19 +283,52 @@ def build_topic(meta):
         "intro": intro, "sections": sections, "exercises": exercises, "selfcheck": selfcheck, "selfcheckNote": selfcheck_html,
     }
 
+# ---------- категории (структура «Список тем» из макета Маргариты) ----------
+# Каждая тема плана попадает в одну категорию; уроки внутри категории идут по уровням.
+CATEGORIES = [
+    ("basics", "Основы", "алфавит и звуки, цифры, дни и месяцы, have got", [r"Алфавит", r"Цифры", r"Дни, месяцы", r"Have got"]),
+    ("tobe", "Глагол to be", "am / is / are, was / were, there is / there are, синонимы to be", [r"To be", r"There is", r"Синонимы to be"]),
+    ("tenses", "Времена", "Pr.S., Pr.C., P.S., P.C., F.S., Pr.P., P.P., F.C., F.P., все 12 времён", [r"Present Simple", r"Present Continuous", r"Past Simple", r"Past Continuous", r"Будущее", r"Present Perfect", r"Past Perfect", r"Future Continuous", r"Все 12 времен", r"Stative", r"narrative tenses", r"would — все значения"]),
+    ("modals", "Модальные глаголы", "can, could, should, must, have to, may, might, модальные в прошлом", [r"Can / can't", r"Модальные", r"may / might"]),
+    ("nouns", "Существительные", "множественное число, исчисляемые и неисчисляемые, some / any / much / many", [r"Множественное число", r"Some / any", r"Исчисляемые"]),
+    ("articles", "Артикли", "a, an, the, отсутствие артикля, географические названия", [r"Артикли"]),
+    ("pronouns", "Местоимения", "this / that / these / those, притяжательные, 's", [r"This / that", r"Притяжательный"]),
+    ("adjectives", "Прилагательные и наречия", "порядок прилагательных, степени сравнения", [r"Порядок прилагательных", r"Степени сравнения"]),
+    ("prepositions", "Предлоги", "времени, места, самые частоупотребимые предлоги", [r"предлоги"]),
+    ("conditionals", "Условные предложения", "First, Second, Third, Mixed, wish / if only", [r"Conditional", r"wish / if only", r"Mixed conditionals"]),
+    ("passive", "Пассивный залог", "введение, все времена, продвинутые формы", [r"Passive"]),
+    ("reported", "Косвенная речь", "reported speech, reporting verbs, whether vs if", [r"Reported Speech", r"whether vs if"]),
+    ("verbals", "Герундий и инфинитив", "gerund vs infinitive, инфинитивные конструкции", [r"Gerund", r"Инфинитивные"]),
+    ("syntax", "Строение предложения", "повелительное наклонение, relative clauses, инверсия, cleft, причастные обороты", [r"Повелительное", r"Relative clauses", r"Инверсия", r"Cleft", r"Participle", r"Nominalisation", r"Subjunctive", r"Correlative"]),
+    ("vocab", "Лексика и стиль", "фразовые глаголы, словообразование, идиомы, linking words, регистр", [r"Фразовые", r"Phrasal", r"Словообразование", r"Idioms", r"Linking words", r"Discourse markers", r"Hedging", r"Register", r"Лексика высокого", r"Профессиональное", r"аргументация"]),
+    ("bridges", "Мосты и экзамены", "переход между уровнями, экзамен-чекпоинты B2 и C1", []),
+]
+def category_of(meta):
+    if meta["kind"] != "topic": return "bridges"
+    for key, _, _, pats in CATEGORIES:
+        for rx in pats:
+            if re.search(rx, meta["title"], re.I): return key
+    return "syntax"
+HIDDEN = [r"\(1\)$"]  # дубликаты страниц в Notion
+
 idx = json.load(open(os.path.join(SRC, "index.json")))
-out_levels = []; total = 0; stats = []
+out_levels = []; total = 0; stats = []; cat_topics = {k: [] for k, *_ in CATEGORIES}
 for lv in idx["levels"]:
     topics = []
     for t in lv["topics"]:
         t = dict(t); t["level"] = lv["code"]
+        if any(re.search(h, t["title"]) for h in HIDDEN): continue
+        t["category"] = category_of(t)
         tp = build_topic(t)
+        cat_topics[t["category"]].append(tp["id"])
         json.dump(tp, open(os.path.join(DST, "topics", tp["id"] + ".json"), "w"), ensure_ascii=False)
-        topics.append({"id": tp["id"], "n": t["n"], "emoji": tp["emoji"], "title": tp["title"], "kind": tp["kind"], "description": tp["description"], "contains": tp["contains"],
+        topics.append({"id": tp["id"], "n": t["n"], "level": lv["code"], "category": t["category"], "emoji": tp["emoji"], "title": tp["title"], "kind": tp["kind"], "description": tp["description"], "contains": tp["contains"],
                        "sections": [s["key"] for s in tp["sections"]], "exercises": len(tp["exercises"]), "selfcheck": len(tp["selfcheck"])})
         stats.append((lv["code"], t["n"], tp["title"][:40], len(tp["sections"]), len(tp["exercises"]), len(tp["selfcheck"]), sum(len(s["html"]) for s in tp["sections"])))
         total += 1
     out_levels.append({"code": lv["code"], "title": lv["title"], "emoji": lv.get("emoji", ""), "intro": inline(lv.get("intro", "")), "checkpoint": [inline(x) for x in lv.get("checkpoint", [])], "topics": topics})
-json.dump({"levels": out_levels, "builtAt": __import__("datetime").date.today().isoformat()}, open(os.path.join(DST, "index.json"), "w"), ensure_ascii=False)
+categories = [{"key": k, "title": title, "outline": outline, "topics": cat_topics[k]} for k, title, outline, _ in CATEGORIES if cat_topics[k]]
+json.dump({"levels": out_levels, "categories": categories, "builtAt": __import__("datetime").date.today().isoformat()}, open(os.path.join(DST, "index.json"), "w"), ensure_ascii=False)
+for c in categories: print("CAT %-14s %2d" % (c["key"], len(c["topics"])))
 for s in stats: print("%s %2d %-40s sec=%d ex=%2d chk=%2d html=%d" % s)
 print("topics:", total, "->", DST)

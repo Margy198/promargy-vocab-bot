@@ -11323,29 +11323,45 @@ async function readCourseNotes(chatId) {
 function noteId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
-// Статус темы для списка: done / started / available / locked.
-// «Недоступно» — мягкая блокировка: предыдущая тема уровня ещё не начата.
-function courseTopicStatus(level, topic, idx, progress) {
-  const p = progress.topics[topic.id];
+// Статус темы: done / started / available / locked.
+// «Недоступно» — мягкая блокировка: предыдущий урок категории ещё не начат.
+function courseTopicStatus(prevId, topicId, progress) {
+  const p = progress.topics[topicId];
   if (p && p.status === "done") return "done";
   if (p && p.status === "started") return "started";
-  if (idx === 0) return "available";
-  const prev = level.topics[idx - 1];
-  const pp = progress.topics[prev.id];
+  if (!prevId) return "available";
+  const pp = progress.topics[prevId];
   if (pp && (pp.status === "done" || pp.status === "started")) return "available";
+  return "locked";
+}
+function categoryStatus(topics) {
+  if (!topics.length) return "locked";
+  if (topics.every((t) => t.status === "done")) return "done";
+  if (topics.some((t) => t.status === "done" || t.status === "started")) return "started";
+  if (topics.some((t) => t.status === "available")) return "available";
   return "locked";
 }
 async function appCoursePayload(chatId) {
   const index = await readCourseIndex();
   if (!index) return { ok: false, error: "content_missing" };
   const progress = await readCourseProgress(chatId);
+  const byId = new Map();
+  for (const lv of index.levels) for (const t of lv.topics) byId.set(t.id, t);
+  // порядок уроков внутри категории задаёт блокировку
+  const prevOf = new Map();
+  for (const c of index.categories || []) c.topics.forEach((id, i) => prevOf.set(id, i ? c.topics[i - 1] : null));
+  const withStatus = (t) => ({ ...t, status: courseTopicStatus(prevOf.has(t.id) ? prevOf.get(t.id) : null, t.id, progress), updatedAt: (progress.topics[t.id] || {}).updatedAt || null });
   const levels = index.levels.map((lv) => {
-    const topics = lv.topics.map((t, i) => ({ ...t, status: courseTopicStatus(lv, t, i, progress), updatedAt: (progress.topics[t.id] || {}).updatedAt || null }));
+    const topics = lv.topics.map(withStatus);
     const main = topics.filter((t) => t.kind === "topic");
     return { code: lv.code, title: lv.title, emoji: lv.emoji, intro: lv.intro, checkpoint: lv.checkpoint, topics, total: main.length, done: main.filter((t) => t.status === "done").length, started: main.filter((t) => t.status === "started").length };
   });
+  const categories = (index.categories || []).map((c) => {
+    const topics = c.topics.map((id) => byId.get(id)).filter(Boolean).map(withStatus);
+    return { key: c.key, title: c.title, outline: c.outline, topics, total: topics.length, done: topics.filter((t) => t.status === "done").length, status: categoryStatus(topics) };
+  });
   const all = levels.flatMap((l) => l.topics.filter((t) => t.kind === "topic"));
-  return { ok: true, levels, level: progress.level, total: all.length, done: all.filter((t) => t.status === "done").length, builtAt: index.builtAt || null };
+  return { ok: true, levels, categories, level: progress.level, total: all.length, done: all.filter((t) => t.status === "done").length, builtAt: index.builtAt || null };
 }
 async function setCourseTopicStatus(chatId, topicId, status) {
   const index = await readCourseIndex();

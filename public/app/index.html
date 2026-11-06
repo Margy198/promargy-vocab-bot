@@ -163,6 +163,7 @@
   .slang .en { font-size: 15px; color: var(--text-2); } .slang .ru { font-size: 13px; color: var(--muted); margin-top: 2px; }
   .slang .exm { margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: var(--accent-soft); font-size: 13px; line-height: 1.4; display: none; } .slang.open .exm { display: block; }
   .sres { padding: 10px 0; border-bottom: 1px solid var(--line); cursor: pointer; } .sres .t { font-size: 15px; color: var(--text-2); } .sres .s { font-size: 12px; color: var(--muted); }
+  .outline { font-size: 16px; color: var(--text-2); line-height: 1.4; padding: 22px 20px; }
   .back { background: none; border: none; font: inherit; color: var(--accent); font-size: 14px; padding: 0; cursor: pointer; }
 </style>
 </head>
@@ -231,9 +232,13 @@
   async function demoFetchJson(path) { const r = await fetch(path); if (!r.ok) throw new Error("no " + path); return r.json(); }
   async function demoCoursePayload() {
     const idx = await demoFetchJson("__course/index.json");
-    const levels = idx.levels.map((lv) => { const topics = lv.topics.map((t, i) => { const p = demoCourse.progress[t.id]; let status = p ? p.status : i === 0 ? "available" : (demoCourse.progress[lv.topics[i - 1].id] ? "available" : "locked"); return { ...t, status, updatedAt: p ? p.updatedAt : null }; }); const main = topics.filter((t) => t.kind === "topic"); return { code: lv.code, title: lv.title, emoji: lv.emoji, intro: lv.intro, checkpoint: lv.checkpoint, topics, total: main.length, done: main.filter((t) => t.status === "done").length, started: main.filter((t) => t.status === "started").length }; });
+    const prevOf = new Map(); for (const c of idx.categories) c.topics.forEach((id, i) => prevOf.set(id, i ? c.topics[i - 1] : null));
+    const byId = new Map(); for (const lv of idx.levels) for (const t of lv.topics) byId.set(t.id, t);
+    const ws = (t) => { const p = demoCourse.progress[t.id]; const prev = prevOf.get(t.id); const pp = prev ? demoCourse.progress[prev] : null; const status = p ? p.status : (!prev || pp) ? "available" : "locked"; return { ...t, status, updatedAt: p ? p.updatedAt : null }; };
+    const levels = idx.levels.map((lv) => { const topics = lv.topics.map(ws); const main = topics.filter((t) => t.kind === "topic"); return { code: lv.code, title: lv.title, emoji: lv.emoji, intro: lv.intro, checkpoint: lv.checkpoint, topics, total: main.length, done: main.filter((t) => t.status === "done").length, started: main.filter((t) => t.status === "started").length }; });
+    const categories = idx.categories.map((c) => { const topics = c.topics.map((id) => byId.get(id)).filter(Boolean).map(ws); const status = topics.every((t) => t.status === "done") ? "done" : topics.some((t) => t.status === "done" || t.status === "started") ? "started" : topics.some((t) => t.status === "available") ? "available" : "locked"; return { key: c.key, title: c.title, outline: c.outline, topics, total: topics.length, done: topics.filter((t) => t.status === "done").length, status }; });
     const all = levels.flatMap((l) => l.topics.filter((t) => t.kind === "topic"));
-    return { ok: true, levels, level: demoCourse.level, total: all.length, done: all.filter((t) => t.status === "done").length };
+    return { ok: true, levels, categories, level: demoCourse.level, total: all.length, done: all.filter((t) => t.status === "done").length };
   }
   async function demoAsync(action, extra) {
     switch (action) {
@@ -570,11 +575,19 @@
 
   async function loadCourse() { const c = await api("course"); if (c && c.ok) state.course = c; else state.courseError = c && c.error; return state.course; }
   function findTopicMeta(id) { for (const l of state.course.levels) for (const t of l.topics) if (t.id === id) return { level: l, meta: t }; return null; }
+  function categoryOfTopic(id) { for (const c of state.course.categories) if (c.topics.some((t) => t.id === id)) return c.key; return null; }
+  function findCategory(key) { return state.course.categories.find((c) => c.key === key) || null; }
+  function topicCardsHtml(topics, withLevel) {
+    return topics.map((t, i) => `<div class="topic card ${t.kind === "topic" ? GRADS[i % GRADS.length] : "cream"} ${t.status === "locked" ? "locked" : ""}" data-id="${t.id}"><div><div class="t">${esc(t.emoji || "")} ${esc(t.title)}</div><div class="st"><span class="tag ${t.status}">${STATUS_LABEL[t.status]}</span>${withLevel ? ` <span class="tag">${esc(t.level || "")}</span>` : ""}${t.kind !== "topic" ? ` <span class="tag">${t.kind === "bridge" ? "мост" : "экзамен"}</span>` : ""}</div></div><button class="fab ghost">${iconArrow()}</button></div>`).join("");
+  }
+  function bindTopicCards(root) {
+    root.querySelectorAll(".topic[data-id]").forEach((el) => el.addEventListener("click", () => { haptic(); const f = findTopicMeta(el.dataset.id); const t = f ? f.meta : null; if (t && t.status === "locked") confirmSheetOk(`«${t.title}» — следующая по порядку. Лучше сначала пройти предыдущий урок, но можно открыть и так.`, "Открыть всё равно").then((ok) => { if (ok) openTopic(t.id); }); else openTopic(el.dataset.id); }));
+  }
   function levelOfTopic(id) { const f = findTopicMeta(id); return f ? f.level : null; }
   function go(view, extra) { state.study = Object.assign({ view }, extra || {}); renderStudy(); window.scrollTo(0, 0); }
   function studyBack() {
     const v = state.study;
-    const map = { level: () => go("home"), topic: () => { const l = levelOfTopic(v.id); go("level", { level: v.level || (l ? l.code : null) }); }, lesson: () => go("topic", { id: v.id }), exercises: () => go("topic", { id: v.id }), selfcheck: () => go("topic", { id: v.id }), tnotes: () => go("topic", { id: v.id }), notes: () => go("home"), nfolder: () => go("notes"), slang: () => go("home"), search: () => go("home"), checkpoint: () => go("level", { level: v.level }) };
+    const map = { topics: () => go("home"), category: () => go("topics"), topic: () => go("category", { key: v.cat || categoryOfTopic(v.id) }), lesson: () => go("topic", { id: v.id }), exercises: () => go("topic", { id: v.id }), selfcheck: () => go("topic", { id: v.id }), tnotes: () => go("topic", { id: v.id }), notes: () => go("home"), nfolder: () => go("notes"), slang: () => go("home"), search: () => go("topics"), checkpoint: () => go("topics", { level: v.level }) };
     if (map[v.view]) map[v.view](); else go("home");
   }
   function syncBackButton() { if (!tg || !tg.BackButton) return; try { if (state.study.view === "home") tg.BackButton.hide(); else tg.BackButton.show(); } catch (e) {} }
@@ -584,7 +597,7 @@
     const root = $("#page-study"); syncBackButton();
     if (!state.course) { root.innerHTML = state.courseError ? `<div class="notice">Курс пока не загружен на сервер (${esc(state.courseError)}). Напиши преподавателю.</div>` : `<div class="notice">Загружаю курс…</div>`; return; }
     const v = state.study.view;
-    const fn = { home: renderStudyHome, level: renderLevel, topic: renderTopic, lesson: renderLesson, exercises: renderExercises, selfcheck: renderSelfcheck, tnotes: renderTopicNotes, notes: renderNotesFolders, nfolder: renderNotesFolder, slang: renderSlang, search: renderSearch, checkpoint: renderCheckpoint }[v] || renderStudyHome;
+    const fn = { home: renderStudyHome, topics: renderTopics, category: renderCategory, topic: renderTopic, lesson: renderLesson, exercises: renderExercises, selfcheck: renderSelfcheck, tnotes: renderTopicNotes, notes: renderNotesFolders, nfolder: renderNotesFolder, slang: renderSlang, search: renderSearch, checkpoint: renderCheckpoint }[v] || renderStudyHome;
     fn(root);
     const b = $("#study-back"); if (b) b.addEventListener("click", () => { haptic(); studyBack(); });
   }
@@ -592,53 +605,65 @@
   // --- главная: цитата, прогресс, уровни («4 выбор») ---
   function lastStartedTopic() {
     let best = null;
-    for (const l of state.course.levels) for (const t of l.topics) if (t.status === "started" && (!best || (t.updatedAt || "") > (best.t.updatedAt || ""))) best = { l, t };
+    for (const l of state.course.levels) for (const t of l.topics) if (t.status === "started" && (!best || (t.updatedAt || "") > (best.t.updatedAt || ""))) best = { l, t: { ...t, level: l.code } };
     return best;
   }
   function renderStudyHome(root) {
     const c = state.course; const [qe, qr, qa] = quoteOfDay();
     const pct = c.total ? Math.round((c.done / c.total) * 100) : 0;
     const cont = lastStartedTopic();
-    const levels = c.levels.map((l) => {
-      const p = l.total ? Math.round((l.done / l.total) * 100) : 0;
-      return `<div class="lvl ${c.level === l.code ? "cur" : ""}" data-level="${l.code}"><div class="ring"><span class="e">${LEVEL_EMOJI[l.code] || l.emoji || "📘"}</span>${p ? `<span class="pct">${p}%</span>` : ""}</div><div class="t">${esc(l.code)}</div><div class="c">${l.total} ${plural(l.total, ["тема", "темы", "тем"])}${l.done ? ` · ${l.done} ✓` : ""}</div></div>`;
-    }).join("");
+    const outline = c.categories.filter((x) => x.key !== "bridges").map((x, i) => `<div style="margin-bottom:14px"><div>${i + 1}. ${esc(x.title)}:</div><div class="muted" style="font-size:14px;line-height:1.35">${esc(x.outline)}</div></div>`).join("");
     root.innerHTML = `
-      <div class="quote">${esc(qe)} — ${esc(qr)}<span class="au">© ${esc(qa)}</span></div>
-      <div style="text-align:center;margin-top:18px"><h1 style="font-weight:500">Английский</h1><div class="muted" style="margin-top:4px">Всего ${c.total} ${plural(c.total, ["тема", "темы", "тем"])}${c.done ? ` · пройдено ${c.done}` : ""}</div></div>
-      <div class="bar" style="margin-top:12px"><i style="width:${pct}%"></i></div>
-      <div class="search" style="margin-top:16px"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="sq" placeholder="Искать тему или заметку" /></div>
-      ${cont ? `<div class="card aqua" style="margin-top:14px;cursor:pointer" id="continue"><div class="row between"><div><div class="muted" style="color:var(--text-2);opacity:.7">Продолжить · ${esc(cont.l.code)}</div><div style="font-size:17px;margin-top:2px">${esc(cont.t.emoji || "")} ${esc(cont.t.title)}</div></div><button class="fab">${iconArrow()}</button></div></div>` : ""}
-      <div class="levels">${levels}</div>
-      <div class="row" style="margin-top:22px;gap:10px">
-        <button class="btn" id="go-notes" style="flex:1">📝 Заметки</button>
-        <button class="btn" id="go-slang" style="flex:1">💬 Сленг</button>
-      </div>
-      <div class="muted" style="margin-top:14px;line-height:1.5">Не знаешь, с чего начать? Открой A1 — там главные времена и разговор о себе. Темы идут по порядку: каждая опирается на предыдущую.</div>`;
-    root.querySelectorAll("[data-level]").forEach((el) => el.addEventListener("click", () => { haptic(); go("level", { level: el.dataset.level }); }));
+      <div class="quote"><i>${esc(qe)} — ${esc(qr)}</i><span class="au">©${esc(qa)}</span></div>
+      <div style="text-align:center;margin-top:16px"><h1 style="font-weight:400;font-size:24px">Английский</h1><div class="muted" style="margin-top:6px;font-size:15px">Всего ${c.total} ${plural(c.total, ["тема", "темы", "тем"])}${c.done ? ` · пройдено ${c.done}` : ""}</div></div>
+      <div class="bar" style="margin-top:14px"><i style="width:${Math.max(2, pct)}%"></i></div>
+      <div class="card outline" style="margin-top:18px">${outline}</div>
+      <div style="margin-top:18px"><button class="btn" id="go-topics" style="background:var(--g-aqua);font-size:15px">Далее</button></div>
+      ${cont ? `<div class="card aqua" style="margin-top:14px;cursor:pointer" id="continue"><div class="row between"><div><div class="muted" style="color:var(--text-2);opacity:.7">Продолжить · ${esc(cont.t.level || "")}</div><div style="font-size:17px;margin-top:2px">${esc(cont.t.emoji || "")} ${esc(cont.t.title)}</div></div><button class="fab">${iconArrow()}</button></div></div>` : ""}
+      <div class="row" style="margin-top:14px;gap:10px"><button class="btn" id="go-notes" style="flex:1">📝 Заметки</button><button class="btn" id="go-slang" style="flex:1">💬 Сленг</button></div>
+      <div style="height:8px"></div>`;
+    $("#go-topics").addEventListener("click", () => { haptic(); go("topics"); });
     const cnt = $("#continue"); if (cnt) cnt.addEventListener("click", () => { haptic(); openTopic(cont.t.id); });
     $("#go-notes").addEventListener("click", () => go("notes"));
     $("#go-slang").addEventListener("click", () => go("slang"));
-    $("#sq").addEventListener("input", (e) => { const q = e.target.value; if (q.trim().length >= 2) go("search", { q }); });
   }
 
-  // --- уровень: «Все темы» ---
-  function renderLevel(root) {
-    const l = state.course.levels.find((x) => x.code === state.study.level); if (!l) return go("home");
-    const cards = l.topics.map((t, i) => {
-      const g = t.kind === "topic" ? GRADS[i % GRADS.length] : "cream";
-      return `<div class="topic card ${g} ${t.status === "locked" ? "locked" : ""}" data-id="${t.id}"><div><div class="t">${esc(t.emoji || "")} ${esc(t.title)}</div><div class="st"><span class="tag ${t.status}">${STATUS_LABEL[t.status]}</span>${t.kind !== "topic" ? ` <span class="tag">${t.kind === "bridge" ? "мост" : "экзамен"}</span>` : ""}</div></div><button class="fab ghost">${iconArrow()}</button></div>`;
-    }).join("");
+  // --- «Все темы»: карточки категорий (+ фильтр по уровню) ---
+  function renderTopics(root) {
+    const c = state.course; const lvl = state.study.level || "";
+    const cats = c.categories.map((x) => {
+      const topics = lvl ? x.topics.filter((t) => t.level === lvl) : x.topics;
+      return { ...x, topics, total: topics.length, done: topics.filter((t) => t.status === "done").length };
+    }).filter((x) => x.total);
+    const cards = cats.map((x, i) => `<div class="topic card ${x.key === "bridges" ? "cream" : GRADS[i % GRADS.length]} ${x.status === "locked" ? "locked" : ""}" data-cat="${x.key}"><div><div class="t">${esc(x.title)}</div><div class="st"><span class="tag ${x.status}">${STATUS_LABEL[x.status]}</span> <span class="tag">${x.total} ${plural(x.total, ["урок", "урока", "уроков"])}${x.done ? ` · ${x.done} ✓` : ""}</span></div></div><button class="fab ghost">${iconArrow()}</button></div>`).join("");
+    const lv = lvl ? c.levels.find((l) => l.code === lvl) : null;
     root.innerHTML = `
-      <div class="head"><div class="row between"><div>${backLink("Уровни")}<div class="ttl" style="margin-top:6px">${LEVEL_EMOJI[l.code] || ""} ${esc(l.title)}</div><div class="sub">${l.total} ${plural(l.total, ["тема", "темы", "тем"])} · пройдено ${l.done}</div></div>${state.course.level === l.code ? `<span class="tag" style="margin-top:28px">мой уровень</span>` : `<button class="btn small" id="set-level" style="margin-top:24px">Это мой уровень</button>`}</div>
-        <div class="bar" style="margin-top:12px;background:rgba(255,255,255,.6)"><i style="width:${l.total ? Math.round((l.done / l.total) * 100) : 0}%"></i></div></div>
-      ${l.intro ? `<details class="card" style="padding:12px 16px"><summary style="cursor:pointer;color:var(--accent)">О чём этот уровень</summary><div class="content" style="margin-top:8px;font-size:14px">${l.intro}</div></details>` : ""}
+      <div class="row between" style="margin-bottom:12px"><div>${backLink("Список тем")}<h1 style="margin-top:6px;font-weight:500">Все темы</h1></div><button class="fab ghost" id="go-search" title="Поиск"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button></div>
+      <div class="seg" id="lv-filter"><button data-l="" class="${lvl ? "" : "on"}">Все</button>${c.levels.map((l) => `<button data-l="${l.code}" class="${lvl === l.code ? "on" : ""}">${l.code}</button>`).join("")}</div>
+      ${lv && lv.intro ? `<details class="card" style="padding:12px 16px;margin-top:12px"><summary style="cursor:pointer;color:var(--accent)">${LEVEL_EMOJI[lv.code] || ""} ${esc(lv.title)} — о чём уровень</summary><div class="content" style="margin-top:8px;font-size:14px">${lv.intro}</div></details>` : ""}
       ${cards}
-      ${l.checkpoint && l.checkpoint.length ? `<div class="fold" style="margin-top:14px" id="checkpoint"><span>📝 Контрольная точка ${esc(l.code)}</span><span class="n">${l.checkpoint.length}</span></div>` : ""}
+      ${lv && lv.checkpoint && lv.checkpoint.length ? `<div class="fold" style="margin-top:14px" id="checkpoint"><span>📝 Контрольная точка ${esc(lv.code)}</span><span class="n">${lv.checkpoint.length}</span></div>` : ""}
       <div style="height:16px"></div>`;
-    root.querySelectorAll(".topic").forEach((el) => el.addEventListener("click", () => { haptic(); const t = l.topics.find((x) => x.id === el.dataset.id); if (t.status === "locked") confirmSheetOk(`«${t.title}» — следующая по порядку. Лучше сначала пройти предыдущую тему, но можно открыть и так.`, "Открыть всё равно").then((ok) => { if (ok) openTopic(t.id); }); else openTopic(t.id); }));
-    const sl = $("#set-level"); if (sl) sl.addEventListener("click", async () => { const r = await api("courseLevel", { level: l.code }); if (r && r.ok) { state.course = r; toast(`Уровень ${l.code} — твой`); renderStudy(); } });
-    const cp = $("#checkpoint"); if (cp) cp.addEventListener("click", () => go("checkpoint", { level: l.code }));
+    root.querySelectorAll("#lv-filter button").forEach((b) => b.addEventListener("click", () => { haptic(); state.study.level = b.dataset.l; renderStudy(); }));
+    root.querySelectorAll("[data-cat]").forEach((el) => el.addEventListener("click", () => { haptic(); go("category", { key: el.dataset.cat, level: lvl }); }));
+    $("#go-search").addEventListener("click", () => go("search", { q: "" }));
+    const cp = $("#checkpoint"); if (cp) cp.addEventListener("click", () => go("checkpoint", { level: lvl }));
+  }
+
+  // --- категория: уроки (My Classroom--Details) ---
+  function renderCategory(root) {
+    const cat = findCategory(state.study.key); if (!cat) return go("topics");
+    const lvl = state.study.level || "";
+    const topics = lvl ? cat.topics.filter((t) => t.level === lvl) : cat.topics;
+    const rows = cat.topics.map((t, i) => (lvl && t.level !== lvl) ? "" : `<div class="lesson ${t.status === "done" ? "read" : ""} ${t.status === "locked" ? "locked" : ""}" data-id="${t.id}"><div class="ic">${esc(t.emoji || "📘")}</div><div style="flex:1"><div class="k">Урок ${i + 1} · ${esc(t.level)}${t.status === "started" ? " · в процессе" : t.status === "done" ? " · завершено" : t.status === "locked" ? " · недоступно" : ""}</div><div class="t">${esc(t.title)}</div></div><div class="ln"></div></div>`).join("");
+    root.innerHTML = `
+      <div class="head"><div class="row between"><div>${backLink("Все темы")}<div class="ttl" style="margin-top:6px">${esc(cat.title)}</div><div class="sub">${esc(cat.outline)}</div></div></div><div style="margin-top:10px"><span class="tag ${cat.status}">${STATUS_LABEL[cat.status]}</span> <span class="tag">${topics.length} ${plural(topics.length, ["урок", "урока", "уроков"])}${cat.done ? ` · ${cat.done} ✓` : ""}</span></div></div>
+      ${rows}
+      <div class="navbtns"><button class="btn" id="c-prev">Назад</button><button class="btn" id="c-next">Далее</button></div><div style="height:16px"></div>`;
+    root.querySelectorAll(".lesson[data-id]").forEach((el) => el.addEventListener("click", () => { haptic(); const t = cat.topics.find((x) => x.id === el.dataset.id); if (t.status === "locked") confirmSheetOk(`«${t.title}» — следующий по порядку. Лучше сначала пройти предыдущий урок, но можно открыть и так.`, "Открыть всё равно").then((ok) => { if (ok) openTopic(t.id); }); else openTopic(t.id); }));
+    const cats = state.course.categories; const ci = cats.findIndex((x) => x.key === cat.key);
+    $("#c-prev").addEventListener("click", () => { haptic(); if (ci > 0) go("category", { key: cats[ci - 1].key, level: lvl }); else go("topics", { level: lvl }); });
+    $("#c-next").addEventListener("click", () => { haptic(); if (ci < cats.length - 1) go("category", { key: cats[ci + 1].key, level: lvl }); else go("topics", { level: lvl }); });
   }
   function confirmSheetOk(text, okLabel) {
     return new Promise((resolve) => { openSheet(`<h3>${esc(text)}</h3><div class="row"><button class="btn" id="c-no">Отмена</button><button class="btn primary" id="c-yes">${esc(okLabel)}</button></div>`); $("#c-no").addEventListener("click", () => { closeSheet(); resolve(false); }); $("#c-yes").addEventListener("click", () => { closeSheet(); resolve(true); }); });
@@ -646,7 +671,7 @@
   function renderCheckpoint(root) {
     const l = state.course.levels.find((x) => x.code === state.study.level); if (!l) return go("home");
     const key = `chk:${l.code}`; const done = new Set(lsGet(key, []));
-    root.innerHTML = `<div class="head cream"><div>${backLink(l.code)}<div class="ttl" style="margin-top:6px">📝 Контрольная точка ${esc(l.code)}</div><div class="sub">Когда закончишь уровень — проверь себя честно</div></div></div>
+    root.innerHTML = `<div class="head cream"><div>${backLink("Все темы")}<div class="ttl" style="margin-top:6px">📝 Контрольная точка ${esc(l.code)}</div><div class="sub">Когда закончишь уровень — проверь себя честно</div></div></div>
       <div class="card" style="padding:4px 16px">${l.checkpoint.map((c, i) => `<div class="chk" data-i="${i}"><div class="cb ${done.has(i) ? "on" : ""}">${done.has(i) ? "✓" : ""}</div><div>${c}</div></div>`).join("")}</div>
       <div class="muted" style="margin-top:12px">Отмечено ${done.size} из ${l.checkpoint.length}</div>`;
     root.querySelectorAll(".chk").forEach((el) => el.addEventListener("click", () => { const i = Number(el.dataset.i); if (done.has(i)) done.delete(i); else done.add(i); lsSet(key, [...done]); haptic(); renderStudy(); }));
@@ -656,7 +681,7 @@
   async function openTopic(id) {
     go("topic", { id, loading: true });
     const r = await api("topic", { id });
-    if (!r || !r.ok) { toast("Не удалось открыть тему"); return go("level", { level: (levelOfTopic(id) || {}).code }); }
+    if (!r || !r.ok) { toast("Не удалось открыть тему"); return go("category", { key: categoryOfTopic(id) }); }
     state.topic = r.topic; state.topicProgress = r.progress; state.topicNotes = r.notes || [];
     if (!r.progress) { const s = await api("courseSet", { id, status: "started" }); if (s && s.ok) { state.course = s; state.topicProgress = { status: "started" }; } }
     go("topic", { id });
@@ -709,12 +734,13 @@
   const readKey = (id) => `read:${id}`;
   function renderTopic(root) {
     const id = state.study.id; const f = findTopicMeta(id); const meta = f ? f.meta : null; const lv = f ? f.level : null;
-    if (state.study.loading || !state.topic || state.topic.id !== id) { root.innerHTML = `<div class="head"><div>${backLink(lv ? lv.code : "Уровни")}<div class="ttl" style="margin-top:6px">${esc(meta ? meta.title : "")}</div></div></div><div class="notice">Загружаю тему…</div>`; return; }
+    const cat = findCategory(categoryOfTopic(id)); const catTitle = cat ? cat.title : "Темы";
+    if (state.study.loading || !state.topic || state.topic.id !== id) { root.innerHTML = `<div class="head"><div>${backLink(catTitle)}<div class="ttl" style="margin-top:6px">${esc(meta ? meta.title : "")}</div></div></div><div class="notice">Загружаю тему…</div>`; return; }
     const t = state.topic; const lessons = lessonsOf(t); const read = new Set(lsGet(readKey(id), []));
     const status = meta ? meta.status : "started";
-    const rows = lessons.map((l, i) => `<div class="lesson ${read.has(lessonKey(l)) ? "read" : ""}" data-i="${i}"><div class="ic">${l.icon}</div><div><div class="k">Урок ${i + 1}</div><div class="t">${esc(l.title)}</div></div><div class="ln"></div></div>`).join("");
+    const rows = lessons.map((l, i) => `<div class="lesson ${read.has(lessonKey(l)) ? "read" : ""}" data-i="${i}"><div class="ic">${l.icon}</div><div><div class="k">Шаг ${i + 1}</div><div class="t">${esc(l.title)}</div></div><div class="ln"></div></div>`).join("");
     root.innerHTML = `
-      <div class="head"><div class="row between"><div>${backLink(lv ? lv.code : "Уровни")}<div class="ttl" style="margin-top:6px">${esc(t.emoji || "")} ${esc(t.title)}</div><div class="sub">${lessons.length} ${plural(lessons.length, ["урок", "урока", "уроков"])} · ${read.size} прочитано</div></div><button class="fab ghost" id="t-notes" title="Заметки" style="margin-top:22px">📝${state.topicNotes.length ? `<span class="pill" style="position:absolute;margin:-40px 0 0 30px;padding:1px 6px;font-size:11px">${state.topicNotes.length}</span>` : ""}</button></div>
+      <div class="head"><div class="row between"><div>${backLink(catTitle)}<div class="ttl" style="margin-top:6px">${esc(t.emoji || "")} ${esc(t.title)}</div><div class="sub">${esc(catTitle)} · ${lv ? esc(lv.code) + " · " : ""}${lessons.length} ${plural(lessons.length, ["шаг", "шага", "шагов"])} · ${read.size} пройдено</div></div><button class="fab ghost" id="t-notes" title="Заметки" style="margin-top:22px">📝${state.topicNotes.length ? `<span class="pill" style="position:absolute;margin:-40px 0 0 30px;padding:1px 6px;font-size:11px">${state.topicNotes.length}</span>` : ""}</button></div>
         <div style="margin-top:10px"><span class="tag ${status}">${STATUS_LABEL[status] || "В процессе"}</span></div></div>
       ${t.intro ? `<div class="card content" style="font-size:14px">${t.intro}</div>` : ""}
       ${rows}
@@ -733,7 +759,7 @@
   }
   function openLesson(i) {
     const t = state.topic; const lessons = lessonsOf(t); const l = lessons[i]; if (!l) return;
-    if (l.kind === "exercises") return go("exercises", { id: t.id, i });
+    if (l.kind === "exercises") return go("exercises", { id: t.id, i, ex: 0, item: 0, shown: false, score: 0 });
     if (l.kind === "selfcheck") return go("selfcheck", { id: t.id, i });
     go("lesson", { id: t.id, i });
   }
@@ -747,7 +773,7 @@
   }
   function lessonHeader(t, l, i, total, extraClass) {
     const lv = levelOfTopic(t.id);
-    return `<div class="head ${extraClass || ""}"><div class="row between"><div>${backLink(t.title.length > 24 ? t.title.slice(0, 24) + "…" : t.title)}<div class="ttl" style="margin-top:6px">${esc(t.title)}</div><div class="sub">Урок ${i + 1} из ${total}${lv ? ` · ${esc(lv.code)}` : ""}</div></div><span class="tag" style="margin-top:28px">${esc(lv ? lv.code : "")}</span></div></div>`;
+    return `<div class="head ${extraClass || ""}"><div class="row between"><div>${backLink(t.title.length > 24 ? t.title.slice(0, 24) + "…" : t.title)}<div class="ttl" style="margin-top:6px">${esc(t.title)}</div><div class="sub">Шаг ${i + 1} из ${total}${lv ? ` · ${esc(lv.code)}` : ""}</div></div><span class="tag" style="margin-top:28px">${esc(lv ? lv.code : "")}</span></div></div>`;
   }
   function navButtons(i, total) {
     return `<div class="navbtns"><button class="btn" id="l-prev" ${i <= 0 ? "disabled" : ""}>Назад</button><button class="btn" id="l-next">${i >= total - 1 ? "К теме" : "Далее"}</button></div>`;
@@ -764,13 +790,73 @@
     bindNav(i, lessons.length);
     root.querySelectorAll(".content a").forEach((a) => a.addEventListener("click", (e) => { if (tg && tg.openLink) { e.preventDefault(); tg.openLink(a.href); } }));
   }
+  // Упражнения — по одному заданию на экран (как в приложении, а не списком)
+  function parseItems(html) {
+    const doc = new DOMParser().parseFromString(`<div>${html || ""}</div>`, "text/html"); const rootEl = doc.body.firstChild;
+    const ol = rootEl.querySelector("ol");
+    if (ol && ol.children.length >= 2) { const items = [...ol.children].map((li) => li.innerHTML); ol.remove(); return { items, rest: rootEl.innerHTML }; }
+    const ps = [...rootEl.querySelectorAll("p")].filter((p) => /^\s*(<b>)?\d+[.)]/.test(p.innerHTML));
+    if (ps.length >= 2) { const items = ps.map((p) => p.innerHTML.replace(/^\s*(<b>)?\d+[.)]\s*(<\/b>)?\s*/, "")); ps.forEach((p) => p.remove()); return { items, rest: rootEl.innerHTML }; }
+    return { items: null, rest: html || "" };
+  }
+  function exItems(e) {
+    if (e._parsed) return e._parsed;
+    const q = parseItems(e.html); const a = parseItems(e.answers);
+    const ok = q.items && a.items && q.items.length === a.items.length;
+    e._parsed = ok ? { mode: "items", intro: q.rest, items: q.items.map((h, i) => ({ q: h, a: a.items[i] })) } : { mode: "whole" };
+    return e._parsed;
+  }
+  const exKey = (tid, n) => `exr:${tid}:${n}`;
   function renderExercises(root) {
     const t = state.topic; if (!t || t.id !== state.study.id) return openTopic(state.study.id);
     const lessons = lessonsOf(t); const i = state.study.i; const l = lessons[i]; markRead(t.id, l);
-    const intro = t.sections.find((s) => s.key === "exercises_intro");
-    const ex = t.exercises.map((e) => `<div class="card ex"><div style="font-size:15px;font-weight:500;color:var(--text-2)">Упражнение ${e.n}${e.title ? `. ${e.title}` : ""}</div><div class="content" style="margin-top:8px">${e.html}</div>${e.answers ? `<details class="ans"><summary>Показать ответ</summary><div class="content">${e.answers}</div></details>` : ""}</div>`).join("");
-    root.innerHTML = `${lessonHeader(t, l, i, lessons.length, "lavender")}<h2 style="margin-top:4px">✍️ Упражнения</h2>${intro ? `<div class="content muted" style="font-size:14px">${intro.html}</div>` : ""}${ex}${navButtons(i, lessons.length)}<div style="height:16px"></div>`;
-    bindNav(i, lessons.length);
+    const st = state.study; if (st.ex === undefined) { st.ex = 0; st.item = 0; st.shown = false; st.score = 0; }
+    const total = t.exercises.length; const e = t.exercises[st.ex];
+    const hdr = lessonHeader(t, l, i, lessons.length, "lavender");
+    if (!e) { // всё пройдено
+      const res = t.exercises.map((x) => lsGet(exKey(t.id, x.n), null)).filter(Boolean);
+      const okSum = res.reduce((a, r) => a + r.ok, 0), totSum = res.reduce((a, r) => a + r.total, 0);
+      root.innerHTML = `${hdr}<div class="card cream" style="text-align:center"><div class="big">🎉</div><div style="font-size:17px;margin-top:8px">Упражнения пройдены</div><div class="muted" style="margin-top:6px">${totSum ? `верно ${okSum} из ${totSum} по заданиям с самопроверкой` : ""}</div></div>
+        <div class="navbtns"><button class="btn" id="ex-again">Ещё раз</button><button class="btn primary" id="l-next">К самопроверке</button></div>`;
+      $("#ex-again").addEventListener("click", () => { st.ex = 0; st.item = 0; st.shown = false; st.score = 0; renderStudy(); });
+      $("#l-next").addEventListener("click", () => openLesson(i + 1));
+      return;
+    }
+    const p = exItems(e);
+    const title = `Упражнение ${e.n}${e.title ? `. ${e.title}` : ""}`;
+    const exBar = `<div class="row between" style="margin:4px 0 8px"><div class="muted">${st.ex + 1} из ${total}</div><button class="back" id="ex-list">все упражнения</button></div>`;
+    if (p.mode === "whole") {
+      root.innerHTML = `${hdr}${exBar}<h2 style="margin-top:0">${esc(title)}</h2><div class="card ex"><div class="content">${e.html}</div>${e.answers ? `<details class="ans" ${st.shown ? "open" : ""}><summary>Показать ответ</summary><div class="content">${e.answers}</div></details>` : ""}</div>
+        <div class="navbtns"><button class="btn" id="ex-prev" ${st.ex === 0 ? "disabled" : ""}>Назад</button><button class="btn primary" id="ex-next">${st.ex + 1 >= total ? "Готово" : "Следующее"}</button></div><div style="height:16px"></div>`;
+    } else {
+      const it = p.items[st.item]; const n = p.items.length;
+      const done = st.item >= n;
+      if (done) {
+        lsSet(exKey(t.id, e.n), { ok: st.score, total: n });
+        root.innerHTML = `${hdr}${exBar}<h2 style="margin-top:0">${esc(title)}</h2><div class="card aqua" style="text-align:center"><div class="big">${st.score}<span style="font-size:20px;color:var(--muted)"> / ${n}</span></div><div style="margin-top:6px">${st.score === n ? "Идеально! 🎉" : st.score >= n * 0.7 ? "Хорошо, ещё чуть-чуть 💪" : "Повтори теорию и попробуй снова"}</div></div>
+          <div class="navbtns"><button class="btn" id="ex-retry">Ещё раз</button><button class="btn primary" id="ex-next">${st.ex + 1 >= total ? "Готово" : "Следующее упражнение"}</button></div>`;
+        $("#ex-retry").addEventListener("click", () => { st.item = 0; st.shown = false; st.score = 0; renderStudy(); });
+      } else {
+        root.innerHTML = `${hdr}${exBar}<h2 style="margin-top:0">${esc(title)}</h2>${p.intro && strip(p.intro).trim() ? `<div class="content muted" style="font-size:14px">${p.intro}</div>` : ""}
+          <div class="bar" style="margin:6px 0 12px"><i style="width:${Math.round((st.item / n) * 100)}%"></i></div>
+          <div class="card ex"><div class="muted" style="margin-bottom:6px">Задание ${st.item + 1} из ${n}</div><div class="content" style="font-size:17px">${it.q}</div>
+            ${st.shown ? `<div class="content" style="margin-top:12px;padding:10px 12px;background:#eef9f8;border-radius:10px;font-size:16px">${it.a}</div>` : ""}</div>
+          ${st.shown ? `<div class="navbtns"><button class="btn danger" id="ex-no">Не знал${gend("", "а")} ✗</button><button class="btn primary" id="ex-yes">Знал${gend("", "а")} ✓</button></div>` : `<div style="margin-top:14px"><button class="btn primary" id="ex-show">Показать ответ</button></div>`}
+          <div class="navbtns" style="margin-top:10px"><button class="btn" id="ex-prev" ${st.item === 0 && st.ex === 0 ? "disabled" : ""}>Назад</button><button class="btn" id="ex-skip">Пропустить</button></div><div style="height:16px"></div>`;
+        const sh = $("#ex-show"); if (sh) sh.addEventListener("click", () => { haptic(); st.shown = true; renderStudy(); });
+        const yes = $("#ex-yes"); if (yes) yes.addEventListener("click", () => { haptic("medium"); st.score++; st.item++; st.shown = false; renderStudy(); });
+        const no = $("#ex-no"); if (no) no.addEventListener("click", () => { haptic(); st.item++; st.shown = false; renderStudy(); });
+        $("#ex-skip").addEventListener("click", () => { st.item++; st.shown = false; renderStudy(); });
+      }
+    }
+    $("#ex-list").addEventListener("click", () => openExerciseList());
+    const prev = $("#ex-prev"); if (prev) prev.addEventListener("click", () => { if (p.mode === "items" && st.item > 0) { st.item--; st.shown = false; } else if (st.ex > 0) { st.ex--; st.item = 0; st.shown = false; st.score = 0; } renderStudy(); });
+    const next = $("#ex-next"); if (next) next.addEventListener("click", () => { haptic(); st.ex++; st.item = 0; st.shown = false; st.score = 0; renderStudy(); window.scrollTo(0, 0); });
+  }
+  function openExerciseList() {
+    const t = state.topic; const st = state.study;
+    openSheet(`<h3>Упражнения</h3>${t.exercises.map((e, k) => { const r = lsGet(exKey(t.id, e.n), null); return `<div class="fold" data-k="${k}" style="margin-top:6px;padding:10px 12px"><span style="font-size:14px">${e.n}. ${esc(e.title || "")}</span><span class="n">${r ? `${r.ok}/${r.total}` : "—"}</span></div>`; }).join("")}`);
+    $("#sheet").querySelectorAll("[data-k]").forEach((el) => el.addEventListener("click", () => { st.ex = Number(el.dataset.k); st.item = 0; st.shown = false; st.score = 0; closeSheet(); renderStudy(); }));
   }
   function renderSelfcheck(root) {
     const t = state.topic; if (!t || t.id !== state.study.id) return openTopic(state.study.id);
@@ -837,18 +923,22 @@
   // --- поиск ---
   function renderSearch(root) {
     const q = (state.study.q || "").trim().toLowerCase(); const notesOnly = !!state.study.notesOnly;
-    const topics = notesOnly ? [] : state.course.levels.flatMap((l) => l.topics.filter((t) => (t.title + " " + (t.description || "") + " " + (t.contains || "")).toLowerCase().includes(q)).map((t) => ({ l, t })));
-    const notes = (state.notes || []).filter((n) => n.text.toLowerCase().includes(q));
-    const slang = notesOnly || !state.slang ? [] : state.slang.filter((s) => (s.en + " " + s.ru).toLowerCase().includes(q)).slice(0, 10);
-    root.innerHTML = `<div class="head"><div>${backLink(notesOnly ? "Заметки" : "Учёба")}<div class="search" style="margin-top:8px"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="sq2" value="${esc(state.study.q || "")}" placeholder="Искать" /></div></div></div>
-      ${!topics.length && !notes.length && !slang.length ? `<div class="notice" style="text-align:center;padding:40px 18px">К сожалению, мы ничего не нашли…<br><span class="muted">Попробуй изменить запрос</span></div>` : ""}
-      ${topics.length ? `<h2>Темы</h2><div class="card" style="padding:4px 16px">${topics.map(({ l, t }) => `<div class="sres" data-id="${t.id}"><div class="t">${esc(t.emoji || "")} ${esc(t.title)}</div><div class="s">${esc(l.code)} · ${STATUS_LABEL[t.status]}</div></div>`).join("")}</div>` : ""}
-      ${notes.length ? `<h2>Заметки</h2><div class="card" style="padding:4px 16px">${notes.map((n) => { const f = n.topicId ? findTopicMeta(n.topicId) : null; return `<div class="sres" data-n="${n.topicId || "__general__"}"><div class="t">${esc(n.text.length > 80 ? n.text.slice(0, 80) + "…" : n.text)}</div><div class="s">${fmtDate(n.createdAt)} · ${f ? esc(f.meta.title) : "общая"}</div></div>`; }).join("")}</div>` : ""}
-      ${slang.length ? `<h2>Сленг</h2><div class="card" style="padding:4px 16px">${slang.map((s) => `<div class="sres" data-slang="1"><div class="t">${esc(s.en)}</div><div class="s">${esc(s.ru)}</div></div>`).join("")}</div>` : ""}`;
+    const all = state.course.categories.flatMap((c) => c.topics);
+    const topics = notesOnly || q.length < 2 ? [] : all.filter((t) => (t.title + " " + (t.description || "") + " " + (t.contains || "")).toLowerCase().includes(q));
+    const notes = q.length < 2 ? [] : (state.notes || []).filter((n) => n.text.toLowerCase().includes(q));
+    const slang = notesOnly || !state.slang || q.length < 2 ? [] : state.slang.filter((s) => (s.en + " " + s.ru).toLowerCase().includes(q)).slice(0, 10);
+    const empty = q.length >= 2 && !topics.length && !notes.length && !slang.length;
+    root.innerHTML = `<div style="margin-bottom:12px">${backLink(notesOnly ? "Заметки" : "Все темы")}<h1 style="margin-top:6px;font-weight:500">Поиск</h1></div>
+      <div class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="sq2" value="${esc(state.study.q || "")}" placeholder="Искать" autofocus /></div>
+      ${empty ? `<div class="notice" style="text-align:center;padding:40px 18px;margin-top:14px">К сожалению, мы ничего не нашли…<br><span class="muted">Попробуй изменить запрос</span></div>` : ""}
+      ${topics.length ? `<h2>Темы</h2>${topicCardsHtml(topics, true)}` : ""}
+      ${notes.length ? `<h2>Заметки</h2>${notes.map((n, i) => { const f = n.topicId ? findTopicMeta(n.topicId) : null; return `<div class="topic card ${GRADS[(i + 1) % GRADS.length]}" data-n="${n.topicId || "__general__"}" style="min-height:0"><div><div class="t" style="font-size:15px">${esc(n.text.length > 90 ? n.text.slice(0, 90) + "…" : n.text)}</div><div class="st"><span class="tag">${fmtDate(n.createdAt)}</span> <span class="tag">${f ? esc(f.meta.title) : "общая"}</span></div></div><button class="fab ghost">${iconArrow()}</button></div>`; }).join("")}` : ""}
+      ${slang.length ? `<h2>Сленг</h2>${slang.map((s, i) => `<div class="topic card ${GRADS[(i + 2) % GRADS.length]}" data-slang="1" style="min-height:0"><div><div class="t" style="font-size:15px">${esc(s.en)}</div><div class="st"><span class="tag">${esc(s.ru)}</span></div></div><button class="fab ghost">${iconArrow()}</button></div>`).join("")}` : ""}`;
     const inp = $("#sq2"); inp.addEventListener("input", (e) => { state.study.q = e.target.value; renderStudy(); setTimeout(() => { const i = $("#sq2"); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }, 0); });
-    root.querySelectorAll(".sres[data-id]").forEach((el) => el.addEventListener("click", () => openTopic(el.dataset.id)));
-    root.querySelectorAll(".sres[data-n]").forEach((el) => el.addEventListener("click", () => go("nfolder", { k: el.dataset.n })));
-    root.querySelectorAll(".sres[data-slang]").forEach((el) => el.addEventListener("click", () => go("slang", { q })));
+    if (!q) setTimeout(() => inp.focus(), 0);
+    bindTopicCards(root);
+    root.querySelectorAll("[data-n]").forEach((el) => el.addEventListener("click", () => go("nfolder", { k: el.dataset.n })));
+    root.querySelectorAll("[data-slang]").forEach((el) => el.addEventListener("click", () => go("slang", { q })));
     if (!state.notes) loadNotes().then(() => { if (state.study.view === "search") renderStudy(); });
     if (!state.slang && !notesOnly) api("slang").then((r) => { if (r && r.ok) { state.slang = r.items; if (state.study.view === "search") renderStudy(); } });
   }
