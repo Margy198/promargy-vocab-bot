@@ -110,23 +110,76 @@
   .vs .v { font-size: 30px; font-weight: 600; line-height: 1.05; color: var(--text-2); font-variant-numeric: tabular-nums; }
   .vs .l { font-size: 12px; color: var(--muted); margin-top: 4px; }
   .vs .mid { font-size: 13px; color: var(--muted); padding: 6px 8px; border-radius: 8px; background: rgba(255,255,255,.75); }
+  /* --- курс --- */
+  .quote { background: var(--card); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow); text-align: center; font-size: 14px; line-height: 1.45; color: var(--text-2); }
+  .quote .au { display: block; text-align: right; font-size: 11px; color: var(--muted); margin-top: 6px; }
+  .levels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 10px; margin-top: 18px; }
+  .lvl { text-align: center; cursor: pointer; }
+  .lvl .ring { width: 86px; height: 86px; margin: 0 auto; border-radius: 50%; border: 2px solid var(--accent-light); display: grid; place-items: center; background: var(--card); box-shadow: 0 0 18px var(--glow); position: relative; }
+  .lvl .ring .e { font-size: 30px; }
+  .lvl .ring .pct { position: absolute; right: -4px; bottom: -4px; background: var(--g-accent); border-radius: 10px; font-size: 11px; padding: 2px 6px; color: #2e2e2e; }
+  .lvl.cur .ring { background: var(--g-aqua); }
+  .lvl .t { margin-top: 8px; font-size: 14px; color: var(--text-2); } .lvl .c { font-size: 12px; color: var(--muted); }
+  .topic { display: flex; align-items: center; justify-content: space-between; padding: 16px; border-radius: var(--radius); box-shadow: var(--shadow); margin-top: 12px; cursor: pointer; min-height: 92px; }
+  .topic .t { font-size: 17px; color: var(--text-2); line-height: 1.2; } .topic .st { margin-top: 10px; }
+  .topic.locked { opacity: .55; }
+  .tag { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 12px; background: rgba(255,255,255,.75); color: var(--text-2); }
+  .tag.started { background: #e3fbfa; color: #0f8f8a; } .tag.done { background: #e9f6e5; color: #4e8a3f; } .tag.locked { background: #f0edf2; color: #8a8a92; } .tag.available { background: rgba(255,255,255,.85); }
+  .head { border-radius: 0 0 22px 22px; padding: 18px 16px 16px; background: var(--g-aqua); margin: -16px -16px 14px; box-shadow: var(--shadow); }
+  .head.lavender { background: var(--g-lavender); } .head.pink { background: var(--g-pink); } .head.cream { background: var(--g-cream); }
+  .head .ttl { font-size: 24px; color: var(--text-2); font-weight: 500; line-height: 1.15; } .head .sub { font-size: 13px; color: var(--text-2); opacity: .75; margin-top: 4px; }
+  .head .row { align-items: flex-start; }
+  .lesson { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: var(--radius); background: var(--card); box-shadow: var(--shadow); margin-top: 10px; cursor: pointer; position: relative; overflow: hidden; }
+  .lesson .ic { width: 42px; height: 42px; border-radius: 50%; background: var(--g-aqua); display: grid; place-items: center; font-size: 18px; flex: none; box-shadow: 0 0 12px var(--glow); }
+  .lesson .k { font-size: 12px; color: var(--muted); } .lesson .t { font-size: 15px; color: var(--text-2); line-height: 1.2; }
+  .lesson .ln { position: absolute; left: 14px; bottom: 0; height: 2px; background: var(--g-accent); width: 0; }
+  .lesson.read .ln { width: calc(100% - 28px); }
+  .navbtns { display: flex; gap: 12px; margin-top: 18px; }
+  .navbtns .btn { background: var(--g-aqua); font-size: 14px; }
+  .navbtns .btn:disabled { opacity: .4; }
+  .content { font-size: 15px; line-height: 1.5; color: var(--text); }
+  .content p { margin: 0 0 10px; } .content ul, .content ol { margin: 0 0 10px; padding-left: 20px; } .content li { margin: 3px 0; }
+  .content h3, .content h4, .content h5, .content h6 { font-family: inherit; font-weight: 600; margin: 16px 0 8px; color: var(--text-2); } .content h3 { font-size: 18px; } .content h4 { font-size: 16px; } .content h5, .content h6 { font-size: 15px; }
+  .content blockquote { margin: 10px 0; padding: 10px 12px; border-left: 3px solid var(--accent-light); background: var(--accent-soft); border-radius: 8px; }
+  .content .callout { display: flex; gap: 8px; margin: 10px 0; padding: 10px 12px; border-radius: 10px; background: #f3f3f6; } .content .callout .ico { flex: none; }
+  .content code { background: #eef9f8; border-radius: 4px; padding: 0 5px; font-family: inherit; color: #0f8f8a; }
+  .content .tbl { overflow-x: auto; margin: 10px 0; -webkit-overflow-scrolling: touch; }
+  .content table { border-collapse: collapse; font-size: 13px; min-width: 100%; } .content th, .content td { border: 1px solid var(--line); padding: 6px 8px; vertical-align: top; text-align: left; } .content th { background: #f3f3f6; font-weight: 600; }
+  .content details.tg { margin: 8px 0; border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; } .content details.tg summary { cursor: pointer; color: var(--accent); font-weight: 500; } .content .tg-body { margin-top: 8px; }
+  .content hr { border: none; border-top: 1px solid var(--line); margin: 14px 0; }
+  .content a { color: var(--accent); }
+  .content ul.check { list-style: none; padding-left: 0; } .content ul.check li::before { content: "☐ "; color: var(--accent); }
+  .content img { max-width: 100%; }
+  .ex { margin-top: 12px; } .ex .ans { margin-top: 10px; } .ex .ans summary { cursor: pointer; color: var(--accent); font-weight: 500; }
+  .ex .ans .content { margin-top: 8px; padding: 10px 12px; background: #eef9f8; border-radius: 10px; }
+  .chk { display: flex; gap: 12px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--line); cursor: pointer; font-size: 14px; }
+  .chk:last-child { border-bottom: none; }
+  .note { padding: 12px 0; border-bottom: 1px solid var(--line); } .note:last-child { border-bottom: none; }
+  .note .d { font-size: 12px; color: var(--muted); margin-bottom: 4px; } .note .tx { white-space: pre-wrap; font-size: 14px; } .note .acts { margin-top: 6px; display: flex; gap: 12px; } .note .acts button { background: none; border: none; font: inherit; font-size: 13px; color: var(--accent); padding: 0; cursor: pointer; }
+  .note .acts button.del { color: #8f3d64; }
+  .fold { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-radius: 12px; background: var(--card); box-shadow: var(--shadow); margin-top: 8px; cursor: pointer; }
+  .fold .n { background: var(--accent-soft); border-radius: 8px; padding: 2px 10px; font-size: 13px; }
+  .slang { padding: 10px 0; border-bottom: 1px solid var(--line); cursor: pointer; } .slang:last-child { border-bottom: none; }
+  .slang .en { font-size: 15px; color: var(--text-2); } .slang .ru { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .slang .exm { margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: var(--accent-soft); font-size: 13px; line-height: 1.4; display: none; } .slang.open .exm { display: block; }
+  .sres { padding: 10px 0; border-bottom: 1px solid var(--line); cursor: pointer; } .sres .t { font-size: 15px; color: var(--text-2); } .sres .s { font-size: 12px; color: var(--muted); }
   .back { background: none; border: none; font: inherit; color: var(--accent); font-size: 14px; padding: 0; cursor: pointer; }
 </style>
 </head>
 <body>
 <div class="splash" id="splash"><div class="dot"></div><div class="logo">Promargy</div></div>
 
-<main class="page active" id="page-progress"></main>
+<main class="page active" id="page-study"></main>
 <main class="page" id="page-vocab"></main>
-<main class="page" id="page-league"></main>
 <main class="page" id="page-blitz"></main>
+<main class="page" id="page-progress"></main>
 <main class="page" id="page-account"></main>
 
 <nav class="tabbar" id="tabbar">
-  <button class="tab active" data-page="progress"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Прогресс</button>
+  <button class="tab active" data-page="study"><svg viewBox="0 0 24 24"><path d="M4 19V5a1 1 0 0 1 1-1h6a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H5a1 1 0 0 1-1-1zM20 19V5a1 1 0 0 0-1-1h-6a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h6a1 1 0 0 0 1-1z"/></svg>Учёба</button>
   <button class="tab" data-page="vocab"><svg viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Словарь</button>
-  <button class="tab" data-page="league"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3"/></svg>Лига</button>
   <button class="tab" data-page="blitz"><svg viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>Блиц</button>
+  <button class="tab" data-page="progress"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Прогресс</button>
   <button class="tab" data-page="account"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Аккаунт</button>
 </nav>
 
@@ -147,7 +200,7 @@
   const iconArrow = () => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
   const iconPlus = () => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
   const GRADS = ["aqua", "lavender", "pink", "cream"];
-  const state = { me: null, vocab: null, league: null, options: null, folder: null, selected: new Set(), query: "", gender: null };
+  const state = { me: null, vocab: null, league: null, options: null, folder: null, selected: new Set(), query: "", gender: null, course: null, slang: null, notes: null, study: { view: "home" }, topic: null, topicProgress: null, topicNotes: [] };
   const gend = (m, f) => state.gender === "f" ? f : state.gender === "m" ? m : m + "(" + f.slice(m.length) + ")";
 
   function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 1800); }
@@ -174,7 +227,30 @@
     const folders = Object.keys(counts).sort((a, b) => (a === "__general__" ? -1 : b === "__general__" ? 1 : a.localeCompare(b, "ru"))).map((k) => ({ key: k, label: k === "__general__" ? "Общие слова" : k, count: counts[k], isGeneral: k === "__general__" }));
     return { ok: true, folders, words: demoState.words, total: demoState.words.length };
   }
+  const demoCourse = { progress: {}, level: null, notes: [] };
+  async function demoFetchJson(path) { const r = await fetch(path); if (!r.ok) throw new Error("no " + path); return r.json(); }
+  async function demoCoursePayload() {
+    const idx = await demoFetchJson("__course/index.json");
+    const levels = idx.levels.map((lv) => { const topics = lv.topics.map((t, i) => { const p = demoCourse.progress[t.id]; let status = p ? p.status : i === 0 ? "available" : (demoCourse.progress[lv.topics[i - 1].id] ? "available" : "locked"); return { ...t, status, updatedAt: p ? p.updatedAt : null }; }); const main = topics.filter((t) => t.kind === "topic"); return { code: lv.code, title: lv.title, emoji: lv.emoji, intro: lv.intro, checkpoint: lv.checkpoint, topics, total: main.length, done: main.filter((t) => t.status === "done").length, started: main.filter((t) => t.status === "started").length }; });
+    const all = levels.flatMap((l) => l.topics.filter((t) => t.kind === "topic"));
+    return { ok: true, levels, level: demoCourse.level, total: all.length, done: all.filter((t) => t.status === "done").length };
+  }
+  async function demoAsync(action, extra) {
+    switch (action) {
+      case "course": return demoCoursePayload();
+      case "topic": { const topic = await demoFetchJson("__course/topics/" + extra.id + ".json"); return { ok: true, topic, progress: demoCourse.progress[extra.id] || null, notes: demoCourse.notes.filter((n) => n.topicId === extra.id) }; }
+      case "courseSet": { const prev = demoCourse.progress[extra.id]; let awardedXp = 0; if (extra.status === "reset") delete demoCourse.progress[extra.id]; else if (!(extra.status === "started" && prev && prev.status === "done")) { if (extra.status === "done" && !(prev && prev.status === "done")) awardedXp = 50; demoCourse.progress[extra.id] = { status: extra.status, updatedAt: new Date().toISOString() }; } return { ok: true, awardedXp, ...(await demoCoursePayload()) }; }
+      case "courseLevel": demoCourse.level = extra.level; return { ok: true, ...(await demoCoursePayload()) };
+      case "notes": return { ok: true, notes: demoCourse.notes };
+      case "noteAdd": { const note = { id: Math.random().toString(36).slice(2), topicId: extra.topicId || null, text: extra.text, createdAt: new Date().toISOString(), updatedAt: null }; demoCourse.notes.unshift(note); return { ok: true, note, notes: demoCourse.notes }; }
+      case "noteEdit": demoCourse.notes = demoCourse.notes.map((n) => (n.id === extra.id ? { ...n, text: extra.text, updatedAt: new Date().toISOString() } : n)); return { ok: true, notes: demoCourse.notes };
+      case "noteDelete": demoCourse.notes = demoCourse.notes.filter((n) => n.id !== extra.id); return { ok: true, notes: demoCourse.notes };
+      case "slang": return { ok: true, items: [["Bored to death", "До смерти скучно / Умираю со скуки", "How was the meeting?", "Как прошла встреча?", "It was so boring, I was bored to death."], ["You've got to be kidding", "Ты, наверное, шутишь!", "I won the lottery!", "Я выиграл в лотерею!", "You've got to be kidding me!"], ["Sick and tired", "Меня это достало / Надоело", "Are you okay with your job lately?", "У тебя всё в порядке с работой?", "Honestly, I'm sick and tired of it."], ["Couch potato", "Как овощ / Как комнатное растение", "What did you do all weekend?", "Что ты делал все выходные?", "Nothing, I was just a couch potato."], ["Hit the sack", "Идти спать", "It's late.", "Уже поздно.", "Yeah, time to hit the sack."]].map(([en, ru, setupEn, setupRu, ex]) => ({ en, ru, example: { setupEn, setupRu, en: ex } })) };
+    }
+    return null;
+  }
   function demo(action, extra) {
+    if (["course", "topic", "courseSet", "courseLevel", "notes", "noteAdd", "noteEdit", "noteDelete", "slang"].includes(action)) return demoAsync(action, extra);
     const today = new Date(); const days = [];
     for (let i = 13; i >= 0; i--) { const d = new Date(today.getTime() - i * 864e5); days.push({ date: d.toISOString().slice(0, 10), answers: [12, 20, 0, 15, 24, 18, 9, 30, 22, 0, 16, 25, 19, 7][13 - i] }); }
     const id = demoState.identity;
@@ -249,15 +325,18 @@
       <div class="card" style="margin-top:12px"><div class="muted" style="margin-bottom:6px">Чаще всего путаешь</div>${wrong}</div>
       <h2>Ачивки <span class="muted" style="font-weight:400">${d.achievements.filter((a) => a.date).length}/${d.achievements.length}</span></h2>
       <div class="grid">${ach}</div>
-      <div class="muted" style="margin-top:12px">🛡 Побеждённых слов: ${d.victories}${d.blitzBest ? ` · ⚡ рекорд блица ${d.blitzBest.correct}/10 за ${d.blitzBest.seconds} с` : ""}</div>`;
+      <div class="muted" style="margin-top:12px">🛡 Побеждённых слов: ${d.victories}${d.blitzBest ? ` · ⚡ рекорд блица ${d.blitzBest.correct}/10 за ${d.blitzBest.seconds} с` : ""}</div>
+      <h2>Лига недели</h2>
+      <div id="league-box"><div class="notice">Загружаю лигу…</div></div>`;
     bindStart($("#page-progress"));
+    loadLeague().then(renderLeague);
   }
 
   function bindStart(root) {
     root.querySelectorAll("[data-start]").forEach((b) => b.addEventListener("click", async () => {
       haptic("medium");
       const kind = b.dataset.start;
-      const action = kind === "blitz" ? "startBlitz" : kind === "grammar" ? "startGrammar" : "startPractice";
+      const action = kind === "blitz" ? "startBlitz" : kind === "grammar" ? "startGrammar" : kind === "slang" ? "startSlang" : "startPractice";
       if (!DEMO) { try { await api(action); } catch (e) {} }
       closeApp(kind === "blitz" ? "В Telegram бот пришлёт первый вопрос блица в чат" : "В Telegram бот пришлёт вопрос в чат");
     }));
@@ -372,14 +451,15 @@
   // ---------- Лига ----------
   async function loadLeague() { const l = await api("league"); if (l && l.ok) state.league = l; return state.league; }
   function renderLeague() {
-    const l = state.league; const root = $("#page-league");
+    const l = state.league; const root = $("#league-box");
+    if (!root) return;
     if (!l) { root.innerHTML = `<div class="notice">Загружаю лигу…</div>`; return; }
     const medals = ["🥇", "🥈", "🥉"];
     const rows = l.rows.length ? l.rows.map((r) => `<div class="lrow ${r.me ? "me" : ""}"><div class="pl">${medals[r.place - 1] || r.place}</div><div class="nm">${esc(r.name)}${r.me ? ' <span class="muted">← ты</span>' : ""}</div><div class="xp">${r.xp} XP</div></div>`).join("") : `<div class="notice">В лиге пока никого — будь ${gend("первым", "первой")}!</div>`;
     const goal = l.classGoal ? `<div class="card cream" style="margin-top:16px"><div class="row between"><div><div style="font-size:15px">🎯 Общая цель класса</div><div class="muted" style="margin-top:2px">${l.classGoal.progress} из ${l.classGoal.target} ответов за неделю</div></div><div class="big" style="font-size:26px">${Math.min(100, Math.round((l.classGoal.progress / l.classGoal.target) * 100))}%</div></div><div class="bar" style="margin-top:12px;background:rgba(255,255,255,.6)"><i style="width:${Math.min(100, Math.round((l.classGoal.progress / l.classGoal.target) * 100))}%"></i></div></div>` : "";
     const ws = l.weekStart;
     root.innerHTML = `
-      <div style="margin-bottom:14px"><h1>Лига недели</h1><div class="muted">с ${ws.slice(8)}.${ws.slice(5, 7)} · по XP · итоги в воскресенье</div></div>
+      <div class="muted" style="margin-bottom:6px">с ${ws.slice(8)}.${ws.slice(5, 7)} · по XP · итоги в воскресенье</div>
       ${rows}
       <div class="card" style="margin-top:16px">
         <div class="row between"><div><div style="font-size:15px">${l.optIn ? "Ты участвуешь" : "Ты не участвуешь"}</div><div class="muted" style="margin-top:2px">видно только имя (или «Ученик №…») и XP за неделю</div></div><button class="switch ${l.optIn ? "on" : ""}" id="lg-opt"></button></div>
@@ -464,6 +544,297 @@
     $("#acc-league").addEventListener("click", async () => { haptic(); const res = await api("leagueSet", { optIn: !d.league.optIn }); if (res && res.ok) { d.league.optIn = res.optIn; state.league = res; renderAccount(); } });
   }
 
+  // ---------- Учёба (курс А0–С1 по плану в Notion) ----------
+  const QUOTES = [
+    ["Youth is counted sweetest by those who are no longer young", "Молодость милее всего тем, кто уже не молод", "Джон Грин"],
+    ["The secret of getting ahead is getting started", "Секрет успеха — начать", "Марк Твен"],
+    ["It always seems impossible until it's done", "Это всегда кажется невозможным, пока не сделано", "Нельсон Мандела"],
+    ["Little by little, one travels far", "Понемногу — и уйдёшь далеко", "Дж. Р. Р. Толкин"],
+    ["Well done is better than well said", "Хорошо сделать лучше, чем хорошо сказать", "Бенджамин Франклин"],
+    ["Practice makes perfect", "Повторение — мать учения", "пословица"],
+    ["A journey of a thousand miles begins with a single step", "Путь в тысячу миль начинается с одного шага", "Лао-цзы"],
+    ["Knowledge is power", "Знание — сила", "Фрэнсис Бэкон"],
+    ["Where there's a will, there's a way", "Было бы желание — найдётся и способ", "пословица"],
+    ["The limits of my language mean the limits of my world", "Границы моего языка — границы моего мира", "Людвиг Витгенштейн"],
+    ["Don't watch the clock; do what it does. Keep going", "Не смотри на часы — делай как они: продолжай идти", "Сэм Левенсон"],
+    ["Mistakes are proof that you are trying", "Ошибки — доказательство того, что ты пробуешь", "неизвестный автор"],
+    ["One language sets you in a corridor for life. Two languages open every door along the way", "Один язык — коридор на всю жизнь. Два языка открывают каждую дверь на пути", "Фрэнк Смит"],
+    ["Success is the sum of small efforts, repeated day in and day out", "Успех — это сумма маленьких усилий, повторяемых день за днём", "Роберт Кольер"],
+  ];
+  function quoteOfDay() { const d = new Date(); const i = (d.getFullYear() * 366 + d.getMonth() * 31 + d.getDate()) % QUOTES.length; return QUOTES[i]; }
+  const LEVEL_EMOJI = { A0: "🌱", A1: "🌿", A2: "🍀", B1: "🌳", B2: "🌲", C1: "🏔" };
+  const STATUS_LABEL = { started: "В процессе", done: "Завершено", available: "Доступно", locked: "Недоступно" };
+  const SECTION_META = { why: ["🎯", "Зачем эта тема"], native: ["👁", "Как это видит носитель"], narrative: ["🗣", "Приёмы носителей и ошибки"], examples: ["💡", "Примеры с разбором"], pitfalls: ["⚠️", "Подводные камни"], links: ["🔗", "Практика на внешних сайтах"], other: ["📄", ""] };
+  const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } };
+  const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+
+  async function loadCourse() { const c = await api("course"); if (c && c.ok) state.course = c; else state.courseError = c && c.error; return state.course; }
+  function findTopicMeta(id) { for (const l of state.course.levels) for (const t of l.topics) if (t.id === id) return { level: l, meta: t }; return null; }
+  function levelOfTopic(id) { const f = findTopicMeta(id); return f ? f.level : null; }
+  function go(view, extra) { state.study = Object.assign({ view }, extra || {}); renderStudy(); window.scrollTo(0, 0); }
+  function studyBack() {
+    const v = state.study;
+    const map = { level: () => go("home"), topic: () => { const l = levelOfTopic(v.id); go("level", { level: v.level || (l ? l.code : null) }); }, lesson: () => go("topic", { id: v.id }), exercises: () => go("topic", { id: v.id }), selfcheck: () => go("topic", { id: v.id }), tnotes: () => go("topic", { id: v.id }), notes: () => go("home"), nfolder: () => go("notes"), slang: () => go("home"), search: () => go("home"), checkpoint: () => go("level", { level: v.level }) };
+    if (map[v.view]) map[v.view](); else go("home");
+  }
+  function syncBackButton() { if (!tg || !tg.BackButton) return; try { if (state.study.view === "home") tg.BackButton.hide(); else tg.BackButton.show(); } catch (e) {} }
+  function backLink(label) { return `<button class="back" id="study-back">← ${esc(label)}</button>`; }
+
+  function renderStudy() {
+    const root = $("#page-study"); syncBackButton();
+    if (!state.course) { root.innerHTML = state.courseError ? `<div class="notice">Курс пока не загружен на сервер (${esc(state.courseError)}). Напиши преподавателю.</div>` : `<div class="notice">Загружаю курс…</div>`; return; }
+    const v = state.study.view;
+    const fn = { home: renderStudyHome, level: renderLevel, topic: renderTopic, lesson: renderLesson, exercises: renderExercises, selfcheck: renderSelfcheck, tnotes: renderTopicNotes, notes: renderNotesFolders, nfolder: renderNotesFolder, slang: renderSlang, search: renderSearch, checkpoint: renderCheckpoint }[v] || renderStudyHome;
+    fn(root);
+    const b = $("#study-back"); if (b) b.addEventListener("click", () => { haptic(); studyBack(); });
+  }
+
+  // --- главная: цитата, прогресс, уровни («4 выбор») ---
+  function lastStartedTopic() {
+    let best = null;
+    for (const l of state.course.levels) for (const t of l.topics) if (t.status === "started" && (!best || (t.updatedAt || "") > (best.t.updatedAt || ""))) best = { l, t };
+    return best;
+  }
+  function renderStudyHome(root) {
+    const c = state.course; const [qe, qr, qa] = quoteOfDay();
+    const pct = c.total ? Math.round((c.done / c.total) * 100) : 0;
+    const cont = lastStartedTopic();
+    const levels = c.levels.map((l) => {
+      const p = l.total ? Math.round((l.done / l.total) * 100) : 0;
+      return `<div class="lvl ${c.level === l.code ? "cur" : ""}" data-level="${l.code}"><div class="ring"><span class="e">${LEVEL_EMOJI[l.code] || l.emoji || "📘"}</span>${p ? `<span class="pct">${p}%</span>` : ""}</div><div class="t">${esc(l.code)}</div><div class="c">${l.total} ${plural(l.total, ["тема", "темы", "тем"])}${l.done ? ` · ${l.done} ✓` : ""}</div></div>`;
+    }).join("");
+    root.innerHTML = `
+      <div class="quote">${esc(qe)} — ${esc(qr)}<span class="au">© ${esc(qa)}</span></div>
+      <div style="text-align:center;margin-top:18px"><h1 style="font-weight:500">Английский</h1><div class="muted" style="margin-top:4px">Всего ${c.total} ${plural(c.total, ["тема", "темы", "тем"])}${c.done ? ` · пройдено ${c.done}` : ""}</div></div>
+      <div class="bar" style="margin-top:12px"><i style="width:${pct}%"></i></div>
+      <div class="search" style="margin-top:16px"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="sq" placeholder="Искать тему или заметку" /></div>
+      ${cont ? `<div class="card aqua" style="margin-top:14px;cursor:pointer" id="continue"><div class="row between"><div><div class="muted" style="color:var(--text-2);opacity:.7">Продолжить · ${esc(cont.l.code)}</div><div style="font-size:17px;margin-top:2px">${esc(cont.t.emoji || "")} ${esc(cont.t.title)}</div></div><button class="fab">${iconArrow()}</button></div></div>` : ""}
+      <div class="levels">${levels}</div>
+      <div class="row" style="margin-top:22px;gap:10px">
+        <button class="btn" id="go-notes" style="flex:1">📝 Заметки</button>
+        <button class="btn" id="go-slang" style="flex:1">💬 Сленг</button>
+      </div>
+      <div class="muted" style="margin-top:14px;line-height:1.5">Не знаешь, с чего начать? Открой A1 — там главные времена и разговор о себе. Темы идут по порядку: каждая опирается на предыдущую.</div>`;
+    root.querySelectorAll("[data-level]").forEach((el) => el.addEventListener("click", () => { haptic(); go("level", { level: el.dataset.level }); }));
+    const cnt = $("#continue"); if (cnt) cnt.addEventListener("click", () => { haptic(); openTopic(cont.t.id); });
+    $("#go-notes").addEventListener("click", () => go("notes"));
+    $("#go-slang").addEventListener("click", () => go("slang"));
+    $("#sq").addEventListener("input", (e) => { const q = e.target.value; if (q.trim().length >= 2) go("search", { q }); });
+  }
+
+  // --- уровень: «Все темы» ---
+  function renderLevel(root) {
+    const l = state.course.levels.find((x) => x.code === state.study.level); if (!l) return go("home");
+    const cards = l.topics.map((t, i) => {
+      const g = t.kind === "topic" ? GRADS[i % GRADS.length] : "cream";
+      return `<div class="topic card ${g} ${t.status === "locked" ? "locked" : ""}" data-id="${t.id}"><div><div class="t">${esc(t.emoji || "")} ${esc(t.title)}</div><div class="st"><span class="tag ${t.status}">${STATUS_LABEL[t.status]}</span>${t.kind !== "topic" ? ` <span class="tag">${t.kind === "bridge" ? "мост" : "экзамен"}</span>` : ""}</div></div><button class="fab ghost">${iconArrow()}</button></div>`;
+    }).join("");
+    root.innerHTML = `
+      <div class="head"><div class="row between"><div>${backLink("Уровни")}<div class="ttl" style="margin-top:6px">${LEVEL_EMOJI[l.code] || ""} ${esc(l.title)}</div><div class="sub">${l.total} ${plural(l.total, ["тема", "темы", "тем"])} · пройдено ${l.done}</div></div>${state.course.level === l.code ? `<span class="tag" style="margin-top:28px">мой уровень</span>` : `<button class="btn small" id="set-level" style="margin-top:24px">Это мой уровень</button>`}</div>
+        <div class="bar" style="margin-top:12px;background:rgba(255,255,255,.6)"><i style="width:${l.total ? Math.round((l.done / l.total) * 100) : 0}%"></i></div></div>
+      ${l.intro ? `<details class="card" style="padding:12px 16px"><summary style="cursor:pointer;color:var(--accent)">О чём этот уровень</summary><div class="content" style="margin-top:8px;font-size:14px">${l.intro}</div></details>` : ""}
+      ${cards}
+      ${l.checkpoint && l.checkpoint.length ? `<div class="fold" style="margin-top:14px" id="checkpoint"><span>📝 Контрольная точка ${esc(l.code)}</span><span class="n">${l.checkpoint.length}</span></div>` : ""}
+      <div style="height:16px"></div>`;
+    root.querySelectorAll(".topic").forEach((el) => el.addEventListener("click", () => { haptic(); const t = l.topics.find((x) => x.id === el.dataset.id); if (t.status === "locked") confirmSheetOk(`«${t.title}» — следующая по порядку. Лучше сначала пройти предыдущую тему, но можно открыть и так.`, "Открыть всё равно").then((ok) => { if (ok) openTopic(t.id); }); else openTopic(t.id); }));
+    const sl = $("#set-level"); if (sl) sl.addEventListener("click", async () => { const r = await api("courseLevel", { level: l.code }); if (r && r.ok) { state.course = r; toast(`Уровень ${l.code} — твой`); renderStudy(); } });
+    const cp = $("#checkpoint"); if (cp) cp.addEventListener("click", () => go("checkpoint", { level: l.code }));
+  }
+  function confirmSheetOk(text, okLabel) {
+    return new Promise((resolve) => { openSheet(`<h3>${esc(text)}</h3><div class="row"><button class="btn" id="c-no">Отмена</button><button class="btn primary" id="c-yes">${esc(okLabel)}</button></div>`); $("#c-no").addEventListener("click", () => { closeSheet(); resolve(false); }); $("#c-yes").addEventListener("click", () => { closeSheet(); resolve(true); }); });
+  }
+  function renderCheckpoint(root) {
+    const l = state.course.levels.find((x) => x.code === state.study.level); if (!l) return go("home");
+    const key = `chk:${l.code}`; const done = new Set(lsGet(key, []));
+    root.innerHTML = `<div class="head cream"><div>${backLink(l.code)}<div class="ttl" style="margin-top:6px">📝 Контрольная точка ${esc(l.code)}</div><div class="sub">Когда закончишь уровень — проверь себя честно</div></div></div>
+      <div class="card" style="padding:4px 16px">${l.checkpoint.map((c, i) => `<div class="chk" data-i="${i}"><div class="cb ${done.has(i) ? "on" : ""}">${done.has(i) ? "✓" : ""}</div><div>${c}</div></div>`).join("")}</div>
+      <div class="muted" style="margin-top:12px">Отмечено ${done.size} из ${l.checkpoint.length}</div>`;
+    root.querySelectorAll(".chk").forEach((el) => el.addEventListener("click", () => { const i = Number(el.dataset.i); if (done.has(i)) done.delete(i); else done.add(i); lsSet(key, [...done]); haptic(); renderStudy(); }));
+  }
+
+  // --- тема: уроки (My Classroom--Details) ---
+  async function openTopic(id) {
+    go("topic", { id, loading: true });
+    const r = await api("topic", { id });
+    if (!r || !r.ok) { toast("Не удалось открыть тему"); return go("level", { level: (levelOfTopic(id) || {}).code }); }
+    state.topic = r.topic; state.topicProgress = r.progress; state.topicNotes = r.notes || [];
+    if (!r.progress) { const s = await api("courseSet", { id, status: "started" }); if (s && s.ok) { state.course = s; state.topicProgress = { status: "started" }; } }
+    go("topic", { id });
+  }
+  function lessonsOf(t) {
+    const list = [];
+    const sec = (k) => t.sections.find((s) => s.key === k);
+    if (sec("why")) list.push({ kind: "why", title: "Зачем эта тема", icon: "🎯" });
+    const th = sec("theory");
+    if (th) (th.pages && th.pages.length ? th.pages : [{ title: "Теория", html: th.html }]).forEach((p, i) => list.push({ kind: "theory", idx: i, title: p.title || `Теория ${i + 1}`, icon: "📖" }));
+    for (const k of ["native", "narrative", "examples", "pitfalls"]) if (sec(k)) list.push({ kind: k, title: SECTION_META[k][1], icon: SECTION_META[k][0] });
+    for (const s of t.sections) if (s.key === "other") list.push({ kind: "other", title: strip(s.title), icon: "📄", sidx: t.sections.indexOf(s) });
+    if (t.exercises.length) list.push({ kind: "exercises", title: `Упражнения (${t.exercises.length})`, icon: "✍️" });
+    if (sec("links")) list.push({ kind: "links", title: SECTION_META.links[1], icon: "🔗" });
+    if (t.selfcheck.length) list.push({ kind: "selfcheck", title: "Самопроверка", icon: "✅" });
+    return list;
+  }
+  const strip = (h) => String(h).replace(/<[^>]+>/g, "");
+  const readKey = (id) => `read:${id}`;
+  function renderTopic(root) {
+    const id = state.study.id; const f = findTopicMeta(id); const meta = f ? f.meta : null; const lv = f ? f.level : null;
+    if (state.study.loading || !state.topic || state.topic.id !== id) { root.innerHTML = `<div class="head"><div>${backLink(lv ? lv.code : "Уровни")}<div class="ttl" style="margin-top:6px">${esc(meta ? meta.title : "")}</div></div></div><div class="notice">Загружаю тему…</div>`; return; }
+    const t = state.topic; const lessons = lessonsOf(t); const read = new Set(lsGet(readKey(id), []));
+    const status = meta ? meta.status : "started";
+    const rows = lessons.map((l, i) => `<div class="lesson ${read.has(lessonKey(l)) ? "read" : ""}" data-i="${i}"><div class="ic">${l.icon}</div><div><div class="k">Урок ${i + 1}</div><div class="t">${esc(l.title)}</div></div><div class="ln"></div></div>`).join("");
+    root.innerHTML = `
+      <div class="head"><div class="row between"><div>${backLink(lv ? lv.code : "Уровни")}<div class="ttl" style="margin-top:6px">${esc(t.emoji || "")} ${esc(t.title)}</div><div class="sub">${lessons.length} ${plural(lessons.length, ["урок", "урока", "уроков"])} · ${read.size} прочитано</div></div><button class="fab ghost" id="t-notes" title="Заметки" style="margin-top:22px">📝${state.topicNotes.length ? `<span class="pill" style="position:absolute;margin:-40px 0 0 30px;padding:1px 6px;font-size:11px">${state.topicNotes.length}</span>` : ""}</button></div>
+        <div style="margin-top:10px"><span class="tag ${status}">${STATUS_LABEL[status] || "В процессе"}</span></div></div>
+      ${t.intro ? `<div class="card content" style="font-size:14px">${t.intro}</div>` : ""}
+      ${rows}
+      <div class="navbtns"><button class="btn" id="t-start">${read.size ? "Продолжить" : "Начать"}</button>${status === "done" ? `<button class="btn" id="t-reset">Сбросить</button>` : `<button class="btn primary" id="t-done">Тема пройдена ✓</button>`}</div>
+      <div style="height:16px"></div>`;
+    root.querySelectorAll(".lesson").forEach((el) => el.addEventListener("click", () => { haptic(); openLesson(Number(el.dataset.i)); }));
+    $("#t-notes").addEventListener("click", () => go("tnotes", { id }));
+    $("#t-start").addEventListener("click", () => { const i = lessons.findIndex((l) => !read.has(lessonKey(l))); openLesson(i < 0 ? 0 : i); });
+    const td = $("#t-done"); if (td) td.addEventListener("click", () => markDone(id));
+    const tr = $("#t-reset"); if (tr) tr.addEventListener("click", async () => { const r = await api("courseSet", { id, status: "started" }); const r2 = await api("courseSet", { id, status: "reset" }); if (r2 && r2.ok) { state.course = r2; lsSet(readKey(id), []); toast("Прогресс темы сброшен"); openTopic(id); } });
+  }
+  const lessonKey = (l) => l.kind + (l.idx !== undefined ? ":" + l.idx : "") + (l.sidx !== undefined ? ":" + l.sidx : "");
+  async function markDone(id) {
+    const r = await api("courseSet", { id, status: "done" });
+    if (r && r.ok) { state.course = r; haptic("medium"); toast(r.awardedXp ? `Тема пройдена! +${r.awardedXp} XP 🎉` : "Тема пройдена ✓"); if (state.me) state.me.xp += r.awardedXp || 0; go("topic", { id }); }
+  }
+  function openLesson(i) {
+    const t = state.topic; const lessons = lessonsOf(t); const l = lessons[i]; if (!l) return;
+    if (l.kind === "exercises") return go("exercises", { id: t.id, i });
+    if (l.kind === "selfcheck") return go("selfcheck", { id: t.id, i });
+    go("lesson", { id: t.id, i });
+  }
+  function markRead(id, l) { const read = new Set(lsGet(readKey(id), [])); read.add(lessonKey(l)); lsSet(readKey(id), [...read]); }
+  function lessonHtml(t, l) {
+    const sec = (k) => t.sections.find((s) => s.key === k);
+    if (l.kind === "theory") { const th = sec("theory"); const p = th.pages && th.pages.length ? th.pages[l.idx] : { html: th.html }; return p.html; }
+    if (l.kind === "other") return t.sections[l.sidx].html;
+    const s = sec(l.kind); return s ? s.html : "";
+  }
+  function lessonHeader(t, l, i, total, extraClass) {
+    const lv = levelOfTopic(t.id);
+    return `<div class="head ${extraClass || ""}"><div class="row between"><div>${backLink(t.title.length > 24 ? t.title.slice(0, 24) + "…" : t.title)}<div class="ttl" style="margin-top:6px">${esc(t.title)}</div><div class="sub">Урок ${i + 1} из ${total}${lv ? ` · ${esc(lv.code)}` : ""}</div></div><span class="tag" style="margin-top:28px">${esc(lv ? lv.code : "")}</span></div></div>`;
+  }
+  function navButtons(i, total) {
+    return `<div class="navbtns"><button class="btn" id="l-prev" ${i <= 0 ? "disabled" : ""}>Назад</button><button class="btn" id="l-next">${i >= total - 1 ? "К теме" : "Далее"}</button></div>`;
+  }
+  function bindNav(i, total) {
+    $("#l-prev").addEventListener("click", () => { haptic(); openLesson(i - 1); });
+    $("#l-next").addEventListener("click", () => { haptic(); if (i >= total - 1) go("topic", { id: state.topic.id }); else openLesson(i + 1); });
+  }
+  function renderLesson(root) {
+    const t = state.topic; if (!t || t.id !== state.study.id) return openTopic(state.study.id);
+    const lessons = lessonsOf(t); const i = state.study.i; const l = lessons[i]; if (!l) return go("topic", { id: t.id });
+    markRead(t.id, l);
+    root.innerHTML = `${lessonHeader(t, l, i, lessons.length)}<h2 style="margin-top:4px">${l.icon} ${esc(l.title)}</h2><div class="card content">${lessonHtml(t, l)}</div>${navButtons(i, lessons.length)}<div style="height:16px"></div>`;
+    bindNav(i, lessons.length);
+    root.querySelectorAll(".content a").forEach((a) => a.addEventListener("click", (e) => { if (tg && tg.openLink) { e.preventDefault(); tg.openLink(a.href); } }));
+  }
+  function renderExercises(root) {
+    const t = state.topic; if (!t || t.id !== state.study.id) return openTopic(state.study.id);
+    const lessons = lessonsOf(t); const i = state.study.i; const l = lessons[i]; markRead(t.id, l);
+    const intro = t.sections.find((s) => s.key === "exercises_intro");
+    const ex = t.exercises.map((e) => `<div class="card ex"><div style="font-size:15px;font-weight:500;color:var(--text-2)">Упражнение ${e.n}${e.title ? `. ${e.title}` : ""}</div><div class="content" style="margin-top:8px">${e.html}</div>${e.answers ? `<details class="ans"><summary>Показать ответ</summary><div class="content">${e.answers}</div></details>` : ""}</div>`).join("");
+    root.innerHTML = `${lessonHeader(t, l, i, lessons.length, "lavender")}<h2 style="margin-top:4px">✍️ Упражнения</h2>${intro ? `<div class="content muted" style="font-size:14px">${intro.html}</div>` : ""}${ex}${navButtons(i, lessons.length)}<div style="height:16px"></div>`;
+    bindNav(i, lessons.length);
+  }
+  function renderSelfcheck(root) {
+    const t = state.topic; if (!t || t.id !== state.study.id) return openTopic(state.study.id);
+    const lessons = lessonsOf(t); const i = state.study.i; const l = lessons[i]; markRead(t.id, l);
+    const key = `self:${t.id}`; const done = new Set(lsGet(key, []));
+    const meta = (findTopicMeta(t.id) || {}).meta; const isDone = meta && meta.status === "done";
+    root.innerHTML = `${lessonHeader(t, l, i, lessons.length, "cream")}<h2 style="margin-top:4px">✅ Самопроверка</h2>
+      <div class="card" style="padding:4px 16px">${t.selfcheck.map((c, k) => `<div class="chk" data-i="${k}"><div class="cb ${done.has(k) ? "on" : ""}">${done.has(k) ? "✓" : ""}</div><div>${c}</div></div>`).join("")}</div>
+      ${t.selfcheckNote ? `<div class="card content" style="font-size:14px">${t.selfcheckNote}</div>` : ""}
+      <div class="muted" style="margin-top:10px">Отмечено ${done.size} из ${t.selfcheck.length}</div>
+      <div class="navbtns"><button class="btn" id="l-prev">Назад</button>${isDone ? `<button class="btn" id="l-next">К теме</button>` : `<button class="btn primary" id="sc-done">Тема пройдена ✓</button>`}</div><div style="height:16px"></div>`;
+    root.querySelectorAll(".chk").forEach((el) => el.addEventListener("click", () => { const k = Number(el.dataset.i); if (done.has(k)) done.delete(k); else done.add(k); lsSet(key, [...done]); haptic(); renderStudy(); }));
+    $("#l-prev").addEventListener("click", () => openLesson(i - 1));
+    const n = $("#l-next"); if (n) n.addEventListener("click", () => go("topic", { id: t.id }));
+    const d = $("#sc-done"); if (d) d.addEventListener("click", () => { if (done.size < t.selfcheck.length) confirmSheetOk(`Отмечено ${done.size} из ${t.selfcheck.length}. Всё равно завершить тему?`, "Завершить").then((ok) => { if (ok) markDone(t.id); }); else markDone(t.id); });
+  }
+
+  // --- заметки ---
+  function fmtDate(iso) { const d = new Date(iso); return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}`; }
+  function noteRows(notes, showTopic) {
+    if (!notes.length) return `<div class="muted" style="padding:12px 0">Заметок пока нет.</div>`;
+    return notes.map((n) => { const f = n.topicId ? findTopicMeta(n.topicId) : null; return `<div class="note" data-id="${n.id}"><div class="d">${fmtDate(n.createdAt)}${showTopic && f ? ` · ${esc(f.meta.title)}` : showTopic ? " · общая" : ""}</div><div class="tx">${esc(n.text)}</div><div class="acts"><button class="ed">Изменить</button><button class="del">Удалить</button></div></div>`; }).join("");
+  }
+  function bindNotes(root, after) {
+    root.querySelectorAll(".note .ed").forEach((b) => b.addEventListener("click", () => { const id = b.closest(".note").dataset.id; const n = (state.notes || state.topicNotes).find((x) => x.id === id); openSheet(`<h3>Изменить заметку</h3><textarea id="n-text" rows="5">${esc(n.text)}</textarea><div style="margin-top:12px"><button class="btn primary" id="n-save">Сохранить</button></div>`); $("#n-save").addEventListener("click", async () => { const r = await api("noteEdit", { id, text: $("#n-text").value }); if (r && r.ok) { closeSheet(); after(r.notes); } }); }));
+    root.querySelectorAll(".note .del").forEach((b) => b.addEventListener("click", async () => { const id = b.closest(".note").dataset.id; const ok = await confirmSheet("Удалить заметку?", "Удалить"); if (!ok) return; const r = await api("noteDelete", { id }); if (r && r.ok) after(r.notes); }));
+  }
+  function openAddNote(topicId, after) {
+    openSheet(`<h3>Новая заметка</h3><textarea id="n-text" rows="5" placeholder="Например: не путать themself и themselves"></textarea><div style="margin-top:12px"><button class="btn primary" id="n-save">Добавить</button></div>`);
+    $("#n-save").addEventListener("click", async () => { const text = $("#n-text").value.trim(); if (!text) return; const r = await api("noteAdd", { topicId: topicId || undefined, text }); if (r && r.ok) { closeSheet(); toast("Заметка добавлена"); after(r.notes); } });
+  }
+  function renderTopicNotes(root) {
+    const t = state.topic; if (!t || t.id !== state.study.id) return openTopic(state.study.id);
+    root.innerHTML = `<div class="head lavender"><div class="row between"><div>${backLink(t.title.length > 24 ? t.title.slice(0, 24) + "…" : t.title)}<div class="ttl" style="margin-top:6px">📝 Заметки</div><div class="sub">${esc(t.title)}</div></div><button class="fab" id="n-add" style="margin-top:22px">${iconPlus()}</button></div></div>
+      <div class="card" style="padding:4px 16px">${noteRows(state.topicNotes, false)}</div>`;
+    const after = (all) => { state.notes = all; state.topicNotes = all.filter((n) => n.topicId === t.id); renderStudy(); };
+    $("#n-add").addEventListener("click", () => openAddNote(t.id, after));
+    bindNotes(root, after);
+  }
+  async function loadNotes() { const r = await api("notes"); if (r && r.ok) state.notes = r.notes; return state.notes; }
+  function renderNotesFolders(root) {
+    if (!state.notes) { root.innerHTML = `<div class="head lavender"><div>${backLink("Учёба")}<div class="ttl" style="margin-top:6px">📝 Заметки</div></div></div><div class="notice">Загружаю…</div>`; loadNotes().then(() => renderStudy()); return; }
+    const groups = new Map();
+    for (const n of state.notes) { const k = n.topicId || "__general__"; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(n); }
+    const folders = [...groups.entries()].map(([k, list]) => { const f = k === "__general__" ? null : findTopicMeta(k); return { key: k, label: k === "__general__" ? "Общие заметки" : f ? `${f.meta.emoji || ""} ${f.meta.title}` : "Тема", count: list.length }; });
+    root.innerHTML = `<div class="head lavender"><div class="row between"><div>${backLink("Учёба")}<div class="ttl" style="margin-top:6px">📝 Заметки</div><div class="sub">${state.notes.length} ${plural(state.notes.length, ["заметка", "заметки", "заметок"])} по папкам</div></div><button class="fab" id="n-add" style="margin-top:22px">${iconPlus()}</button></div></div>
+      <div class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="nq" placeholder="Искать в заметках" /></div>
+      ${folders.length ? folders.map((f) => `<div class="fold" data-k="${esc(f.key)}"><span>${esc(f.label)}</span><span class="n">${f.count}</span></div>`).join("") : `<div class="notice" style="margin-top:14px">Заметок пока нет. Добавляй их прямо из темы — кнопка 📝 в шапке — или здесь.</div>`}`;
+    root.querySelectorAll(".fold").forEach((el) => el.addEventListener("click", () => go("nfolder", { k: el.dataset.k })));
+    $("#n-add").addEventListener("click", () => openAddNote(null, (all) => { state.notes = all; renderStudy(); }));
+    $("#nq").addEventListener("input", (e) => { const q = e.target.value; if (q.trim().length >= 2) go("search", { q, notesOnly: true }); });
+  }
+  function renderNotesFolder(root) {
+    const k = state.study.k; const list = (state.notes || []).filter((n) => (n.topicId || "__general__") === k);
+    const f = k === "__general__" ? null : findTopicMeta(k); const label = k === "__general__" ? "Общие заметки" : f ? f.meta.title : "Тема";
+    root.innerHTML = `<div class="head lavender"><div class="row between"><div>${backLink("Папки")}<div class="ttl" style="margin-top:6px">${esc(label)}</div><div class="sub">${list.length} ${plural(list.length, ["заметка", "заметки", "заметок"])}</div></div><button class="fab" id="n-add" style="margin-top:22px">${iconPlus()}</button></div></div>
+      <div class="card" style="padding:4px 16px">${noteRows(list, false)}</div>${f ? `<div style="margin-top:12px"><button class="btn" id="open-topic">Открыть тему</button></div>` : ""}`;
+    const after = (all) => { state.notes = all; renderStudy(); };
+    $("#n-add").addEventListener("click", () => openAddNote(k === "__general__" ? null : k, after));
+    bindNotes(root, after);
+    const ot = $("#open-topic"); if (ot) ot.addEventListener("click", () => openTopic(k));
+  }
+
+  // --- поиск ---
+  function renderSearch(root) {
+    const q = (state.study.q || "").trim().toLowerCase(); const notesOnly = !!state.study.notesOnly;
+    const topics = notesOnly ? [] : state.course.levels.flatMap((l) => l.topics.filter((t) => (t.title + " " + (t.description || "") + " " + (t.contains || "")).toLowerCase().includes(q)).map((t) => ({ l, t })));
+    const notes = (state.notes || []).filter((n) => n.text.toLowerCase().includes(q));
+    const slang = notesOnly || !state.slang ? [] : state.slang.filter((s) => (s.en + " " + s.ru).toLowerCase().includes(q)).slice(0, 10);
+    root.innerHTML = `<div class="head"><div>${backLink(notesOnly ? "Заметки" : "Учёба")}<div class="search" style="margin-top:8px"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="sq2" value="${esc(state.study.q || "")}" placeholder="Искать" /></div></div></div>
+      ${!topics.length && !notes.length && !slang.length ? `<div class="notice" style="text-align:center;padding:40px 18px">К сожалению, мы ничего не нашли…<br><span class="muted">Попробуй изменить запрос</span></div>` : ""}
+      ${topics.length ? `<h2>Темы</h2><div class="card" style="padding:4px 16px">${topics.map(({ l, t }) => `<div class="sres" data-id="${t.id}"><div class="t">${esc(t.emoji || "")} ${esc(t.title)}</div><div class="s">${esc(l.code)} · ${STATUS_LABEL[t.status]}</div></div>`).join("")}</div>` : ""}
+      ${notes.length ? `<h2>Заметки</h2><div class="card" style="padding:4px 16px">${notes.map((n) => { const f = n.topicId ? findTopicMeta(n.topicId) : null; return `<div class="sres" data-n="${n.topicId || "__general__"}"><div class="t">${esc(n.text.length > 80 ? n.text.slice(0, 80) + "…" : n.text)}</div><div class="s">${fmtDate(n.createdAt)} · ${f ? esc(f.meta.title) : "общая"}</div></div>`; }).join("")}</div>` : ""}
+      ${slang.length ? `<h2>Сленг</h2><div class="card" style="padding:4px 16px">${slang.map((s) => `<div class="sres" data-slang="1"><div class="t">${esc(s.en)}</div><div class="s">${esc(s.ru)}</div></div>`).join("")}</div>` : ""}`;
+    const inp = $("#sq2"); inp.addEventListener("input", (e) => { state.study.q = e.target.value; renderStudy(); setTimeout(() => { const i = $("#sq2"); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }, 0); });
+    root.querySelectorAll(".sres[data-id]").forEach((el) => el.addEventListener("click", () => openTopic(el.dataset.id)));
+    root.querySelectorAll(".sres[data-n]").forEach((el) => el.addEventListener("click", () => go("nfolder", { k: el.dataset.n })));
+    root.querySelectorAll(".sres[data-slang]").forEach((el) => el.addEventListener("click", () => go("slang", { q })));
+    if (!state.notes) loadNotes().then(() => { if (state.study.view === "search") renderStudy(); });
+    if (!state.slang && !notesOnly) api("slang").then((r) => { if (r && r.ok) { state.slang = r.items; if (state.study.view === "search") renderStudy(); } });
+  }
+
+  // --- сленг ---
+  function renderSlang(root) {
+    if (!state.slang) { root.innerHTML = `<div class="head pink"><div>${backLink("Учёба")}<div class="ttl" style="margin-top:6px">💬 Сленг</div></div></div><div class="notice">Загружаю…</div>`; api("slang").then((r) => { if (r && r.ok) state.slang = r.items; renderStudy(); }); return; }
+    const q = (state.study.q || "").trim().toLowerCase();
+    const items = state.slang.filter((s) => !q || (s.en + " " + s.ru).toLowerCase().includes(q));
+    root.innerHTML = `<div class="head pink"><div>${backLink("Учёба")}<div class="ttl" style="margin-top:6px">💬 Сленг</div><div class="sub">${state.slang.length} американских фраз · нажми на фразу, чтобы увидеть пример</div></div></div>
+      <div class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="slq" value="${esc(state.study.q || "")}" placeholder="Искать фразу" /></div>
+      <div class="card" style="margin-top:12px;padding:4px 16px">${items.map((s, i) => `<div class="slang" data-i="${i}"><div class="en">${esc(s.en)}</div><div class="ru">${esc(s.ru)}</div>${s.example ? `<div class="exm">— ${esc(s.example.setupEn)}<br><span class="muted">${esc(s.example.setupRu)}</span><br>— <b>${esc(s.example.en)}</b></div>` : ""}</div>`).join("") || `<div class="muted" style="padding:12px 0">Ничего не найдено.</div>`}</div>
+      <div style="margin-top:14px"><button class="btn" data-start="slang">Потренировать фразы в чате</button></div><div style="height:16px"></div>`;
+    $("#slq").addEventListener("input", (e) => { state.study.q = e.target.value; renderStudy(); setTimeout(() => { const i = $("#slq"); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }, 0); });
+    root.querySelectorAll(".slang").forEach((el) => el.addEventListener("click", () => { el.classList.toggle("open"); haptic(); }));
+    bindStart(root);
+  }
+
   // ---------- Навигация ----------
   async function showPage(name) {
     document.querySelectorAll(".page").forEach((p) => p.classList.toggle("active", p.id === "page-" + name));
@@ -471,13 +842,15 @@
     removeActions(); closeSheet(); window.scrollTo(0, 0);
     if (!state.me) return;
     if (name === "vocab") { renderVocab(); if (!state.vocab) { await loadVocab(); renderVocab(); } if (state.selected.size) renderActions(); }
-    if (name === "league") { renderLeague(); await loadLeague(); renderLeague(); }
+    if (name === "study") { renderStudy(); if (!state.course) { await loadCourse(); renderStudy(); } }
     if (name === "blitz") renderBlitz();
     if (name === "account") { renderAccount(); await loadOptions(); renderAccount(); }
     if (name === "progress") { const m = await api("me"); if (m && m.ok) { state.me = m; renderProgress(m); } }
   }
   document.querySelectorAll(".tab").forEach((t) => t.addEventListener("click", () => { haptic(); showPage(t.dataset.page); }));
-  const startPage = (new URLSearchParams(location.search).get("page")) || (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || "progress";
+  const startPage = (new URLSearchParams(location.search).get("page")) || (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || "study";
+  // Кнопка «назад» Telegram ведёт по экранам курса
+  if (tg && tg.BackButton) { try { tg.BackButton.onClick(() => studyBack()); } catch (e) {} }
 
   function fail(msg) { $("#page-progress").innerHTML = `<div class="notice">${msg}</div>`; }
   api("me").then((d) => {
@@ -488,7 +861,7 @@
       return;
     }
     state.me = d; state.gender = d.user.gender; renderProgress(d);
-    if (["vocab", "league", "blitz", "account"].includes(startPage)) showPage(startPage);
+    showPage(["vocab", "blitz", "account", "progress", "study"].includes(startPage) ? startPage : "study");
   }).catch(() => fail("Нет связи с ботом. Проверь интернет и попробуй снова.")).finally(() => {
     setTimeout(() => $("#splash").classList.add("hide"), DEMO ? 400 : 150);
   });

@@ -11529,6 +11529,9 @@ async function handleAppApi(body) {
       case "startPractice":
         await handleModeVocab(chatId);
         return appJson({ ok: true });
+      case "startSlang":
+        await tg("sendMessage", { chat_id: chatId, text: "💬 150 американских фраз — какой формат?", reply_markup: { inline_keyboard: [[{ text: "🔤 Перевод", callback_data: "idiomformat:translate" }], [{ text: "💬 Диалог", callback_data: "idiomformat:dialogue" }]] } });
+        return appJson({ ok: true });
       case "startGrammar":
         await handleModeGrammar(chatId);
         return appJson({ ok: true });
