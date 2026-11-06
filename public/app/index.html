@@ -818,10 +818,14 @@
   const exKey = (tid, n) => `exr:${tid}:${n}`;
   // Объяснение к ответу: пояснение из самого ответа (в скобках / после тире) или правило упражнения
   function explainHtml(e, it) {
-    const raw = strip(it.a || "").trim(); const note = (raw.match(/\(([^()]{3,})\)\s*$/) || [])[1] || (raw.split(/\s+[—–]\s+/)[1] || "");
-    const rule = strip(e.title || "");
-    if (!note && !rule) return "";
-    return `<div class="muted" style="margin-top:6px;font-size:13px">${note ? "" : "Правило: " + esc(rule)}</div>`;
+    const t = state.topic; const rule = strip(e.title || "");
+    // ближайшая страница теории — по общим словам с названием упражнения
+    const th = t && t.sections.find((s) => s.key === "theory"); const pages = th && th.pages ? th.pages : [];
+    const words = rule.toLowerCase().split(/[^a-zа-яё'-]+/).filter((w) => w.length > 2 || /^-[a-z]+$/.test(w)).filter((w) => !/^(или|для|как|что|это|the|and|with|from|все|всё|свой|своё)$/.test(w));
+    let best = -1, bestScore = 0;
+    pages.forEach((pg, i) => { const pt = (pg.title || "").toLowerCase(); const sc = words.filter((w) => pt.includes(w)).length; if (sc > bestScore) { bestScore = sc; best = i; } });
+    const lessons = t ? lessonsOf(t) : []; const li = best >= 0 ? lessons.findIndex((l) => l.kind === "theory" && l.idx === best) : -1;
+    return `<div style="margin-top:8px;font-size:13px;color:var(--text-2)">📏 Правило: ${esc(rule)}${li >= 0 ? ` · <a href="#" class="ex-theory" data-i="${li}" style="color:var(--accent)">открыть теорию →</a>` : ""}</div>`;
   }
   // --- варианты ответов (как в Duolingo) ---
   const cleanAns = (h) => { let t = strip(String(h || "")); if (t.includes("✅")) t = t.split("✅").pop(); return t.replace(/\s*\((?:[^()]*)\)\s*$/, "").replace(/\s+[—–-]\s+.*$/, "").replace(/\s+/g, " ").trim(); };
@@ -862,25 +866,27 @@
   function seededShuffle(arr, seed) { const a = arr.slice(); let x = seed || 1; for (let i = a.length - 1; i > 0; i--) { x = (x * 1103515245 + 12345) & 0x7fffffff; const j = x % (i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
   // Формы слова из подсказки в скобках: study → studies / studying / studied / studys …
   const IRREG = { be: ["was", "been"], go: ["went", "gone"], have: ["had", "had"], do: ["did", "done"], make: ["made", "made"], take: ["took", "taken"], see: ["saw", "seen"], come: ["came", "come"], get: ["got", "got"], give: ["gave", "given"], write: ["wrote", "written"], read: ["read", "read"], eat: ["ate", "eaten"], drink: ["drank", "drunk"], buy: ["bought", "bought"], think: ["thought", "thought"], know: ["knew", "known"], say: ["said", "said"], tell: ["told", "told"], find: ["found", "found"], leave: ["left", "left"], meet: ["met", "met"], run: ["ran", "run"], sit: ["sat", "sat"], speak: ["spoke", "spoken"], swim: ["swam", "swum"], teach: ["taught", "taught"], win: ["won", "won"], begin: ["began", "begun"], sleep: ["slept", "slept"], feel: ["felt", "felt"], forget: ["forgot", "forgotten"], send: ["sent", "sent"], spend: ["spent", "spent"], pay: ["paid", "paid"], bring: ["brought", "brought"], catch: ["caught", "caught"], fly: ["flew", "flown"], drive: ["drove", "driven"], break: ["broke", "broken"], choose: ["chose", "chosen"], wear: ["wore", "worn"], lose: ["lost", "lost"], hear: ["heard", "heard"], keep: ["kept", "kept"], build: ["built", "built"], cost: ["cost", "cost"], cut: ["cut", "cut"], put: ["put", "put"], hit: ["hit", "hit"], let: ["let", "let"], hurt: ["hurt", "hurt"], understand: ["understood", "understood"], become: ["became", "become"], fall: ["fell", "fallen"], grow: ["grew", "grown"], draw: ["drew", "drawn"], throw: ["threw", "thrown"], ride: ["rode", "ridden"], rise: ["rose", "risen"], sing: ["sang", "sung"], ring: ["rang", "rung"], stand: ["stood", "stood"], sell: ["sold", "sold"], hold: ["held", "held"], lead: ["led", "led"], mean: ["meant", "meant"], learn: ["learnt", "learned"], sleep: ["slept", "slept"], wake: ["woke", "woken"], forgive: ["forgave", "forgiven"], shut: ["shut", "shut"], set: ["set", "set"], show: ["showed", "shown"], steal: ["stole", "stolen"], tear: ["tore", "torn"], light: ["lit", "lit"], feed: ["fed", "fed"], fight: ["fought", "fought"], lend: ["lent", "lent"], shine: ["shone", "shone"], dig: ["dug", "dug"], bite: ["bit", "bitten"], hide: ["hid", "hidden"], freeze: ["froze", "frozen"], blow: ["blew", "blown"], shake: ["shook", "shaken"], stick: ["stuck", "stuck"], strike: ["struck", "struck"], swing: ["swung", "swung"], hang: ["hung", "hung"], quit: ["quit", "quit"], spread: ["spread", "spread"], bet: ["bet", "bet"], deal: ["dealt", "dealt"], dream: ["dreamt", "dreamed"], burn: ["burnt", "burned"], lie: ["lay", "lain"], lay: ["laid", "laid"], sew: ["sewed", "sewn"], sow: ["sowed", "sown"], seek: ["sought", "sought"], bind: ["bound", "bound"], bend: ["bent", "bent"], weep: ["wept", "wept"], sweep: ["swept", "swept"], creep: ["crept", "crept"], flee: ["fled", "fled"], cling: ["clung", "clung"], spin: ["spun", "spun"], split: ["split", "split"], shrink: ["shrank", "shrunk"], stink: ["stank", "stunk"], spring: ["sprang", "sprung"], upset: ["upset", "upset"], withdraw: ["withdrew", "withdrawn"], overcome: ["overcame", "overcome"] };
-  function verbForms(base) {
+  function verbForms(base, scope) {
     const b = base.toLowerCase(); const out = [];
     const cvc = /[^aeiou][aeiou][^aeiouwxy]$/.test(b) && b.length <= 5;
     const third = b === "have" ? "has" : /(s|sh|ch|x|z|o)$/.test(b) ? b + "es" : /[^aeiou]y$/.test(b) ? b.slice(0, -1) + "ies" : b + "s";
     const ing = /ie$/.test(b) ? b.slice(0, -2) + "ying" : /[^e]e$/.test(b) && !/ee$/.test(b) ? b.slice(0, -1) + "ing" : cvc ? b + b.slice(-1) + "ing" : b + "ing";
     const past = IRREG[b] ? IRREG[b][0] : /e$/.test(b) ? b + "d" : /[^aeiou]y$/.test(b) ? b.slice(0, -1) + "ied" : cvc ? b + b.slice(-1) + "ed" : b + "ed";
     const pp = IRREG[b] ? IRREG[b][1] : past;
-    out.push(third, ing, past, pp);
-    // типичные ошибки
-    if (/[^aeiou]y$/.test(b)) out.push(b + "s", b + "ed"); // studys, studyed
-    if (IRREG[b]) out.push(b + "ed", third); // goed
-    if (cvc) out.push(b + "ing", b + "ed"); // runing, stoped
-    if (/(s|sh|ch|x|z|o)$/.test(b)) out.push(b + "s"); // watchs
-    else out.push(b + "es"); // workes
-    if (/[^e]e$/.test(b)) out.push(b + "ing"); // makeing
+    // scope: "present" — без прошедших форм, "past" — без форм настоящего (тема урока задаёт рамки)
+    const pres = !scope || scope === "present", pst = !scope || scope === "past";
+    if (pres) out.push(third, ing); if (pst) out.push(past, pp); if (!scope) out.push(ing);
+    // типичные ошибки — в первую очередь
+    if (/[^aeiou]y$/.test(b)) { if (pres) out.unshift(b + "s", b + "es"); if (pst) out.unshift(b + "ed"); } // studys, studyes, studyed
+    if (IRREG[b]) { if (pst) out.unshift(b + "ed"); if (pres) out.push(third); } // goed
+    if (cvc) { if (pres) out.unshift(b + "ing"); if (pst) out.unshift(b + "ed"); } // runing, stoped
+    if (pres) { if (/(s|sh|ch|x|z|o)$/.test(b)) out.unshift(b + "s"); else out.unshift(b + "es"); } // watchs, workes
+    if (/[^e]e$/.test(b) && pres) out.push(b + "ing"); // makeing
     if (b === "be") out.push("am", "is", "are", "were", "being", "been");
     if (b === "have") out.push("have", "haves");
     return [...new Set(out)];
   }
+  function grammarScope(title) { const t = (title || "").toLowerCase(); if (/present simple|present continuous|повелительное|there is/.test(t) && !/past|perfect/.test(t)) return "present"; if (/past simple|past continuous/.test(t) && !/present/.test(t)) return "past"; return null; }
   // Подсказка (study) подходит к ответу, если ответ — форма этого слова
   function hintFits(hint, correct) {
     const base = hint.replace(/^not\s+/i, "").toLowerCase(); const c = correct.toLowerCase();
@@ -922,7 +928,7 @@
     for (let k = w.length - 1; k > 0; k--) { const head = w.slice(0, k).join(" ").toLowerCase(); if (head && before.endsWith(head)) return w.slice(k).join(" ").replace(/[.!?,;:]+$/g, ""); }
     return null;
   }
-  function buildOptions(items, idx) {
+  function buildOptions(items, idx, scope) {
     const it = items[idx]; let correct = cleanAns(it.a); if (!correct || correct.length > 140) return null;
     const hint = hintOf(it.q);
     // ответ-предложение при одном пропуске → работаем со словом в пропуске
@@ -952,12 +958,12 @@
       // уже есть варианты из подстановки / семейства
     } else if (hint && /^[a-zA-Z]+$/.test(hint) && /^[a-zA-Z']+ [a-zA-Z]+$/.test(correct) && SWAP_AUX[correct.split(" ")[0].toLowerCase()] && hintFits(hint, correct)) {
       // (cook) → is cooking: меняем вспомогательный и форму
-      const [aux, form] = correct.split(" "); const f = verbForms(hint); const base = hint.toLowerCase();
+      const [aux, form] = correct.split(" "); const f = verbForms(hint, scope); const base = hint.toLowerCase();
       pool = [`${SWAP_AUX[aux.toLowerCase()]} ${form}`, `${aux} ${base}`, `${aux} ${f[0]}`, form, f[0], `${aux} ${f[2]}`].filter((x) => x.toLowerCase() !== low);
     } else if (hint && /^(not\s+)?[a-zA-Z]+$/.test(hint) && correct.split(" ").length <= 2 && hintFits(hint, correct)) {
       // (study) → формы этого же слова; (not eat) → doesn't eat / don't eat / not eats
       const neg = /^not\s+/i.test(hint); const base = hint.replace(/^not\s+/i, "");
-      const forms = verbForms(base);
+      const forms = verbForms(base, scope);
       if (neg) {
         const v = correct.replace(/^(don't|doesn't|didn't|isn't|aren't|wasn't|weren't|won't|can't|haven't|hasn't|not)\s+/i, "");
         pool = [`don't ${v}`, `doesn't ${v}`, `didn't ${v}`, `not ${v}`, `isn't ${v}`, `doesn't ${verbForms(base)[0]}`, `don't ${verbForms(base)[0]}`].filter((x) => x.toLowerCase() !== low);
@@ -972,7 +978,9 @@
     if (pool.length < 3 && src && /^[A-Z“"][^а-яё]*$/i.test(src) && !/[а-яё]/i.test(src) && src.toLowerCase() !== low && src.length > 6) pool.push(src.replace(/^[“"]|[”"]$/g, ""));
     pool = [...new Set(pool)].filter((v) => v.toLowerCase() !== low);
     const seed = idx * 7919 + correct.length * 31 + items.length;
-    const distractors = seededShuffle(pool, seed).slice(0, 3);
+    // 3 варианта всего: правильный + 2 неверных; первые в пуле — самые типичные ошибки
+    const top = pool.slice(0, 2), restPool = seededShuffle(pool.slice(2), seed);
+    const distractors = top.concat(restPool).slice(0, 2);
     if (distractors.length < minDistractors) return null;
     return seededShuffle([correct, ...distractors], seed + 1).map((v) => ({ text: v, ok: v === correct }));
   }
@@ -1006,7 +1014,7 @@
           <div class="navbtns"><button class="btn" id="ex-retry">Ещё раз</button><button class="btn primary" id="ex-next">${st.ex + 1 >= total ? "Готово" : "Следующее упражнение"}</button></div>`;
         $("#ex-retry").addEventListener("click", () => { st.item = 0; st.shown = false; st.score = 0; renderStudy(); });
       } else {
-        const opts = buildOptions(p.items, st.item);
+        const opts = buildOptions(p.items, st.item, grammarScope(t.title));
         const picked = st.picked; const answered = picked !== undefined && picked !== null;
         const optsHtml = opts ? opts.map((o, k) => `<button class="opt ${answered ? (o.ok ? "ok" : k === picked ? "bad" : "dim") : ""}" data-k="${k}" ${answered ? "disabled" : ""}>${esc(o.text)}</button>`).join("") : "";
         root.innerHTML = `${hdr}${exBar}<h2 style="margin-top:0">${esc(title)}</h2>${p.intro && strip(p.intro).trim() ? `<div class="content muted" style="font-size:14px">${p.intro}</div>` : ""}
@@ -1018,6 +1026,7 @@
           <div class="navbtns" style="margin-top:10px"><button class="btn" id="ex-prev" ${st.item === 0 && st.ex === 0 ? "disabled" : ""}>Назад</button><button class="btn" id="ex-skip">Пропустить</button></div><div style="height:16px"></div>`;
         root.querySelectorAll(".opt").forEach((b) => b.addEventListener("click", () => { const k = Number(b.dataset.k); st.picked = k; if (opts[k].ok) { st.score++; haptic("medium"); } else { try { tg && tg.HapticFeedback && tg.HapticFeedback.notificationOccurred("error"); } catch (e) {} } renderStudy(); }));
         const goBtn = $("#ex-go"); if (goBtn) goBtn.addEventListener("click", () => { haptic(); st.item++; st.picked = null; st.shown = false; renderStudy(); window.scrollTo(0, 0); });
+        root.querySelectorAll(".ex-theory").forEach((a) => a.addEventListener("click", (ev) => { ev.preventDefault(); st.returnTo = { ...st }; openLesson(Number(a.dataset.i)); }));
         const sh = $("#ex-show"); if (sh) sh.addEventListener("click", () => { haptic(); st.shown = true; renderStudy(); });
         const yes = $("#ex-yes"); if (yes) yes.addEventListener("click", () => { haptic("medium"); st.score++; st.item++; st.shown = false; renderStudy(); });
         const no = $("#ex-no"); if (no) no.addEventListener("click", () => { haptic(); st.item++; st.shown = false; renderStudy(); });
