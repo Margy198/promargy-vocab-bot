@@ -164,6 +164,9 @@
   .slang .exm { margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: var(--accent-soft); font-size: 13px; line-height: 1.4; display: none; } .slang.open .exm { display: block; }
   .sres { padding: 10px 0; border-bottom: 1px solid var(--line); cursor: pointer; } .sres .t { font-size: 15px; color: var(--text-2); } .sres .s { font-size: 12px; color: var(--muted); }
   .outline { font-size: 16px; color: var(--text-2); line-height: 1.4; padding: 22px 20px; }
+  .opt { display: block; width: 100%; text-align: left; font: inherit; font-size: 16px; padding: 14px 16px; margin-top: 10px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--card); color: var(--text); cursor: pointer; box-shadow: var(--shadow); }
+  .opt:active { transform: scale(.99); }
+  .opt.ok { background: #e9f6e5; border-color: #8fcf7f; color: #2f6b22; } .opt.bad { background: #ffe1ec; border-color: #ff9ec4; color: #8f3d64; } .opt.dim { opacity: .5; }
   .back { background: none; border: none; font: inherit; color: var(--accent); font-size: 14px; padding: 0; cursor: pointer; }
 </style>
 </head>
@@ -799,6 +802,12 @@
     if (ps.length >= 2) { const items = ps.map((p) => p.innerHTML.replace(/^\s*(<b>)?\d+[.)]\s*(<\/b>)?\s*/, "")); ps.forEach((p) => p.remove()); return { items, rest: rootEl.innerHTML }; }
     return { items: null, rest: html || "" };
   }
+  function topicAnswerPool(t) {
+    if (t._pool) return t._pool;
+    const set = new Set();
+    for (const e of t.exercises) { const p = exItems(e); if (p.mode === "items") for (const it of p.items) { const v = cleanAns(it.a); if (v && v.split(" ").length <= 3 && v.length <= 30) set.add(v); } }
+    t._pool = [...set]; return t._pool;
+  }
   function exItems(e) {
     if (e._parsed) return e._parsed;
     const q = parseItems(e.html); const a = parseItems(e.answers);
@@ -807,6 +816,54 @@
     return e._parsed;
   }
   const exKey = (tid, n) => `exr:${tid}:${n}`;
+  // --- варианты ответов (как в Duolingo) ---
+  const cleanAns = (h) => { let t = strip(String(h || "")); if (t.includes("✅")) t = t.split("✅").pop(); return t.replace(/\s*\((?:[^()]*)\)\s*$/, "").replace(/\s+[—–-]\s+.*$/, "").replace(/\s+/g, " ").trim(); };
+  const AUX = /^(is|are|am|was|were|has|have|had|do|does|did|be|been|being|will|would|can|could|should|must|may|might|shall|not|yes|no|the|a|an|pp|ps|pc|fs|prs|prc|i|he|she|it|we|they|you|me|him|her|us|them|my|his|its|our|your|their|this|that|these|those|who|what|where|when|why|how|some|any|much|many|of|in|on|at|to|for|with|by|from)$/i;
+  function mutate(ans) {
+    const out = new Set(); const push = (v) => { if (v && v !== ans) out.add(v); };
+    const rules = [
+      [/\bdoesn't\b/i, "don't"], [/\bdon't\b/i, "doesn't"], [/\bDoes\b/, "Do"], [/\bDo\b/, "Does"], [/\bisn't\b/i, "aren't"], [/\baren't\b/i, "isn't"],
+      [/\bis\b/, "are"], [/\bare\b/, "is"], [/\bwas\b/, "were"], [/\bwere\b/, "was"], [/\bhas\b/, "have"], [/\bhave\b/, "has"],
+      [/\ban\b/, "a"], [/\ba\b/, "an"], [/\bthe\b/, ""], [/\bsome\b/, "any"], [/\bany\b/, "some"], [/\bmuch\b/, "many"], [/\bmany\b/, "much"],
+      [/\bwill\b/, "would"], [/\bwould\b/, "will"], [/\bhasn't\b/i, "haven't"], [/\bhaven't\b/i, "hasn't"], [/\bam\b/, "is"], [/\bthis\b/i, "these"], [/\bthese\b/i, "this"], [/\bthat\b/i, "those"],
+      [/\bcan\b/, "could"], [/\bmust\b/, "should"], [/\bshould\b/, "must"], [/\bin\b/, "on"], [/\bon\b/, "at"], [/\bat\b/, "in"],
+    ];
+    for (const [rx, to] of rules) if (rx.test(ans)) push(ans.replace(rx, to).replace(/\s{2,}/g, " ").trim());
+    // -s в 3-м лице / -ing / -ed
+    const w = ans.split(" ");
+    if (w.length === 1) {
+      const plain = /^[a-z]{3,}$/i.test(ans) && !AUX.test(ans);
+      if (plain) {
+        if (/ies$/.test(ans)) push(ans.replace(/ies$/, "ys"));
+        else if (/(sh|ch|ss|x|o)es$/.test(ans)) push(ans.replace(/es$/, ""));
+        else if (/[^s]s$/.test(ans) && ans.length >= 4) push(ans.replace(/s$/, ""));
+        else { push(ans + "s"); if (/(sh|ch|s|x|o)$/.test(ans)) push(ans + "es"); }
+        if (/ing$/.test(ans) && ans.length >= 6) push(ans.replace(/ing$/, "")); else if (!/ing$/.test(ans)) push(ans + "ing");
+        if (/ed$/.test(ans) && ans.length >= 5) push(ans.replace(/ed$/, ""));
+      }
+    } else {
+      const i = w.findIndex((x) => /^[a-z]{4,}s$/i.test(x) && !/ss$/i.test(x) && !AUX.test(x));
+      if (i >= 0) push(w.map((x, k) => (k === i ? x.replace(/s$/, "") : x)).join(" "));
+      const j = w.findIndex((x) => /^[a-z]{3,}$/i.test(x) && !AUX.test(x) && !/^(and|but|not|don't|doesn't|isn't|aren't|wasn't|weren't)$/i.test(x));
+      if (j >= 0 && j !== i) push(w.map((x, k) => (k === j ? x + "s" : x)).join(" "));
+    }
+    return [...out];
+  }
+  function seededShuffle(arr, seed) { const a = arr.slice(); let x = seed || 1; for (let i = a.length - 1; i > 0; i--) { x = (x * 1103515245 + 12345) & 0x7fffffff; const j = x % (i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  function buildOptions(items, idx, extraPool) {
+    const correct = cleanAns(items[idx].a); if (!correct || correct.length > 140) return null;
+    const low = correct.toLowerCase();
+    const others = [...new Set(items.map((it, k) => (k === idx ? null : cleanAns(it.a))).filter((v) => v && v.toLowerCase() !== low))];
+    const words = correct.split(" ").length;
+    let pool = words <= 3 ? others.filter((v) => Math.abs(v.split(" ").length - words) <= 1) : [];
+    if (pool.length < 3 && words <= 2 && extraPool) pool = pool.concat(seededShuffle(extraPool.filter((v) => v.toLowerCase() !== low && !pool.includes(v) && Math.abs(v.split(" ").length - words) <= 1), idx + 17).slice(0, 3 - pool.length));
+    if (pool.length < 3) pool = pool.concat(mutate(correct).filter((v) => !pool.includes(v)));
+    if (pool.length < 3) pool = pool.concat(others.filter((v) => !pool.includes(v)));
+    const seed = idx * 7919 + correct.length * 31 + items.length;
+    const distractors = seededShuffle(pool, seed).slice(0, 3);
+    if (distractors.length < 2) return null;
+    return seededShuffle([correct, ...distractors], seed + 1).map((v) => ({ text: v, ok: v === correct }));
+  }
   function renderExercises(root) {
     const t = state.topic; if (!t || t.id !== state.study.id) return openTopic(state.study.id);
     const lessons = lessonsOf(t); const i = state.study.i; const l = lessons[i]; markRead(t.id, l);
@@ -837,20 +894,26 @@
           <div class="navbtns"><button class="btn" id="ex-retry">Ещё раз</button><button class="btn primary" id="ex-next">${st.ex + 1 >= total ? "Готово" : "Следующее упражнение"}</button></div>`;
         $("#ex-retry").addEventListener("click", () => { st.item = 0; st.shown = false; st.score = 0; renderStudy(); });
       } else {
+        const opts = buildOptions(p.items, st.item, topicAnswerPool(t));
+        const picked = st.picked; const answered = picked !== undefined && picked !== null;
+        const optsHtml = opts ? opts.map((o, k) => `<button class="opt ${answered ? (o.ok ? "ok" : k === picked ? "bad" : "dim") : ""}" data-k="${k}" ${answered ? "disabled" : ""}>${esc(o.text)}</button>`).join("") : "";
         root.innerHTML = `${hdr}${exBar}<h2 style="margin-top:0">${esc(title)}</h2>${p.intro && strip(p.intro).trim() ? `<div class="content muted" style="font-size:14px">${p.intro}</div>` : ""}
           <div class="bar" style="margin:6px 0 12px"><i style="width:${Math.round((st.item / n) * 100)}%"></i></div>
-          <div class="card ex"><div class="muted" style="margin-bottom:6px">Задание ${st.item + 1} из ${n}</div><div class="content" style="font-size:17px">${it.q}</div>
-            ${st.shown ? `<div class="content" style="margin-top:12px;padding:10px 12px;background:#eef9f8;border-radius:10px;font-size:16px">${it.a}</div>` : ""}</div>
-          ${st.shown ? `<div class="navbtns"><button class="btn danger" id="ex-no">Не знал${gend("", "а")} ✗</button><button class="btn primary" id="ex-yes">Знал${gend("", "а")} ✓</button></div>` : `<div style="margin-top:14px"><button class="btn primary" id="ex-show">Показать ответ</button></div>`}
+          <div class="card ex"><div class="muted" style="margin-bottom:6px">Задание ${st.item + 1} из ${n}</div><div class="content" style="font-size:18px">${it.q}</div></div>
+          ${opts ? optsHtml : (st.shown ? `<div class="card content" style="margin-top:12px;background:#eef9f8;font-size:16px">${it.a}</div>` : `<div style="margin-top:14px"><button class="btn primary" id="ex-show">Показать ответ</button></div>`)}
+          ${answered ? `<div class="card" style="margin-top:14px;background:${opts[picked].ok ? "#e9f6e5" : "#ffe1ec"}"><div style="font-size:15px;font-weight:500;color:${opts[picked].ok ? "#2f6b22" : "#8f3d64"}">${opts[picked].ok ? "Верно! ✓" : "Не совсем"}</div><div class="content" style="margin-top:6px;font-size:15px">${it.a}</div></div><div style="margin-top:12px"><button class="btn primary" id="ex-go">${st.item + 1 >= n ? "Итог" : "Далее"}</button></div>` : ""}
+          ${!opts && st.shown ? `<div class="navbtns"><button class="btn danger" id="ex-no">Не знал${gend("", "а")} ✗</button><button class="btn primary" id="ex-yes">Знал${gend("", "а")} ✓</button></div>` : ""}
           <div class="navbtns" style="margin-top:10px"><button class="btn" id="ex-prev" ${st.item === 0 && st.ex === 0 ? "disabled" : ""}>Назад</button><button class="btn" id="ex-skip">Пропустить</button></div><div style="height:16px"></div>`;
+        root.querySelectorAll(".opt").forEach((b) => b.addEventListener("click", () => { const k = Number(b.dataset.k); st.picked = k; if (opts[k].ok) { st.score++; haptic("medium"); } else { try { tg && tg.HapticFeedback && tg.HapticFeedback.notificationOccurred("error"); } catch (e) {} } renderStudy(); }));
+        const goBtn = $("#ex-go"); if (goBtn) goBtn.addEventListener("click", () => { haptic(); st.item++; st.picked = null; st.shown = false; renderStudy(); window.scrollTo(0, 0); });
         const sh = $("#ex-show"); if (sh) sh.addEventListener("click", () => { haptic(); st.shown = true; renderStudy(); });
         const yes = $("#ex-yes"); if (yes) yes.addEventListener("click", () => { haptic("medium"); st.score++; st.item++; st.shown = false; renderStudy(); });
         const no = $("#ex-no"); if (no) no.addEventListener("click", () => { haptic(); st.item++; st.shown = false; renderStudy(); });
-        $("#ex-skip").addEventListener("click", () => { st.item++; st.shown = false; renderStudy(); });
+        $("#ex-skip").addEventListener("click", () => { st.item++; st.picked = null; st.shown = false; renderStudy(); });
       }
     }
     $("#ex-list").addEventListener("click", () => openExerciseList());
-    const prev = $("#ex-prev"); if (prev) prev.addEventListener("click", () => { if (p.mode === "items" && st.item > 0) { st.item--; st.shown = false; } else if (st.ex > 0) { st.ex--; st.item = 0; st.shown = false; st.score = 0; } renderStudy(); });
+    const prev = $("#ex-prev"); if (prev) prev.addEventListener("click", () => { if (p.mode === "items" && st.item > 0) { st.item--; st.shown = false; st.picked = null; } else if (st.ex > 0) { st.ex--; st.item = 0; st.shown = false; st.picked = null; st.score = 0; } renderStudy(); });
     const next = $("#ex-next"); if (next) next.addEventListener("click", () => { haptic(); st.ex++; st.item = 0; st.shown = false; st.score = 0; renderStudy(); window.scrollTo(0, 0); });
   }
   function openExerciseList() {
@@ -957,6 +1020,7 @@
     bindStart(root);
   }
 
+  if (DEMO) window.__dbg = { buildOptions, exItems, parseItems, cleanAns, mutate, topicAnswerPool };
   // ---------- Навигация ----------
   async function showPage(name) {
     document.querySelectorAll(".page").forEach((p) => p.classList.toggle("active", p.id === "page-" + name));
