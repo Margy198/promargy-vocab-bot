@@ -15,6 +15,10 @@
 
 import { getStore } from "@netlify/blobs";
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { VOCAB as DEFAULT_VOCAB } from "../../data/vocab.mjs";
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -35,6 +39,8 @@ const sharedLibraryStore = () => getStore("vocab-bot-shared-library", { consiste
 // Общие настройки бота, которые задаёт преподаватель (вызов для блица,
 // общая цель класса): ключ → JSON.
 const configStore = () => getStore("vocab-bot-config", { consistency: "strong" });
+// Курс (мини-приложение): прогресс по темам и заметки ученика
+const courseStore = () => getStore("vocab-bot-course", { consistency: "strong" });
 
 // Секретное слово для самостоятельного получения прав администратора —
 // команда /claimadmin <секрет>. Кто пришлёт верный секрет, тот сразу
@@ -11267,6 +11273,133 @@ async function appLeaguePayload(chatId, identity) {
   };
 }
 
+// ---------- Курс (Notion-план А0–С1) в мини-приложении ----------
+// Контент лежит в data/course/ (собирается scripts/build-course.py) и
+// попадает в функцию через included_files в netlify.toml. Ищем папку по
+// нескольким кандидатам, потому что путь внутри бандла отличается от репозитория.
+const COURSE_XP_DONE = 50;
+let courseDirCache = null;
+function courseDir() {
+  if (courseDirCache) return courseDirCache;
+  let here = "";
+  try { here = dirname(fileURLToPath(import.meta.url)); } catch (e) { here = process.cwd(); }
+  const candidates = [
+    join(process.cwd(), "data", "course"),
+    join(here, "data", "course"),
+    join(here, "..", "data", "course"),
+    join(here, "..", "..", "data", "course"),
+    join(here, "..", "..", "..", "data", "course"),
+    "/var/task/data/course",
+  ];
+  for (const c of candidates) if (existsSync(join(c, "index.json"))) { courseDirCache = c; return c; }
+  return null;
+}
+let courseIndexCache = null;
+async function readCourseIndex() {
+  if (courseIndexCache) return courseIndexCache;
+  const dir = courseDir();
+  if (!dir) return null;
+  courseIndexCache = JSON.parse(await readFile(join(dir, "index.json"), "utf8"));
+  return courseIndexCache;
+}
+async function readCourseTopic(id) {
+  const dir = courseDir();
+  if (!dir || !/^[0-9a-f]{32}$/.test(String(id))) return null;
+  const file = join(dir, "topics", `${id}.json`);
+  if (!existsSync(file)) return null;
+  return JSON.parse(await readFile(file, "utf8"));
+}
+function emptyCourseProgress() {
+  return { topics: {}, level: null, updatedAt: null };
+}
+async function readCourseProgress(chatId) {
+  const v = await courseStore().get(`progress:${chatId}`, { type: "json" });
+  return v && typeof v === "object" ? { ...emptyCourseProgress(), ...v, topics: v.topics || {} } : emptyCourseProgress();
+}
+async function readCourseNotes(chatId) {
+  const v = await courseStore().get(`notes:${chatId}`, { type: "json" });
+  return Array.isArray(v) ? v : [];
+}
+function noteId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+// Статус темы для списка: done / started / available / locked.
+// «Недоступно» — мягкая блокировка: предыдущая тема уровня ещё не начата.
+function courseTopicStatus(level, topic, idx, progress) {
+  const p = progress.topics[topic.id];
+  if (p && p.status === "done") return "done";
+  if (p && p.status === "started") return "started";
+  if (idx === 0) return "available";
+  const prev = level.topics[idx - 1];
+  const pp = progress.topics[prev.id];
+  if (pp && (pp.status === "done" || pp.status === "started")) return "available";
+  return "locked";
+}
+async function appCoursePayload(chatId) {
+  const index = await readCourseIndex();
+  if (!index) return { ok: false, error: "content_missing" };
+  const progress = await readCourseProgress(chatId);
+  const levels = index.levels.map((lv) => {
+    const topics = lv.topics.map((t, i) => ({ ...t, status: courseTopicStatus(lv, t, i, progress), updatedAt: (progress.topics[t.id] || {}).updatedAt || null }));
+    const main = topics.filter((t) => t.kind === "topic");
+    return { code: lv.code, title: lv.title, emoji: lv.emoji, intro: lv.intro, checkpoint: lv.checkpoint, topics, total: main.length, done: main.filter((t) => t.status === "done").length, started: main.filter((t) => t.status === "started").length };
+  });
+  const all = levels.flatMap((l) => l.topics.filter((t) => t.kind === "topic"));
+  return { ok: true, levels, level: progress.level, total: all.length, done: all.filter((t) => t.status === "done").length, builtAt: index.builtAt || null };
+}
+async function setCourseTopicStatus(chatId, topicId, status) {
+  const index = await readCourseIndex();
+  if (!index) return { ok: false, error: "content_missing" };
+  const known = index.levels.some((l) => l.topics.some((t) => t.id === topicId));
+  if (!known) return { ok: false, error: "unknown_topic" };
+  let awardedXp = 0;
+  await withOptimisticUpdate(courseStore(), `progress:${chatId}`, emptyCourseProgress, (current) => {
+    const next = { ...emptyCourseProgress(), ...current, topics: { ...(current.topics || {}) } };
+    const prev = next.topics[topicId] || {};
+    if (status === "reset") delete next.topics[topicId];
+    else {
+      if (status === "done" && prev.status !== "done") awardedXp = COURSE_XP_DONE;
+      // «started» не понижает «done»
+      if (!(status === "started" && prev.status === "done")) next.topics[topicId] = { status, updatedAt: new Date().toISOString(), doneAt: status === "done" ? (prev.doneAt || new Date().toISOString()) : prev.doneAt };
+    }
+    next.updatedAt = new Date().toISOString();
+    return next;
+  });
+  if (awardedXp) {
+    const today = mskNow(Date.now()).date;
+    await withOptimisticUpdate(statsStore(), String(chatId), emptyStats, (current) => {
+      const next = { ...emptyStats(), ...current };
+      addXp(next, awardedXp, today);
+      next.topicsDone = (next.topicsDone || 0) + 1;
+      return next;
+    });
+  }
+  return { ok: true, awardedXp };
+}
+async function setCourseLevel(chatId, level) {
+  const index = await readCourseIndex();
+  if (!index || !index.levels.some((l) => l.code === level)) return { ok: false, error: "unknown_level" };
+  await withOptimisticUpdate(courseStore(), `progress:${chatId}`, emptyCourseProgress, (current) => ({ ...emptyCourseProgress(), ...current, level, updatedAt: new Date().toISOString() }));
+  return { ok: true };
+}
+async function mutateNotes(chatId, fn) {
+  let result = null;
+  await withOptimisticUpdate(courseStore(), `notes:${chatId}`, () => [], (current) => {
+    const list = Array.isArray(current) ? current.slice() : [];
+    result = fn(list);
+    return result.list;
+  });
+  return result;
+}
+function slangPayload() {
+  const byRu = new Map();
+  for (const d of DIALOGUE_PHRASES) if (!byRu.has(d.ru)) byRu.set(d.ru, d);
+  return IDIOM_TRANSLATE_PAIRS.map((p) => {
+    const d = byRu.get(p.ru);
+    return { en: p.en, ru: p.ru, example: d ? { setupEn: d.setupEn, setupRu: d.setupRu, en: d.en } : null, category: d ? d.category : null };
+  });
+}
+
 async function handleAppApi(body) {
   const user = verifyInitData(body.initData);
   if (!user || !user.id) return appJson({ ok: false, error: "auth" }, 401);
@@ -11337,6 +11470,54 @@ async function handleAppApi(body) {
           avatar: avatarOf(updated) || null,
         });
       }
+      // ----- курс -----
+      case "course":
+        return appJson(await appCoursePayload(chatId));
+      case "topic": {
+        const topic = await readCourseTopic(String(body.id || ""));
+        if (!topic) return appJson({ ok: false, error: "unknown_topic" }, 404);
+        const progress = await readCourseProgress(chatId);
+        const notes = (await readCourseNotes(chatId)).filter((n) => n.topicId === topic.id);
+        return appJson({ ok: true, topic, progress: progress.topics[topic.id] || null, notes });
+      }
+      case "courseSet": {
+        const status = String(body.status || "");
+        if (!["started", "done", "reset"].includes(status)) return appJson({ ok: false, error: "bad_status" }, 400);
+        const r = await setCourseTopicStatus(chatId, String(body.id || ""), status);
+        if (!r.ok) return appJson(r, 400);
+        return appJson({ ...r, ...(await appCoursePayload(chatId)) });
+      }
+      case "courseLevel": {
+        const r = await setCourseLevel(chatId, String(body.level || ""));
+        if (!r.ok) return appJson(r, 400);
+        return appJson({ ...r, ...(await appCoursePayload(chatId)) });
+      }
+      case "notes":
+        return appJson({ ok: true, notes: await readCourseNotes(chatId) });
+      case "noteAdd": {
+        const text = String(body.text || "").trim().slice(0, 4000);
+        if (!text) return appJson({ ok: false, error: "empty" }, 400);
+        const topicId = /^[0-9a-f]{32}$/.test(String(body.topicId || "")) ? String(body.topicId) : null;
+        const r = await mutateNotes(chatId, (list) => {
+          const note = { id: noteId(), topicId, text, createdAt: new Date().toISOString(), updatedAt: null };
+          return { list: [note, ...list].slice(0, 500), note };
+        });
+        return appJson({ ok: true, note: r.note, notes: r.list });
+      }
+      case "noteEdit": {
+        const text = String(body.text || "").trim().slice(0, 4000);
+        const id = String(body.id || "");
+        if (!text) return appJson({ ok: false, error: "empty" }, 400);
+        const r = await mutateNotes(chatId, (list) => ({ list: list.map((n) => (n.id === id ? { ...n, text, updatedAt: new Date().toISOString() } : n)) }));
+        return appJson({ ok: true, notes: r.list });
+      }
+      case "noteDelete": {
+        const id = String(body.id || "");
+        const r = await mutateNotes(chatId, (list) => ({ list: list.filter((n) => n.id !== id) }));
+        return appJson({ ok: true, notes: r.list });
+      }
+      case "slang":
+        return appJson({ ok: true, items: slangPayload() });
       case "options":
         return appJson({ ok: true, avatars: AVATARS, hours: REMINDER_HOUR_CHOICES, frequencies: REMINDER_FREQUENCIES, goals: DAILY_GOAL_CHOICES, maxHours: REMINDER_MAX_HOURS });
       // Запуск занятия из приложения: бот присылает вопрос в чат, а
