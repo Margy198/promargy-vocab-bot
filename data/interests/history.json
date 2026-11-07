@@ -1,0 +1,224 @@
+{
+  "key": "history",
+  "title": "История",
+  "emoji": "🏛",
+  "group": "Мир вокруг",
+  "sentences": [
+    {
+      "level": "A2",
+      "en": "My grandfather was born in a small village in 1940.",
+      "ru": "Мой дедушка родился в маленькой деревне в 1940 году.",
+      "vocab": [
+        { "en": "was born", "ru": "родился" },
+        { "en": "village", "ru": "деревня" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "There is an old castle on the hill near the town.",
+      "ru": "На холме рядом с городом стоит старый замок.",
+      "vocab": [
+        { "en": "castle", "ru": "замок" },
+        { "en": "hill", "ru": "холм" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "Did you visit the museum when you were in Paris?",
+      "ru": "Ты ходил в музей, когда был в Париже?",
+      "vocab": [
+        { "en": "visit", "ru": "посещать" },
+        { "en": "museum", "ru": "музей" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "People didn't have phones or cars a hundred years ago.",
+      "ru": "Сто лет назад у людей не было ни телефонов, ни машин.",
+      "vocab": [
+        { "en": "didn't have", "ru": "не имели, у них не было" },
+        { "en": "a hundred years ago", "ru": "сто лет назад" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "The old church in the centre is five hundred years old.",
+      "ru": "Старой церкви в центре пятьсот лет.",
+      "vocab": [
+        { "en": "church", "ru": "церковь" },
+        { "en": "centre", "ru": "центр" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "When did the Second World War end?",
+      "ru": "Когда закончилась Вторая мировая война?",
+      "vocab": [
+        { "en": "Second World War", "ru": "Вторая мировая война" },
+        { "en": "end", "ru": "заканчиваться" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "I like reading stories about kings and queens.",
+      "ru": "Мне нравится читать истории о королях и королевах.",
+      "vocab": [
+        { "en": "stories about", "ru": "истории о" },
+        { "en": "kings and queens", "ru": "короли и королевы" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "This bridge was built in the nineteenth century.",
+      "ru": "Этот мост построили в девятнадцатом веке.",
+      "vocab": [
+        { "en": "was built", "ru": "был построен" },
+        { "en": "nineteenth century", "ru": "девятнадцатый век" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "The Berlin Wall came down in 1989, and the city changed forever.",
+      "ru": "Берлинская стена пала в 1989 году, и город изменился навсегда.",
+      "vocab": [
+        { "en": "came down", "ru": "пала, рухнула" },
+        { "en": "changed forever", "ru": "изменился навсегда" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "We took a guided tour of the ancient ruins yesterday.",
+      "ru": "Вчера мы ходили на экскурсию с гидом по древним руинам.",
+      "vocab": [
+        { "en": "guided tour", "ru": "экскурсия с гидом" },
+        { "en": "ancient ruins", "ru": "древние руины" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "My great-grandmother lived through two wars and a revolution.",
+      "ru": "Моя прабабушка пережила две войны и революцию.",
+      "vocab": [
+        { "en": "lived through", "ru": "пережила" },
+        { "en": "revolution", "ru": "революция" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "The city was founded by traders more than a thousand years ago.",
+      "ru": "Город был основан торговцами больше тысячи лет назад.",
+      "vocab": [
+        { "en": "founded", "ru": "основан" },
+        { "en": "traders", "ru": "торговцы" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "Have you ever looked into your family history?",
+      "ru": "Ты когда-нибудь изучал историю своей семьи?",
+      "vocab": [
+        { "en": "looked into", "ru": "изучал, разбирался в" },
+        { "en": "family history", "ru": "история семьи" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "The empire collapsed after years of war and bad harvests.",
+      "ru": "Империя рухнула после многих лет войны и неурожаев.",
+      "vocab": [
+        { "en": "empire", "ru": "империя" },
+        { "en": "collapsed", "ru": "рухнула, распалась" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "Historians still argue about who really discovered America first.",
+      "ru": "Историки до сих пор спорят, кто на самом деле первым открыл Америку.",
+      "vocab": [
+        { "en": "Historians", "ru": "историки" },
+        { "en": "discovered", "ru": "открыл" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "Many old buildings were destroyed during the war and rebuilt later.",
+      "ru": "Многие старые здания были разрушены во время войны и позже восстановлены.",
+      "vocab": [
+        { "en": "destroyed", "ru": "разрушены" },
+        { "en": "rebuilt", "ru": "восстановлены, отстроены заново" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "The treaty was meant to secure peace, yet it sowed the seeds of the next conflict.",
+      "ru": "Договор должен был закрепить мир, но посеял семена следующего конфликта.",
+      "vocab": [
+        { "en": "treaty", "ru": "договор, соглашение" },
+        { "en": "sowed the seeds", "ru": "посеял семена, заложил основу" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Archives reveal how ordinary people coped with rationing during the siege.",
+      "ru": "Архивы показывают, как обычные люди справлялись с карточной системой во время блокады.",
+      "vocab": [
+        { "en": "Archives", "ru": "архивы" },
+        { "en": "coped with", "ru": "справлялись с" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "History tends to be written by the victors, so read the losers' accounts too.",
+      "ru": "Историю обычно пишут победители, так что читайте и свидетельства проигравших.",
+      "vocab": [
+        { "en": "written by the victors", "ru": "написана победителями" },
+        { "en": "accounts", "ru": "свидетельства, рассказы очевидцев" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "The reforms were ahead of their time, which is precisely why they failed.",
+      "ru": "Реформы опередили своё время, и именно поэтому они провалились.",
+      "vocab": [
+        { "en": "ahead of their time", "ru": "опередили своё время" },
+        { "en": "precisely", "ru": "именно" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Archaeologists unearthed a Roman settlement beneath the new car park.",
+      "ru": "Археологи раскопали римское поселение под новой парковкой.",
+      "vocab": [
+        { "en": "Archaeologists", "ru": "археологи" },
+        { "en": "unearthed", "ru": "раскопали, извлекли из-под земли" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Propaganda shaped public opinion long before social media existed.",
+      "ru": "Пропаганда формировала общественное мнение задолго до появления соцсетей.",
+      "vocab": [
+        { "en": "Propaganda", "ru": "пропаганда" },
+        { "en": "public opinion", "ru": "общественное мнение" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "The dynasty ruled for three centuries before it was overthrown.",
+      "ru": "Династия правила три столетия, прежде чем её свергли.",
+      "vocab": [
+        { "en": "dynasty", "ru": "династия" },
+        { "en": "overthrown", "ru": "свергнута" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Looking back, the industrial revolution transformed daily life within a single generation.",
+      "ru": "Оглядываясь назад: промышленная революция преобразила повседневную жизнь за одно поколение.",
+      "vocab": [
+        { "en": "Looking back", "ru": "оглядываясь назад" },
+        { "en": "transformed", "ru": "преобразила" }
+      ]
+    }
+  ]
+}

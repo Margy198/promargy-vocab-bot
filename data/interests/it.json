@@ -1,0 +1,32 @@
+{
+  "key": "it",
+  "title": "IT и программирование",
+  "emoji": "💻",
+  "group": "Работа и карьера",
+  "sentences": [
+    { "level": "A2", "en": "My laptop is slow today, so I restarted it.", "ru": "Мой ноутбук сегодня тормозит, поэтому я его перезагрузил.", "vocab": [ { "en": "laptop", "ru": "ноутбук" }, { "en": "restarted", "ru": "перезагрузил" } ] },
+    { "level": "A2", "en": "I write code in Python every day.", "ru": "Я каждый день пишу код на Python.", "vocab": [ { "en": "write code", "ru": "писать код" }, { "en": "every day", "ru": "каждый день" } ] },
+    { "level": "A2", "en": "Please update the app to the new version.", "ru": "Пожалуйста, обновите приложение до новой версии.", "vocab": [ { "en": "update", "ru": "обновить" }, { "en": "new version", "ru": "новая версия" } ] },
+    { "level": "A2", "en": "The website doesn't work on my phone.", "ru": "Сайт не работает на моём телефоне.", "vocab": [ { "en": "doesn't work", "ru": "не работает" }, { "en": "website", "ru": "сайт" } ] },
+    { "level": "A2", "en": "Did you save the file? I can't find it.", "ru": "Ты сохранил файл? Я не могу его найти.", "vocab": [ { "en": "save the file", "ru": "сохранить файл" }, { "en": "can't find", "ru": "не могу найти" } ] },
+    { "level": "A2", "en": "I forgot my password again, so I need to reset it.", "ru": "Я снова забыл пароль, так что мне нужно его сбросить.", "vocab": [ { "en": "password", "ru": "пароль" }, { "en": "reset", "ru": "сбросить" } ] },
+    { "level": "A2", "en": "We have a bug in the login page.", "ru": "У нас баг на странице входа.", "vocab": [ { "en": "bug", "ru": "баг, ошибка" }, { "en": "login page", "ru": "страница входа" } ] },
+    { "level": "A2", "en": "Are you a developer or a designer?", "ru": "Ты разработчик или дизайнер?", "vocab": [ { "en": "developer", "ru": "разработчик" }, { "en": "designer", "ru": "дизайнер" } ] },
+    { "level": "B1", "en": "I've pushed my changes to the repository; can you review them?", "ru": "Я отправил свои изменения в репозиторий — можешь их проверить?", "vocab": [ { "en": "pushed", "ru": "отправил (в репозиторий)" }, { "en": "review", "ru": "проверить, сделать ревью" } ] },
+    { "level": "B1", "en": "The app crashes every time I open the settings menu.", "ru": "Приложение вылетает каждый раз, когда я открываю меню настроек.", "vocab": [ { "en": "crashes", "ru": "вылетает, падает" }, { "en": "settings", "ru": "настройки" } ] },
+    { "level": "B1", "en": "We're switching from monthly releases to a two-week sprint.", "ru": "Мы переходим с ежемесячных релизов на двухнедельные спринты.", "vocab": [ { "en": "releases", "ru": "релизы" }, { "en": "sprint", "ru": "спринт" } ] },
+    { "level": "B1", "en": "Can you share your screen and show me the error message?", "ru": "Можешь показать экран и сообщение об ошибке?", "vocab": [ { "en": "share your screen", "ru": "показать экран (демонстрация)" }, { "en": "error message", "ru": "сообщение об ошибке" } ] },
+    { "level": "B1", "en": "Our database is getting slow, so we need to add an index.", "ru": "Наша база данных стала тормозить, поэтому нужно добавить индекс.", "vocab": [ { "en": "database", "ru": "база данных" }, { "en": "add an index", "ru": "добавить индекс" } ] },
+    { "level": "B1", "en": "I spent the whole morning debugging a problem that was just a typo.", "ru": "Я всё утро отлаживал проблему, которая оказалась просто опечаткой.", "vocab": [ { "en": "debugging", "ru": "отладка, отлаживать" }, { "en": "typo", "ru": "опечатка" } ] },
+    { "level": "B1", "en": "The client wants a mobile version, but the backend isn't ready.", "ru": "Клиент хочет мобильную версию, но бэкенд ещё не готов.", "vocab": [ { "en": "mobile version", "ru": "мобильная версия" }, { "en": "backend", "ru": "бэкенд, серверная часть" } ] },
+    { "level": "B1", "en": "Let's roll back the update; too many users are complaining.", "ru": "Давайте откатим обновление — слишком много пользователей жалуются.", "vocab": [ { "en": "roll back", "ru": "откатить" }, { "en": "complaining", "ru": "жалуются" } ] },
+    { "level": "B2", "en": "The legacy code is a nightmare; nobody dares to touch it.", "ru": "Устаревший код — это кошмар, никто не осмеливается его трогать.", "vocab": [ { "en": "legacy code", "ru": "устаревший (унаследованный) код" }, { "en": "dares", "ru": "осмеливается" } ] },
+    { "level": "B2", "en": "We've accumulated so much technical debt that every feature takes twice as long.", "ru": "Мы накопили столько технического долга, что каждая фича занимает вдвое больше времени.", "vocab": [ { "en": "technical debt", "ru": "технический долг" }, { "en": "twice as long", "ru": "вдвое дольше" } ] },
+    { "level": "B2", "en": "The outage was caused by a misconfigured load balancer, not the code.", "ru": "Сбой был вызван неправильно настроенным балансировщиком нагрузки, а не кодом.", "vocab": [ { "en": "outage", "ru": "сбой, простой" }, { "en": "load balancer", "ru": "балансировщик нагрузки" } ] },
+    { "level": "B2", "en": "Before we refactor, let's make sure the test coverage is decent.", "ru": "Прежде чем рефакторить, давайте убедимся, что покрытие тестами приличное.", "vocab": [ { "en": "refactor", "ru": "рефакторить, переработать код" }, { "en": "test coverage", "ru": "покрытие тестами" } ] },
+    { "level": "B2", "en": "Her pull request got rejected because it broke the build.", "ru": "Её пул-реквест отклонили, потому что он сломал сборку.", "vocab": [ { "en": "pull request", "ru": "пул-реквест" }, { "en": "broke the build", "ru": "сломал сборку" } ] },
+    { "level": "B2", "en": "We're migrating to the cloud, but the data pipeline is the tricky part.", "ru": "Мы переезжаем в облако, но самое сложное — конвейер данных.", "vocab": [ { "en": "migrating", "ru": "мигрировать, переезжать" }, { "en": "tricky part", "ru": "самая сложная часть" } ] },
+    { "level": "B2", "en": "Don't hard-code the credentials; use environment variables instead.", "ru": "Не зашивайте учётные данные в код — используйте переменные окружения.", "vocab": [ { "en": "hard-code", "ru": "зашивать в код" }, { "en": "environment variables", "ru": "переменные окружения" } ] },
+    { "level": "B2", "en": "The system scales horizontally, so we just spin up more instances under load.", "ru": "Система масштабируется горизонтально, поэтому под нагрузкой мы просто поднимаем больше инстансов.", "vocab": [ { "en": "scales horizontally", "ru": "масштабируется горизонтально" }, { "en": "spin up", "ru": "поднять, запустить (сервер)" } ] }
+  ]
+}

@@ -1,0 +1,224 @@
+{
+  "key": "tech",
+  "title": "Гаджеты и технологии",
+  "emoji": "📱",
+  "group": "Мир вокруг",
+  "sentences": [
+    {
+      "level": "A2",
+      "en": "My phone is dead again because I forgot to charge it.",
+      "ru": "Мой телефон снова сел, потому что я забыл его зарядить.",
+      "vocab": [
+        { "en": "dead", "ru": "разряженный, сел (о телефоне)" },
+        { "en": "charge it", "ru": "зарядить его" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "Can you send me the photo on WhatsApp?",
+      "ru": "Можешь прислать мне фото в WhatsApp?",
+      "vocab": [
+        { "en": "send", "ru": "отправить" },
+        { "en": "photo", "ru": "фото" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "I bought new headphones, and the sound is great.",
+      "ru": "Я купил новые наушники, и звук отличный.",
+      "vocab": [
+        { "en": "headphones", "ru": "наушники" },
+        { "en": "sound", "ru": "звук" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "Is the Wi-Fi password written somewhere in the café?",
+      "ru": "Пароль от Wi-Fi где-нибудь написан в кафе?",
+      "vocab": [
+        { "en": "Wi-Fi password", "ru": "пароль от Wi-Fi" },
+        { "en": "somewhere", "ru": "где-нибудь" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "Turn the laptop off and on again if it doesn't work.",
+      "ru": "Выключи и снова включи ноутбук, если он не работает.",
+      "vocab": [
+        { "en": "laptop", "ru": "ноутбук" },
+        { "en": "off and on again", "ru": "выключить и снова включить" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "She doesn't use a computer at work, only a tablet.",
+      "ru": "На работе она не пользуется компьютером, только планшетом.",
+      "vocab": [
+        { "en": "computer", "ru": "компьютер" },
+        { "en": "tablet", "ru": "планшет" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "I left my cable at home, so I can't connect my phone.",
+      "ru": "Я оставил кабель дома, так что не могу подключить телефон.",
+      "vocab": [
+        { "en": "cable", "ru": "кабель, провод" },
+        { "en": "connect", "ru": "подключить" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "Which app do you use for maps?",
+      "ru": "Каким приложением ты пользуешься для карт?",
+      "vocab": [
+        { "en": "app", "ru": "приложение" },
+        { "en": "maps", "ru": "карты" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "My laptop keeps freezing, so I'll probably have to update the software.",
+      "ru": "Ноутбук постоянно зависает, так что мне, видимо, придётся обновить программы.",
+      "vocab": [
+        { "en": "keeps freezing", "ru": "постоянно зависает" },
+        { "en": "update the software", "ru": "обновить программное обеспечение" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "I've run out of storage, and the phone won't take any more photos.",
+      "ru": "У меня закончилась память, и телефон больше не делает фото.",
+      "vocab": [
+        { "en": "run out of", "ru": "исчерпать, остаться без" },
+        { "en": "storage", "ru": "память, хранилище" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "We ordered a smart speaker, but it only understands English.",
+      "ru": "Мы заказали умную колонку, но она понимает только английский.",
+      "vocab": [
+        { "en": "smart speaker", "ru": "умная колонка" },
+        { "en": "understands", "ru": "понимает" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "Did you back up your files before you reset the phone?",
+      "ru": "Ты сделал резервную копию файлов перед сбросом телефона?",
+      "vocab": [
+        { "en": "back up", "ru": "сделать резервную копию" },
+        { "en": "reset", "ru": "сбросить настройки" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "Wireless earbuds are convenient, but I lose them all the time.",
+      "ru": "Беспроводные наушники удобны, но я их постоянно теряю.",
+      "vocab": [
+        { "en": "Wireless earbuds", "ru": "беспроводные наушники-вкладыши" },
+        { "en": "all the time", "ru": "постоянно" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "The screen cracked when I dropped it, and the repair costs a fortune.",
+      "ru": "Экран треснул, когда я его уронил, а ремонт стоит целое состояние.",
+      "vocab": [
+        { "en": "screen cracked", "ru": "экран треснул" },
+        { "en": "costs a fortune", "ru": "стоит целое состояние" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "I'd rather not pay for a subscription just to use one feature.",
+      "ru": "Я бы не хотел платить за подписку ради одной функции.",
+      "vocab": [
+        { "en": "subscription", "ru": "подписка" },
+        { "en": "feature", "ru": "функция" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "The new model is faster, but honestly the old one works fine.",
+      "ru": "Новая модель быстрее, но, честно говоря, старая прекрасно работает.",
+      "vocab": [
+        { "en": "new model", "ru": "новая модель" },
+        { "en": "works fine", "ru": "отлично работает" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Planned obsolescence means gadgets rarely outlive their warranty by much.",
+      "ru": "Запланированное устаревание означает, что гаджеты редко переживают гарантию надолго.",
+      "vocab": [
+        { "en": "Planned obsolescence", "ru": "запланированное устаревание" },
+        { "en": "warranty", "ru": "гарантия" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "The update rolled out overnight, and half the settings had quietly changed.",
+      "ru": "Обновление вышло за ночь, и половина настроек незаметно поменялась.",
+      "vocab": [
+        { "en": "rolled out", "ru": "вышло, было развёрнуто" },
+        { "en": "settings", "ru": "настройки" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Foldable phones are impressive, yet they're hardly worth the premium price.",
+      "ru": "Складные телефоны впечатляют, но вряд ли стоят своей завышенной цены.",
+      "vocab": [
+        { "en": "Foldable", "ru": "складной" },
+        { "en": "premium price", "ru": "премиальная, завышенная цена" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Smart home devices collect far more data than most users realise.",
+      "ru": "Устройства умного дома собирают гораздо больше данных, чем думает большинство пользователей.",
+      "vocab": [
+        { "en": "Smart home devices", "ru": "устройства умного дома" },
+        { "en": "collect", "ru": "собирать" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "I'm not an early adopter; I wait until the bugs have been ironed out.",
+      "ru": "Я не из первых покупателей — я жду, пока все баги устранят.",
+      "vocab": [
+        { "en": "early adopter", "ru": "ранний последователь, первый пользователь новинок" },
+        { "en": "ironed out", "ru": "устранены, сглажены" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Once the hype dies down, we'll see whether the headset has any real use.",
+      "ru": "Когда ажиотаж уляжется, увидим, есть ли от этой гарнитуры реальная польза.",
+      "vocab": [
+        { "en": "hype", "ru": "ажиотаж, хайп" },
+        { "en": "dies down", "ru": "утихает, сходит на нет" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "The AI assistant drafts my emails, but I still have to proofread every line.",
+      "ru": "ИИ-помощник пишет черновики моих писем, но мне всё равно приходится вычитывать каждую строчку.",
+      "vocab": [
+        { "en": "AI assistant", "ru": "ИИ-помощник" },
+        { "en": "proofread", "ru": "вычитывать" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Manufacturers push the camera upgrades hard, yet battery life barely improves.",
+      "ru": "Производители активно продвигают улучшения камеры, а время работы батареи почти не растёт.",
+      "vocab": [
+        { "en": "Manufacturers", "ru": "производители" },
+        { "en": "battery life", "ru": "время работы от батареи" }
+      ]
+    }
+  ]
+}

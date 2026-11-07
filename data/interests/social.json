@@ -1,0 +1,224 @@
+{
+  "key": "social",
+  "title": "Соцсети и блоги",
+  "emoji": "📲",
+  "group": "Мир вокруг",
+  "sentences": [
+    {
+      "level": "A2",
+      "en": "I post photos of my dog on Instagram every week.",
+      "ru": "Я выкладываю фото своей собаки в Instagram каждую неделю.",
+      "vocab": [
+        { "en": "post", "ru": "выкладывать, публиковать" },
+        { "en": "photos", "ru": "фотографии" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "Do you follow any bloggers who talk about travel?",
+      "ru": "Ты подписан на каких-нибудь блогеров, которые рассказывают о путешествиях?",
+      "vocab": [
+        { "en": "bloggers", "ru": "блогеры" },
+        { "en": "talk about", "ru": "рассказывать о" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "She has two thousand followers on her page.",
+      "ru": "У неё две тысячи подписчиков на странице.",
+      "vocab": [
+        { "en": "followers", "ru": "подписчики" },
+        { "en": "page", "ru": "страница" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "I watch short videos before bed, and it's a bad habit.",
+      "ru": "Я смотрю короткие видео перед сном, и это плохая привычка.",
+      "vocab": [
+        { "en": "short videos", "ru": "короткие видео" },
+        { "en": "bad habit", "ru": "плохая привычка" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "Please like and share my new post!",
+      "ru": "Пожалуйста, поставь лайк и поделись моим новым постом!",
+      "vocab": [
+        { "en": "like", "ru": "ставить лайк" },
+        { "en": "share", "ru": "делиться, репостить" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "My mum sends me funny pictures on Telegram every day.",
+      "ru": "Мама каждый день присылает мне смешные картинки в Telegram.",
+      "vocab": [
+        { "en": "sends", "ru": "присылает" },
+        { "en": "funny pictures", "ru": "смешные картинки" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "How many hours a day do you spend on your phone?",
+      "ru": "Сколько часов в день ты проводишь в телефоне?",
+      "vocab": [
+        { "en": "hours a day", "ru": "часов в день" },
+        { "en": "spend", "ru": "проводить (время)" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "He deleted his account because he was tired of it.",
+      "ru": "Он удалил аккаунт, потому что устал от него.",
+      "vocab": [
+        { "en": "deleted", "ru": "удалил" },
+        { "en": "account", "ru": "аккаунт" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "I've unfollowed a few people who only post bad news.",
+      "ru": "Я отписался от нескольких людей, которые постят только плохие новости.",
+      "vocab": [
+        { "en": "unfollowed", "ru": "отписался от" },
+        { "en": "bad news", "ru": "плохие новости" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "The video got thousands of views in just one night.",
+      "ru": "Видео набрало тысячи просмотров всего за одну ночь.",
+      "vocab": [
+        { "en": "views", "ru": "просмотры" },
+        { "en": "in just one night", "ru": "всего за одну ночь" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "Can you tag me in the photo from the party?",
+      "ru": "Можешь отметить меня на фото с вечеринки?",
+      "vocab": [
+        { "en": "tag", "ru": "отметить (на фото)" },
+        { "en": "party", "ru": "вечеринка" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "She started a blog about cooking and now earns money from it.",
+      "ru": "Она завела блог о готовке и теперь зарабатывает на нём.",
+      "vocab": [
+        { "en": "blog", "ru": "блог" },
+        { "en": "earns money", "ru": "зарабатывает деньги" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "I keep scrolling through my feed when I should be sleeping.",
+      "ru": "Я всё листаю ленту, когда мне давно пора спать.",
+      "vocab": [
+        { "en": "scrolling", "ru": "листать, скроллить" },
+        { "en": "feed", "ru": "лента" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "Influencers make it look easy, but filming takes hours.",
+      "ru": "Инфлюенсеры делают вид, что это легко, но съёмка занимает часы.",
+      "vocab": [
+        { "en": "Influencers", "ru": "инфлюенсеры" },
+        { "en": "filming", "ru": "съёмка" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "I turned off notifications, and my days feel much calmer.",
+      "ru": "Я отключил уведомления, и мои дни стали намного спокойнее.",
+      "vocab": [
+        { "en": "notifications", "ru": "уведомления" },
+        { "en": "calmer", "ru": "спокойнее" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "Have you seen the comments under his latest post? Some are really rude.",
+      "ru": "Ты видел комментарии под его последним постом? Некоторые очень грубые.",
+      "vocab": [
+        { "en": "comments", "ru": "комментарии" },
+        { "en": "rude", "ru": "грубые" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "The algorithm decides what you see, not the people you follow.",
+      "ru": "Что ты видишь, решает алгоритм, а не те, на кого ты подписан.",
+      "vocab": [
+        { "en": "algorithm", "ru": "алгоритм" },
+        { "en": "decides", "ru": "решает" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Her sponsored posts are tasteful, so her audience doesn't seem to mind.",
+      "ru": "Её рекламные посты сделаны со вкусом, так что аудитория, похоже, не против.",
+      "vocab": [
+        { "en": "sponsored posts", "ru": "рекламные, спонсорские посты" },
+        { "en": "audience", "ru": "аудитория" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Doomscrolling before bed leaves me anxious and exhausted the next day.",
+      "ru": "Думскроллинг перед сном оставляет меня тревожным и измотанным на следующий день.",
+      "vocab": [
+        { "en": "Doomscrolling", "ru": "думскроллинг, бесконечное чтение плохих новостей" },
+        { "en": "exhausted", "ru": "измотанный" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Engagement dropped sharply once she stopped posting daily reels.",
+      "ru": "Вовлечённость резко упала, как только она перестала выкладывать рилсы каждый день.",
+      "vocab": [
+        { "en": "Engagement", "ru": "вовлечённость" },
+        { "en": "dropped sharply", "ru": "резко упала" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "He built a loyal following by being genuinely himself rather than chasing trends.",
+      "ru": "Он собрал преданную аудиторию, оставаясь собой, а не гоняясь за трендами.",
+      "vocab": [
+        { "en": "loyal following", "ru": "преданная аудитория" },
+        { "en": "chasing trends", "ru": "гоняться за трендами" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Going offline for a week was harder than I'd like to admit.",
+      "ru": "Неделя без интернета далась тяжелее, чем мне хотелось бы признать.",
+      "vocab": [
+        { "en": "Going offline", "ru": "уйти в офлайн" },
+        { "en": "admit", "ru": "признавать" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Cancel culture can end a career overnight, deserved or not.",
+      "ru": "Культура отмены может разрушить карьеру за одну ночь, заслуженно или нет.",
+      "vocab": [
+        { "en": "Cancel culture", "ru": "культура отмены" },
+        { "en": "overnight", "ru": "за одну ночь, в одночасье" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Curated feeds make everyone's life look flawless, which fuels quiet envy.",
+      "ru": "Отфильтрованные ленты делают чужую жизнь безупречной на вид, и это подпитывает тихую зависть.",
+      "vocab": [
+        { "en": "Curated feeds", "ru": "тщательно отобранные, приглаженные ленты" },
+        { "en": "flawless", "ru": "безупречный" }
+      ]
+    }
+  ]
+}
