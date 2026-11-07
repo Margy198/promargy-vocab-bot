@@ -1,0 +1,32 @@
+{
+  "key": "music",
+  "title": "Музыка",
+  "emoji": "🎵",
+  "group": "Хобби",
+  "sentences": [
+    { "level": "A2", "en": "What kind of music do you listen to?", "ru": "Какую музыку ты слушаешь?", "vocab": [ { "en": "kind of music", "ru": "жанр, вид музыки" }, { "en": "listen to", "ru": "слушать" } ] },
+    { "level": "A2", "en": "I can't sing, but I love to dance.", "ru": "Я не умею петь, но обожаю танцевать.", "vocab": [ { "en": "sing", "ru": "петь" }, { "en": "dance", "ru": "танцевать" } ] },
+    { "level": "A2", "en": "Can you turn the volume down a little, please?", "ru": "Можешь сделать немного потише, пожалуйста?", "vocab": [ { "en": "turn the volume down", "ru": "сделать потише" }, { "en": "a little", "ru": "немного" } ] },
+    { "level": "A2", "en": "She plays the guitar every evening after work.", "ru": "Она играет на гитаре каждый вечер после работы.", "vocab": [ { "en": "plays the guitar", "ru": "играет на гитаре" }, { "en": "after work", "ru": "после работы" } ] },
+    { "level": "A2", "en": "We went to a concert last Saturday, it was great.", "ru": "В прошлую субботу мы ходили на концерт, было здорово.", "vocab": [ { "en": "concert", "ru": "концерт" }, { "en": "last Saturday", "ru": "в прошлую субботу" } ] },
+    { "level": "A2", "en": "This song is on the radio all the time.", "ru": "Эта песня постоянно звучит по радио.", "vocab": [ { "en": "song", "ru": "песня" }, { "en": "all the time", "ru": "постоянно, всё время" } ] },
+    { "level": "A2", "en": "Do you have headphones? I forgot mine at home.", "ru": "У тебя есть наушники? Я забыл свои дома.", "vocab": [ { "en": "headphones", "ru": "наушники" }, { "en": "forgot", "ru": "забыл" } ] },
+    { "level": "A2", "en": "My brother is learning to play the drums.", "ru": "Мой брат учится играть на барабанах.", "vocab": [ { "en": "learning to play", "ru": "учится играть" }, { "en": "drums", "ru": "барабаны" } ] },
+    { "level": "B1", "en": "I've been listening to this album on repeat all week.", "ru": "Всю неделю слушаю этот альбом на повторе.", "vocab": [ { "en": "album", "ru": "альбом" }, { "en": "on repeat", "ru": "на повторе" } ] },
+    { "level": "B1", "en": "The band is going on tour next spring, we should get tickets.", "ru": "Группа едет в тур следующей весной, надо достать билеты.", "vocab": [ { "en": "going on tour", "ru": "отправляется в тур" }, { "en": "get tickets", "ru": "достать билеты" } ] },
+    { "level": "B1", "en": "Could you make a playlist for the party on Friday?", "ru": "Можешь составить плейлист для вечеринки в пятницу?", "vocab": [ { "en": "make a playlist", "ru": "составить плейлист" }, { "en": "party", "ru": "вечеринка" } ] },
+    { "level": "B1", "en": "I used to play the piano, but I gave it up.", "ru": "Раньше я играл на пианино, но бросил.", "vocab": [ { "en": "used to", "ru": "раньше (делал что-то)" }, { "en": "gave it up", "ru": "бросил это" } ] },
+    { "level": "B1", "en": "The lyrics are beautiful, but I don't really like the melody.", "ru": "Текст красивый, но мелодия мне не очень нравится.", "vocab": [ { "en": "lyrics", "ru": "текст песни" }, { "en": "melody", "ru": "мелодия" } ] },
+    { "level": "B1", "en": "Live music sounds so much better than recordings, doesn't it?", "ru": "Живая музыка звучит гораздо лучше записей, правда?", "vocab": [ { "en": "Live music", "ru": "живая музыка" }, { "en": "recordings", "ru": "записи" } ] },
+    { "level": "B1", "en": "He hums the same tune every morning in the shower.", "ru": "Каждое утро в душе он напевает один и тот же мотив.", "vocab": [ { "en": "hums", "ru": "напевает" }, { "en": "tune", "ru": "мотив, мелодия" } ] },
+    { "level": "B1", "en": "What was the first gig you ever went to?", "ru": "На какой концерт ты сходил самым первым в жизни?", "vocab": [ { "en": "gig", "ru": "концерт (разг.)" }, { "en": "ever", "ru": "когда-либо" } ] },
+    { "level": "B2", "en": "The song has a catchy chorus that gets stuck in your head.", "ru": "У песни такой прилипчивый припев, что он застревает в голове.", "vocab": [ { "en": "catchy", "ru": "запоминающийся, прилипчивый" }, { "en": "stuck in your head", "ru": "застрял в голове" } ] },
+    { "level": "B2", "en": "Her voice has a raw, soulful quality that gives me goosebumps.", "ru": "В её голосе есть что-то настоящее и проникновенное, от чего у меня мурашки.", "vocab": [ { "en": "soulful", "ru": "проникновенный, душевный" }, { "en": "gives me goosebumps", "ru": "вызывает у меня мурашки" } ] },
+    { "level": "B2", "en": "The band's latest record is a real departure from their early sound.", "ru": "Последняя пластинка группы — настоящий отход от их раннего звучания.", "vocab": [ { "en": "latest record", "ru": "последняя пластинка, новый альбом" }, { "en": "departure from", "ru": "отход от" } ] },
+    { "level": "B2", "en": "I'm not into mainstream pop, I prefer something more underground.", "ru": "Я не увлекаюсь мейнстримной попсой, мне ближе что-то более андеграундное.", "vocab": [ { "en": "not into", "ru": "не увлекаюсь, не моё" }, { "en": "mainstream", "ru": "мейнстрим, массовый" } ] },
+    { "level": "B2", "en": "The vinyl revival shows people still crave a tangible listening experience.", "ru": "Возвращение винила показывает, что людям по-прежнему хочется осязаемого опыта прослушивания.", "vocab": [ { "en": "vinyl", "ru": "винил" }, { "en": "crave", "ru": "жаждать, страстно желать" } ] },
+    { "level": "B2", "en": "He can pick up almost any instrument and play it by ear.", "ru": "Он может освоить почти любой инструмент и играть на слух.", "vocab": [ { "en": "pick up", "ru": "освоить, быстро научиться" }, { "en": "by ear", "ru": "на слух" } ] },
+    { "level": "B2", "en": "The festival lineup is stacked this year, so tickets will go fast.", "ru": "В этом году состав участников фестиваля мощный, так что билеты быстро разойдутся.", "vocab": [ { "en": "lineup", "ru": "состав участников" }, { "en": "go fast", "ru": "быстро разойтись" } ] },
+    { "level": "B2", "en": "The orchestra's rendition of the symphony was nothing short of breathtaking.", "ru": "Исполнение симфонии оркестром было поистине захватывающим.", "vocab": [ { "en": "rendition", "ru": "исполнение, интерпретация" }, { "en": "nothing short of", "ru": "не что иное как, поистине" } ] }
+  ]
+}

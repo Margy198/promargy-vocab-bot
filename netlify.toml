@@ -7,4 +7,4 @@
 
 [functions."telegram-webhook"]
   # Контент курса для мини-приложения (data/course/*.json), читается через fs
-  included_files = ["data/course/**"]
+  included_files = ["data/course/**", "data/interests/**"]

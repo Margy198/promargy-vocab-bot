@@ -1,0 +1,32 @@
+{
+  "key": "books",
+  "title": "Книги",
+  "emoji": "📚",
+  "group": "Хобби",
+  "sentences": [
+    { "level": "A2", "en": "I read a few pages every night before bed.", "ru": "Каждый вечер перед сном я читаю несколько страниц.", "vocab": [ { "en": "a few pages", "ru": "несколько страниц" }, { "en": "before bed", "ru": "перед сном" } ] },
+    { "level": "A2", "en": "Can I borrow this book? I'll give it back soon.", "ru": "Можно взять эту книгу почитать? Я скоро верну.", "vocab": [ { "en": "borrow", "ru": "взять почитать, одолжить" }, { "en": "give it back", "ru": "вернуть" } ] },
+    { "level": "A2", "en": "The library is open until eight on weekdays.", "ru": "В будни библиотека открыта до восьми.", "vocab": [ { "en": "library", "ru": "библиотека" }, { "en": "weekdays", "ru": "будни" } ] },
+    { "level": "A2", "en": "My daughter loves fairy tales with happy endings.", "ru": "Моя дочь обожает сказки со счастливым концом.", "vocab": [ { "en": "fairy tales", "ru": "сказки" }, { "en": "happy endings", "ru": "счастливые концовки" } ] },
+    { "level": "A2", "en": "This novel is too difficult for me right now.", "ru": "Этот роман для меня сейчас слишком сложный.", "vocab": [ { "en": "novel", "ru": "роман" }, { "en": "right now", "ru": "сейчас, в данный момент" } ] },
+    { "level": "A2", "en": "I bought a cookbook with easy recipes for dinner.", "ru": "Я купил кулинарную книгу с простыми рецептами ужинов.", "vocab": [ { "en": "cookbook", "ru": "кулинарная книга" }, { "en": "recipes", "ru": "рецепты" } ] },
+    { "level": "A2", "en": "Do you prefer paper books or an e-reader?", "ru": "Ты предпочитаешь бумажные книги или электронную читалку?", "vocab": [ { "en": "paper books", "ru": "бумажные книги" }, { "en": "e-reader", "ru": "электронная читалка" } ] },
+    { "level": "A2", "en": "She finished the whole book in one day!", "ru": "Она прочитала всю книгу за один день!", "vocab": [ { "en": "finished", "ru": "дочитала, закончила" }, { "en": "in one day", "ru": "за один день" } ] },
+    { "level": "B1", "en": "I've just started a thriller and I can't put it down.", "ru": "Я только начал триллер и не могу оторваться.", "vocab": [ { "en": "thriller", "ru": "триллер" }, { "en": "can't put it down", "ru": "не могу оторваться" } ] },
+    { "level": "B1", "en": "The main character reminds me of my old boss.", "ru": "Главный герой напоминает мне моего бывшего начальника.", "vocab": [ { "en": "main character", "ru": "главный герой" }, { "en": "reminds me of", "ru": "напоминает мне" } ] },
+    { "level": "B1", "en": "Our book club meets once a month to discuss a new title.", "ru": "Наш книжный клуб собирается раз в месяц, чтобы обсудить новую книгу.", "vocab": [ { "en": "book club", "ru": "книжный клуб" }, { "en": "once a month", "ru": "раз в месяц" } ] },
+    { "level": "B1", "en": "I usually read the reviews before buying a book online.", "ru": "Обычно я читаю отзывы, прежде чем купить книгу онлайн.", "vocab": [ { "en": "reviews", "ru": "отзывы" }, { "en": "online", "ru": "онлайн, через интернет" } ] },
+    { "level": "B1", "en": "Have you read anything by this author before?", "ru": "Ты раньше читал что-нибудь у этого автора?", "vocab": [ { "en": "Have you read", "ru": "ты читал (когда-нибудь)" }, { "en": "author", "ru": "автор" } ] },
+    { "level": "B1", "en": "Audiobooks are perfect when I'm stuck in traffic.", "ru": "Аудиокниги — идеальный вариант, когда я стою в пробке.", "vocab": [ { "en": "Audiobooks", "ru": "аудиокниги" }, { "en": "stuck in traffic", "ru": "застрял в пробке" } ] },
+    { "level": "B1", "en": "The ending was so sad that I actually cried.", "ru": "Концовка была такой грустной, что я даже расплакался.", "vocab": [ { "en": "ending", "ru": "концовка" }, { "en": "actually", "ru": "на самом деле, даже" } ] },
+    { "level": "B1", "en": "I'm trying to read more non-fiction this year.", "ru": "В этом году я стараюсь читать больше нехудожественной литературы.", "vocab": [ { "en": "trying to", "ru": "стараюсь, пытаюсь" }, { "en": "non-fiction", "ru": "нехудожественная литература" } ] },
+    { "level": "B2", "en": "The novel's second half drags, but the prose is gorgeous throughout.", "ru": "Вторая половина романа затянута, но проза великолепна от начала до конца.", "vocab": [ { "en": "drags", "ru": "затянута, тянется" }, { "en": "prose", "ru": "проза" } ] },
+    { "level": "B2", "en": "It's a page-turner, though the characters feel a little one-dimensional.", "ru": "Книга захватывает, хотя персонажи кажутся немного плоскими.", "vocab": [ { "en": "page-turner", "ru": "захватывающая книга" }, { "en": "one-dimensional", "ru": "плоские, одномерные" } ] },
+    { "level": "B2", "en": "I found the plot far-fetched, but I still enjoyed it.", "ru": "Сюжет показался мне притянутым за уши, но мне всё равно понравилось.", "vocab": [ { "en": "plot", "ru": "сюжет" }, { "en": "far-fetched", "ru": "притянутый за уши" } ] },
+    { "level": "B2", "en": "Her memoir offers a candid look at life in the newsroom.", "ru": "Её мемуары откровенно рассказывают о жизни в редакции новостей.", "vocab": [ { "en": "memoir", "ru": "мемуары" }, { "en": "candid", "ru": "откровенный" } ] },
+    { "level": "B2", "en": "This bestseller is heavily overrated, in my humble opinion.", "ru": "По моему скромному мнению, этот бестселлер сильно переоценён.", "vocab": [ { "en": "bestseller", "ru": "бестселлер" }, { "en": "overrated", "ru": "переоценённый" } ] },
+    { "level": "B2", "en": "The translation loses some of the wordplay of the original.", "ru": "В переводе теряется часть игры слов оригинала.", "vocab": [ { "en": "translation", "ru": "перевод" }, { "en": "wordplay", "ru": "игра слов" } ] },
+    { "level": "B2", "en": "I tend to skim the boring chapters rather than abandon a book.", "ru": "Я обычно пролистываю скучные главы, а не бросаю книгу.", "vocab": [ { "en": "skim", "ru": "бегло просматривать, пролистывать" }, { "en": "abandon", "ru": "бросить, забросить" } ] },
+    { "level": "B2", "en": "The author weaves several timelines together without ever losing the reader.", "ru": "Автор сплетает несколько временных линий, ни разу не запутав читателя.", "vocab": [ { "en": "weaves", "ru": "сплетает, переплетает" }, { "en": "timelines", "ru": "временные линии" } ] }
+  ]
+}

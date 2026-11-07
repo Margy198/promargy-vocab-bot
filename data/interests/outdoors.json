@@ -1,0 +1,32 @@
+{
+  "key": "outdoors",
+  "title": "Походы и природа",
+  "emoji": "🏕",
+  "group": "Хобби",
+  "sentences": [
+    { "level": "A2", "en": "Let's go for a walk in the forest this weekend.", "ru": "Давай сходим погулять в лес в эти выходные.", "vocab": [ { "en": "go for a walk", "ru": "пойти на прогулку" }, { "en": "forest", "ru": "лес" } ] },
+    { "level": "A2", "en": "Take a jacket, it gets cold at night.", "ru": "Возьми куртку, ночью становится холодно.", "vocab": [ { "en": "jacket", "ru": "куртка" }, { "en": "at night", "ru": "ночью" } ] },
+    { "level": "A2", "en": "We slept in a tent near the lake.", "ru": "Мы ночевали в палатке у озера.", "vocab": [ { "en": "tent", "ru": "палатка" }, { "en": "lake", "ru": "озеро" } ] },
+    { "level": "A2", "en": "Is there any water left in your bottle?", "ru": "У тебя в бутылке осталась вода?", "vocab": [ { "en": "left", "ru": "осталось" }, { "en": "bottle", "ru": "бутылка" } ] },
+    { "level": "A2", "en": "The mountains are beautiful in the summer.", "ru": "Летом горы очень красивые.", "vocab": [ { "en": "mountains", "ru": "горы" }, { "en": "in the summer", "ru": "летом" } ] },
+    { "level": "A2", "en": "Don't forget sunscreen, it's very sunny today.", "ru": "Не забудь солнцезащитный крем, сегодня очень солнечно.", "vocab": [ { "en": "sunscreen", "ru": "солнцезащитный крем" }, { "en": "sunny", "ru": "солнечно" } ] },
+    { "level": "A2", "en": "We saw a deer on the path this morning.", "ru": "Сегодня утром мы видели оленя на тропе.", "vocab": [ { "en": "deer", "ru": "олень" }, { "en": "path", "ru": "тропа, дорожка" } ] },
+    { "level": "A2", "en": "My backpack is heavy, can we stop for a minute?", "ru": "У меня тяжёлый рюкзак, можем остановиться на минутку?", "vocab": [ { "en": "backpack", "ru": "рюкзак" }, { "en": "stop for a minute", "ru": "остановиться на минутку" } ] },
+    { "level": "B1", "en": "We're going hiking next weekend, do you want to join us?", "ru": "В следующие выходные мы идём в поход, хочешь с нами?", "vocab": [ { "en": "going hiking", "ru": "идём в поход" }, { "en": "join us", "ru": "присоединиться к нам" } ] },
+    { "level": "B1", "en": "Check the weather forecast before you set off.", "ru": "Посмотри прогноз погоды перед тем, как отправляться.", "vocab": [ { "en": "weather forecast", "ru": "прогноз погоды" }, { "en": "set off", "ru": "отправляться в путь" } ] },
+    { "level": "B1", "en": "We got lost because the trail wasn't marked properly.", "ru": "Мы заблудились, потому что маршрут был плохо размечен.", "vocab": [ { "en": "got lost", "ru": "заблудились" }, { "en": "trail", "ru": "маршрут, тропа" } ] },
+    { "level": "B1", "en": "It's a good idea to pack a first-aid kit.", "ru": "Хорошая идея взять с собой аптечку.", "vocab": [ { "en": "pack", "ru": "собрать, уложить (вещи)" }, { "en": "first-aid kit", "ru": "аптечка" } ] },
+    { "level": "B1", "en": "We made a campfire and cooked sausages on sticks.", "ru": "Мы развели костёр и пожарили сосиски на палочках.", "vocab": [ { "en": "campfire", "ru": "костёр" }, { "en": "sausages", "ru": "сосиски" } ] },
+    { "level": "B1", "en": "The view from the top was totally worth the climb.", "ru": "Вид с вершины полностью стоил подъёма.", "vocab": [ { "en": "view", "ru": "вид" }, { "en": "worth the climb", "ru": "стоил подъёма" } ] },
+    { "level": "B1", "en": "I got bitten by mosquitoes all night in the tent.", "ru": "Меня всю ночь кусали комары в палатке.", "vocab": [ { "en": "bitten by mosquitoes", "ru": "искусан комарами" }, { "en": "all night", "ru": "всю ночь" } ] },
+    { "level": "B1", "en": "Remember to take your rubbish with you when you leave.", "ru": "Не забудьте забрать свой мусор, когда будете уходить.", "vocab": [ { "en": "Remember to", "ru": "не забудь (сделать)" }, { "en": "rubbish", "ru": "мусор" } ] },
+    { "level": "B2", "en": "We got caught in a downpour halfway up the mountain.", "ru": "На полпути к вершине мы попали под ливень.", "vocab": [ { "en": "caught in a downpour", "ru": "попали под ливень" }, { "en": "halfway up", "ru": "на полпути наверх" } ] },
+    { "level": "B2", "en": "The terrain was rugged, so we had to pace ourselves.", "ru": "Местность была труднопроходимой, так что приходилось беречь силы.", "vocab": [ { "en": "rugged", "ru": "пересечённый, труднопроходимый" }, { "en": "pace ourselves", "ru": "распределять силы" } ] },
+    { "level": "B2", "en": "Nothing beats waking up to birdsong and fresh mountain air.", "ru": "Ничто не сравнится с пробуждением под пение птиц и свежий горный воздух.", "vocab": [ { "en": "Nothing beats", "ru": "ничто не сравнится с" }, { "en": "birdsong", "ru": "пение птиц" } ] },
+    { "level": "B2", "en": "We pitched the tent just before dusk and got a fire going.", "ru": "Мы поставили палатку перед самыми сумерками и развели огонь.", "vocab": [ { "en": "pitched the tent", "ru": "поставили палатку" }, { "en": "dusk", "ru": "сумерки" } ] },
+    { "level": "B2", "en": "Leave no trace: whatever you carry in, you carry out.", "ru": "Не оставляй следов: всё, что принёс, уноси с собой.", "vocab": [ { "en": "Leave no trace", "ru": "не оставляй следов" }, { "en": "carry out", "ru": "выносить, уносить с собой" } ] },
+    { "level": "B2", "en": "The ridge walk is exposed, so give it a miss in high winds.", "ru": "Маршрут по хребту открыт всем ветрам, так что в сильный ветер лучше его пропустить.", "vocab": [ { "en": "exposed", "ru": "открытый (ветру, непогоде)" }, { "en": "give it a miss", "ru": "пропустить, отказаться" } ] },
+    { "level": "B2", "en": "Being off-grid for a week really resets your sense of time.", "ru": "Неделя вдали от цивилизации по-настоящему перезагружает ощущение времени.", "vocab": [ { "en": "off-grid", "ru": "вне сети, вдали от цивилизации" }, { "en": "resets", "ru": "перезагружает, сбрасывает" } ] },
+    { "level": "B2", "en": "We underestimated the distance and ended up hiking in the dark.", "ru": "Мы недооценили расстояние и в итоге шли в темноте.", "vocab": [ { "en": "underestimated", "ru": "недооценили" }, { "en": "ended up", "ru": "в итоге оказались" } ] }
+  ]
+}

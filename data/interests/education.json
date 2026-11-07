@@ -1,0 +1,224 @@
+{
+  "key": "education",
+  "title": "Образование и учёба",
+  "emoji": "🎓",
+  "group": "Мир вокруг",
+  "sentences": [
+    {
+      "level": "A2",
+      "en": "I have an English class twice a week in the evening.",
+      "ru": "У меня занятия по английскому два раза в неделю по вечерам.",
+      "vocab": [
+        { "en": "twice a week", "ru": "два раза в неделю" },
+        { "en": "in the evening", "ru": "вечером" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "Where did you go to university, and what did you study?",
+      "ru": "Где ты учился в университете и что изучал?",
+      "vocab": [
+        { "en": "university", "ru": "университет" },
+        { "en": "study", "ru": "изучать, учиться" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "My daughter does her homework right after lunch.",
+      "ru": "Моя дочь делает домашнее задание сразу после обеда.",
+      "vocab": [
+        { "en": "homework", "ru": "домашнее задание" },
+        { "en": "right after", "ru": "сразу после" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "The teacher gave us a test, and I got a good mark.",
+      "ru": "Учитель дал нам тест, и я получил хорошую оценку.",
+      "vocab": [
+        { "en": "test", "ru": "тест, контрольная" },
+        { "en": "good mark", "ru": "хорошая оценка" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "I'm learning to code with free online courses.",
+      "ru": "Я учусь программировать на бесплатных онлайн-курсах.",
+      "vocab": [
+        { "en": "learning to code", "ru": "учусь программировать" },
+        { "en": "online courses", "ru": "онлайн-курсы" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "Don't forget to bring your notebook to the lesson.",
+      "ru": "Не забудь принести тетрадь на урок.",
+      "vocab": [
+        { "en": "Don't forget", "ru": "не забудь" },
+        { "en": "notebook", "ru": "тетрадь" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "Our lessons start at nine and finish at three.",
+      "ru": "Наши уроки начинаются в девять и заканчиваются в три.",
+      "vocab": [
+        { "en": "start at", "ru": "начинаются в" },
+        { "en": "finish at", "ru": "заканчиваются в" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "He failed the exam, so he has to take it again.",
+      "ru": "Он завалил экзамен, так что ему придётся пересдавать.",
+      "vocab": [
+        { "en": "failed the exam", "ru": "завалил экзамен" },
+        { "en": "take it again", "ru": "пересдать" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "I'm thinking of doing a master's degree in marketing next year.",
+      "ru": "Я подумываю о магистратуре по маркетингу в следующем году.",
+      "vocab": [
+        { "en": "thinking of", "ru": "подумываю о" },
+        { "en": "master's degree", "ru": "степень магистра" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "She got a scholarship, so her parents don't pay the tuition fees.",
+      "ru": "Она получила стипендию, так что родители не платят за обучение.",
+      "vocab": [
+        { "en": "scholarship", "ru": "стипендия, грант на обучение" },
+        { "en": "tuition fees", "ru": "плата за обучение" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "We have a deadline for the essay on Friday, and I haven't started.",
+      "ru": "Эссе надо сдать в пятницу, а я ещё не начал.",
+      "vocab": [
+        { "en": "deadline", "ru": "крайний срок, дедлайн" },
+        { "en": "essay", "ru": "эссе" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "My son is struggling with maths, so we found him a tutor.",
+      "ru": "Сыну тяжело даётся математика, поэтому мы нашли ему репетитора.",
+      "vocab": [
+        { "en": "struggling with", "ru": "с трудом справляется с" },
+        { "en": "tutor", "ru": "репетитор" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "Have you applied for the course yet, or are you still deciding?",
+      "ru": "Ты уже подал заявку на курс или ещё решаешь?",
+      "vocab": [
+        { "en": "applied for", "ru": "подал заявку на" },
+        { "en": "still deciding", "ru": "ещё решаешь" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "Studying in a group keeps me motivated, especially before exams.",
+      "ru": "Занятия в группе поддерживают мою мотивацию, особенно перед экзаменами.",
+      "vocab": [
+        { "en": "keeps me motivated", "ru": "поддерживает мою мотивацию" },
+        { "en": "especially", "ru": "особенно" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "It took me a while to get used to lectures in English.",
+      "ru": "Мне понадобилось время, чтобы привыкнуть к лекциям на английском.",
+      "vocab": [
+        { "en": "took me a while", "ru": "заняло у меня какое-то время" },
+        { "en": "get used to", "ru": "привыкнуть к" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "The school offers evening classes for adults who work full-time.",
+      "ru": "Школа предлагает вечерние занятия для взрослых, которые работают полный день.",
+      "vocab": [
+        { "en": "evening classes", "ru": "вечерние занятия" },
+        { "en": "full-time", "ru": "полный рабочий день" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Cramming the night before rarely pays off in the long run.",
+      "ru": "Зубрёжка в последнюю ночь редко окупается в долгосрочной перспективе.",
+      "vocab": [
+        { "en": "Cramming", "ru": "зубрёжка перед экзаменом" },
+        { "en": "pays off", "ru": "окупается" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Lifelong learning has become a necessity rather than a nice-to-have.",
+      "ru": "Непрерывное обучение стало необходимостью, а не приятным дополнением.",
+      "vocab": [
+        { "en": "Lifelong learning", "ru": "обучение на протяжении всей жизни" },
+        { "en": "nice-to-have", "ru": "приятное дополнение, необязательное" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Her thesis was so well researched that the committee passed it without changes.",
+      "ru": "Её диссертация была настолько хорошо проработана, что комиссия приняла её без правок.",
+      "vocab": [
+        { "en": "thesis", "ru": "диссертация, дипломная работа" },
+        { "en": "well researched", "ru": "хорошо проработанный" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Rote memorisation won't get you far once the exams are over.",
+      "ru": "Механическое заучивание мало что даст, когда экзамены закончатся.",
+      "vocab": [
+        { "en": "Rote memorisation", "ru": "механическое заучивание" },
+        { "en": "won't get you far", "ru": "далеко не уведёт, мало что даст" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "The curriculum is outdated, yet nobody seems willing to overhaul it.",
+      "ru": "Учебная программа устарела, но никто, похоже, не хочет её перестраивать.",
+      "vocab": [
+        { "en": "curriculum", "ru": "учебная программа" },
+        { "en": "overhaul", "ru": "капитально переработать" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "He dropped out of university in his second year to launch a startup.",
+      "ru": "Он бросил университет на втором курсе, чтобы запустить стартап.",
+      "vocab": [
+        { "en": "dropped out of", "ru": "бросил (учёбу)" },
+        { "en": "launch a startup", "ru": "запустить стартап" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Hands-on experience often teaches you more than any lecture could.",
+      "ru": "Практический опыт часто учит большему, чем любая лекция.",
+      "vocab": [
+        { "en": "Hands-on experience", "ru": "практический опыт" },
+        { "en": "lecture", "ru": "лекция" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Many graduates end up in jobs that have nothing to do with their degree.",
+      "ru": "Многие выпускники в итоге работают там, где их диплом совсем не нужен.",
+      "vocab": [
+        { "en": "graduates", "ru": "выпускники" },
+        { "en": "have nothing to do with", "ru": "не иметь никакого отношения к" }
+      ]
+    }
+  ]
+}

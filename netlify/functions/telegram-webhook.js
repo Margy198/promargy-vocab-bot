@@ -8654,7 +8654,7 @@ const GUIDE_TEXT =
   "• По воскресеньям вечером приходит итог недели. /reset — сбросить весь прогресс (слова остаются).\n" +
   "\n" +
   "5️⃣ Приложение и мелочи\n" +
-  "• 📱 Кнопка «Приложение» внизу (и кнопка меню слева от поля ввода) открывает мини-приложение прямо в Telegram. Внутри — вкладка «Учёба»: полный курс от A0 до C1 (75 тем с теорией, упражнениями с ответами и самопроверкой, заметки, сленг), а также словарь по папкам, блиц, прогресс с лигой и настройки.\n" +
+  "• 📱 Кнопка «Приложение» внизу (и кнопка меню слева от поля ввода) открывает мини-приложение прямо в Telegram. Внутри — вкладка «Учёба»: полный курс от A0 до C1 (75 тем с теорией, упражнениями с вариантами ответов и самопроверкой), «Мои темы» (выбери, что тебе интересно, — и каждый день получай 8 предложений с лексикой именно про это), заметки, сленг, а также словарь по папкам, блиц, прогресс с лигой и настройки.\n" +
   "• /profile — выбери аватар (эмодзи рядом с именем в лиге) и пол, чтобы бот обращался правильно.\n" +
   "• /start — главное меню. /help — короткий список команд.\n" +
   "• 🔽 Скрыть меню (или /hidemenu) — убрать нижние кнопки, если на телефоне не видно переписку; /showmenu — вернуть.\n" +
@@ -8680,7 +8680,7 @@ async function handleHelp(chatId) {
       "/league — лига недели по XP среди учеников (участие по желанию, можно анонимно)\n" +
       "/victories — побеждённые слова\n" +
       "/profile — аватар и как к тебе обращаться (девушка / мужчина)\n" +
-      "📱 Кнопка «Приложение» внизу — мини-приложение: курс A0–C1 с теорией и упражнениями, заметки, словарь по папкам, блиц, прогресс и лига\n" +
+      "📱 Кнопка «Приложение» внизу — мини-приложение: курс A0–C1 с теорией и упражнениями, «Мои темы» (предложения по твоим интересам), заметки, словарь по папкам, блиц, прогресс и лига\n" +
       "/swap — поменять направление в лексике: бот показывает русское слово, а ты выбираешь английское (и обратно)\n" +
       "/delete <English> — удалить слово (можно сразу список, по одному на строку)\n" +
       "/reset — сбросить прогресс\n" +
@@ -11416,6 +11416,105 @@ function slangPayload() {
   });
 }
 
+// ---------- «Мои темы»: предложения и лексика по интересам ученика ----------
+// Готовый банк лежит в data/interests/<key>.json (собран заранее), свои темы
+// ученика генерируются фоновой функцией interest-generate-background через
+// Anthropic API и кладутся в Blobs (interest:custom:<slug>).
+let interestsDirCache = null;
+function interestsDir() {
+  if (interestsDirCache) return interestsDirCache;
+  const dir = courseDir();
+  if (dir) { const c = join(dir, "..", "interests"); if (existsSync(join(c, "index.json"))) { interestsDirCache = c; return c; } }
+  for (const c of [join(process.cwd(), "data", "interests"), "/var/task/data/interests"]) if (existsSync(join(c, "index.json"))) { interestsDirCache = c; return c; }
+  return null;
+}
+let interestIndexCache = null;
+async function readInterestIndex() {
+  if (interestIndexCache) return interestIndexCache;
+  const dir = interestsDir(); if (!dir) return [];
+  interestIndexCache = JSON.parse(await readFile(join(dir, "index.json"), "utf8"));
+  return interestIndexCache;
+}
+const interestTopicCache = new Map();
+async function readInterestTopic(key) {
+  if (interestTopicCache.has(key)) return interestTopicCache.get(key);
+  const dir = interestsDir(); if (!dir || !/^[a-z0-9_-]{1,40}$/.test(key)) return null;
+  const file = join(dir, `${key}.json`); if (!existsSync(file)) return null;
+  const t = JSON.parse(await readFile(file, "utf8")); interestTopicCache.set(key, t); return t;
+}
+function interestSlug(name) {
+  return String(name || "").toLowerCase().trim().replace(/ё/g, "е").replace(/[^a-zа-я0-9]+/gi, "-").replace(/^-+|-+$/g, "").slice(0, 40);
+}
+async function readCustomInterest(slug) {
+  const v = await courseStore().get(`interest:custom:${slug}`, { type: "json" });
+  return v && typeof v === "object" ? v : null;
+}
+// Запуск фоновой генерации своей темы (возвращается сразу, результат появится позже)
+async function requestCustomInterest(name) {
+  const slug = interestSlug(name); if (!slug) return { slug: null, status: "bad_name" };
+  const existing = await readCustomInterest(slug);
+  if (existing && (existing.status === "ready" || existing.status === "pending")) return { slug, status: existing.status };
+  if (!process.env.ANTHROPIC_API_KEY) {
+    await courseStore().setJSON(`interest:custom:${slug}`, { status: "unavailable", name, requestedAt: new Date().toISOString() });
+    return { slug, status: "unavailable" };
+  }
+  await courseStore().setJSON(`interest:custom:${slug}`, { status: "pending", name, requestedAt: new Date().toISOString() });
+  const base = process.env.URL || "";
+  try {
+    await fetch(`${base}/.netlify/functions/interest-generate-background`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ secret: WEBHOOK_SECRET || "", name, slug }) });
+  } catch (e) {
+    await courseStore().setJSON(`interest:custom:${slug}`, { status: "error", name, error: String(e && e.message || e) });
+    return { slug, status: "error" };
+  }
+  return { slug, status: "pending" };
+}
+function levelBandFor(courseLevel) {
+  if (!courseLevel || courseLevel === "A0" || courseLevel === "A1" || courseLevel === "A2") return ["A2", "B1"];
+  if (courseLevel === "B1") return ["A2", "B1", "B2"];
+  return ["B1", "B2"];
+}
+async function appInterestsPayload(chatId, identity) {
+  const catalog = await readInterestIndex();
+  const ints = identity.interests || { picked: [], custom: [] };
+  const custom = [];
+  for (const c of ints.custom || []) {
+    const v = await readCustomInterest(c.slug);
+    custom.push({ name: c.name, slug: c.slug, status: v ? v.status : "missing", count: v && v.sentences ? v.sentences.length : 0 });
+  }
+  return { catalog: catalog.map((c) => ({ key: c.key, title: c.title, emoji: c.emoji, group: c.group })), picked: ints.picked || [], custom, generationAvailable: !!process.env.ANTHROPIC_API_KEY };
+}
+async function setInterests(chatId, picked, customNames) {
+  const catalog = await readInterestIndex(); const known = new Set(catalog.map((c) => c.key));
+  const nextPicked = [...new Set((picked || []).map(String).filter((k) => known.has(k)))].slice(0, 20);
+  const names = [...new Set((customNames || []).map((n) => String(n).trim().slice(0, 40)).filter((n) => n.length >= 2))].slice(0, 5);
+  const custom = [];
+  for (const name of names) { const r = await requestCustomInterest(name); if (r.slug) custom.push({ name, slug: r.slug }); }
+  await updateIdentity(chatId, (current) => ({ ...current, interests: { picked: nextPicked, custom } }));
+}
+async function appFeedPayload(chatId, identity) {
+  const ints = identity.interests || { picked: [], custom: [] };
+  const progress = await readCourseProgress(chatId);
+  const band = levelBandFor(progress.level);
+  const pool = [];
+  for (const key of ints.picked || []) { const t = await readInterestTopic(key); if (t) for (const sn of t.sentences) if (band.includes(sn.level)) pool.push({ ...sn, topic: t.title, topicKey: key, emoji: t.emoji }); }
+  for (const c of ints.custom || []) { const v = await readCustomInterest(c.slug); if (v && v.status === "ready" && Array.isArray(v.sentences)) for (const sn of v.sentences) if (band.includes(sn.level)) pool.push({ ...sn, topic: v.title || c.name, topicKey: `custom:${c.slug}`, emoji: v.emoji || "✨" }); }
+  if (!pool.length) return { items: [], total: 0, band };
+  // детерминированный дневной набор: у каждого ученика свой порядок, каждый день — новые 8
+  const today = mskNow(Date.now()).date; const dayNo = Math.floor(Date.now() / DAY_MS);
+  // порядок у ученика постоянный (зависит только от него), а день сдвигает окно — так за неделю не повторяется
+  const seed = (hashDate(`${chatId}:interests`) >>> 0);
+  const order = pool.map((it, i) => ({ it, r: hashDate(`${seed}:${i}:${it.en}`) })).sort((a, b) => a.r - b.r).map((x) => x.it);
+  const perDay = 8; const start = (dayNo * perDay) % order.length;
+  const items = []; for (let i = 0; i < Math.min(perDay, order.length); i++) items.push(order[(start + i) % order.length]);
+  return { items, total: pool.length, band, date: today };
+}
+async function addInterestWords(chatId, items) {
+  const pairs = [];
+  for (const it of items || []) { const en = String(it.en || "").trim(), ru = String(it.ru || "").trim(), topic = String(it.topic || "").trim().toLowerCase().slice(0, 40) || null; if (en && ru && en.length <= 60) pairs.push({ en, ru, topic }); }
+  if (!pairs.length) return { added: 0, moved: 0, total: 0 };
+  return addWords(chatId, pairs.slice(0, 30));
+}
+
 async function handleAppApi(body) {
   const user = verifyInitData(body.initData);
   if (!user || !user.id) return appJson({ ok: false, error: "auth" }, 401);
@@ -11534,6 +11633,20 @@ async function handleAppApi(body) {
       }
       case "slang":
         return appJson({ ok: true, items: slangPayload() });
+      // ----- мои темы -----
+      case "interests":
+        return appJson({ ok: true, ...(await appInterestsPayload(chatId, identity)) });
+      case "interestsSet": {
+        await setInterests(chatId, Array.isArray(body.picked) ? body.picked : [], Array.isArray(body.custom) ? body.custom : []);
+        const fresh = (await readIdentity(chatId)) || identity;
+        return appJson({ ok: true, ...(await appInterestsPayload(chatId, fresh)) });
+      }
+      case "feed":
+        return appJson({ ok: true, ...(await appFeedPayload(chatId, identity)) });
+      case "interestsAddWords": {
+        const r = await addInterestWords(chatId, Array.isArray(body.items) ? body.items : []);
+        return appJson({ ok: true, ...r });
+      }
       case "options":
         return appJson({ ok: true, avatars: AVATARS, hours: REMINDER_HOUR_CHOICES, frequencies: REMINDER_FREQUENCIES, goals: DAILY_GOAL_CHOICES, maxHours: REMINDER_MAX_HOURS });
       // Запуск занятия из приложения: бот присылает вопрос в чат, а

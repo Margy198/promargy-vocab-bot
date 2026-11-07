@@ -1,0 +1,224 @@
+{
+  "key": "science",
+  "title": "Наука",
+  "emoji": "🔬",
+  "group": "Мир вокруг",
+  "sentences": [
+    {
+      "level": "A2",
+      "en": "Water boils at one hundred degrees, as everyone knows.",
+      "ru": "Вода кипит при ста градусах, как все знают.",
+      "vocab": [
+        { "en": "boils", "ru": "кипит" },
+        { "en": "degrees", "ru": "градусы" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "My son loves space and wants to be an astronaut.",
+      "ru": "Мой сын обожает космос и хочет стать космонавтом.",
+      "vocab": [
+        { "en": "space", "ru": "космос" },
+        { "en": "astronaut", "ru": "космонавт" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "Did you watch the documentary about the planets last night?",
+      "ru": "Ты смотрел вчера вечером документальный фильм о планетах?",
+      "vocab": [
+        { "en": "documentary", "ru": "документальный фильм" },
+        { "en": "planets", "ru": "планеты" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "Scientists work in a laboratory and do many experiments.",
+      "ru": "Учёные работают в лаборатории и проводят много экспериментов.",
+      "vocab": [
+        { "en": "Scientists", "ru": "учёные" },
+        { "en": "experiments", "ru": "эксперименты" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "The Earth goes around the Sun once a year.",
+      "ru": "Земля обходит вокруг Солнца один раз в год.",
+      "vocab": [
+        { "en": "goes around", "ru": "вращается вокруг" },
+        { "en": "once a year", "ru": "раз в год" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "I didn't understand chemistry at school, but I liked biology.",
+      "ru": "В школе я не понимал химию, но мне нравилась биология.",
+      "vocab": [
+        { "en": "chemistry", "ru": "химия" },
+        { "en": "biology", "ru": "биология" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "Plants need light and water to grow.",
+      "ru": "Растениям нужны свет и вода, чтобы расти.",
+      "vocab": [
+        { "en": "Plants", "ru": "растения" },
+        { "en": "grow", "ru": "расти" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "How far is the Moon from our planet?",
+      "ru": "Как далеко Луна от нашей планеты?",
+      "vocab": [
+        { "en": "How far", "ru": "как далеко" },
+        { "en": "planet", "ru": "планета" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "Researchers have discovered a new species of frog in the rainforest.",
+      "ru": "Исследователи открыли новый вид лягушки в тропическом лесу.",
+      "vocab": [
+        { "en": "Researchers", "ru": "исследователи" },
+        { "en": "species", "ru": "вид (биологический)" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "The experiment failed twice, so they changed the method.",
+      "ru": "Эксперимент дважды провалился, поэтому они изменили метод.",
+      "vocab": [
+        { "en": "failed", "ru": "провалился, не удался" },
+        { "en": "method", "ru": "метод" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "According to the study, people who read more sleep better.",
+      "ru": "Согласно исследованию, люди, которые больше читают, лучше спят.",
+      "vocab": [
+        { "en": "According to the study", "ru": "согласно исследованию" },
+        { "en": "sleep better", "ru": "лучше спят" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "Nobody knows for sure how the universe began.",
+      "ru": "Никто точно не знает, как началась Вселенная.",
+      "vocab": [
+        { "en": "for sure", "ru": "наверняка, точно" },
+        { "en": "universe", "ru": "Вселенная" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "Can you explain why the sky looks blue during the day?",
+      "ru": "Можешь объяснить, почему небо днём выглядит голубым?",
+      "vocab": [
+        { "en": "explain why", "ru": "объяснить, почему" },
+        { "en": "sky", "ru": "небо" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "The vaccine was tested on thousands of volunteers before approval.",
+      "ru": "Вакцину испытали на тысячах добровольцев до одобрения.",
+      "vocab": [
+        { "en": "vaccine", "ru": "вакцина" },
+        { "en": "volunteers", "ru": "добровольцы" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "Gravity keeps us on the ground, but we rarely think about it.",
+      "ru": "Гравитация удерживает нас на земле, но мы редко об этом думаем.",
+      "vocab": [
+        { "en": "Gravity", "ru": "гравитация" },
+        { "en": "rarely", "ru": "редко" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "She's doing a PhD in physics at a university in Germany.",
+      "ru": "Она пишет докторскую по физике в университете в Германии.",
+      "vocab": [
+        { "en": "PhD", "ru": "докторская степень, аспирантура" },
+        { "en": "physics", "ru": "физика" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "The findings challenge a theory that scientists have accepted for decades.",
+      "ru": "Эти результаты ставят под сомнение теорию, которую учёные принимали десятилетиями.",
+      "vocab": [
+        { "en": "findings", "ru": "результаты, выводы исследования" },
+        { "en": "challenge a theory", "ru": "ставить теорию под сомнение" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Correlation doesn't imply causation, a point journalists frequently overlook.",
+      "ru": "Корреляция не означает причинно-следственной связи — момент, который журналисты часто упускают.",
+      "vocab": [
+        { "en": "causation", "ru": "причинно-следственная связь" },
+        { "en": "overlook", "ru": "упускать из виду" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Peer review is slow, but it filters out a great deal of flawed research.",
+      "ru": "Рецензирование идёт медленно, но отсеивает массу некачественных исследований.",
+      "vocab": [
+        { "en": "Peer review", "ru": "научное рецензирование" },
+        { "en": "flawed", "ru": "с изъянами, ошибочный" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Breakthroughs rarely happen overnight; they're usually built on years of failed attempts.",
+      "ru": "Прорывы редко случаются в одночасье — обычно за ними стоят годы неудачных попыток.",
+      "vocab": [
+        { "en": "Breakthroughs", "ru": "прорывы" },
+        { "en": "overnight", "ru": "в одночасье, за одну ночь" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "The lab secured funding to develop a cheaper way of storing solar energy.",
+      "ru": "Лаборатория получила финансирование на разработку более дешёвого способа хранения солнечной энергии.",
+      "vocab": [
+        { "en": "secured funding", "ru": "получила финансирование" },
+        { "en": "solar energy", "ru": "солнечная энергия" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Evidence suggests the drug works, though the sample size was fairly small.",
+      "ru": "Данные говорят о том, что препарат работает, хотя выборка была довольно небольшой.",
+      "vocab": [
+        { "en": "Evidence suggests", "ru": "данные свидетельствуют" },
+        { "en": "sample size", "ru": "размер выборки" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Gene editing raises ethical questions that we can't simply brush aside.",
+      "ru": "Редактирование генов поднимает этические вопросы, которые нельзя просто отмахнуть.",
+      "vocab": [
+        { "en": "Gene editing", "ru": "редактирование генов" },
+        { "en": "brush aside", "ru": "отмахнуться, отбросить" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Had the data been collected properly, the conclusions would've held up.",
+      "ru": "Если бы данные собрали как следует, выводы бы устояли.",
+      "vocab": [
+        { "en": "data", "ru": "данные" },
+        { "en": "held up", "ru": "устояли, выдержали проверку" }
+      ]
+    }
+  ]
+}

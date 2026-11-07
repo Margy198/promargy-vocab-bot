@@ -1,0 +1,32 @@
+{
+  "key": "art",
+  "title": "Искусство и дизайн",
+  "emoji": "🎨",
+  "group": "Хобби",
+  "sentences": [
+    { "level": "A2", "en": "I like to draw pictures of animals in my notebook.", "ru": "Мне нравится рисовать животных в блокноте.", "vocab": [ { "en": "draw", "ru": "рисовать (карандашом)" }, { "en": "notebook", "ru": "блокнот, тетрадь" } ] },
+    { "level": "A2", "en": "The museum is free on Sundays, let's go.", "ru": "По воскресеньям музей бесплатный, пойдём.", "vocab": [ { "en": "museum", "ru": "музей" }, { "en": "free", "ru": "бесплатный" } ] },
+    { "level": "A2", "en": "My favourite colour is blue, what about yours?", "ru": "Мой любимый цвет — синий, а твой?", "vocab": [ { "en": "favourite colour", "ru": "любимый цвет" }, { "en": "what about", "ru": "а как насчёт" } ] },
+    { "level": "A2", "en": "She paints beautiful flowers with watercolours at home.", "ru": "Дома она рисует красивые цветы акварелью.", "vocab": [ { "en": "paints", "ru": "рисует красками" }, { "en": "watercolours", "ru": "акварель" } ] },
+    { "level": "A2", "en": "This painting is very old and very famous.", "ru": "Эта картина очень старая и очень известная.", "vocab": [ { "en": "painting", "ru": "картина" }, { "en": "famous", "ru": "известный, знаменитый" } ] },
+    { "level": "A2", "en": "We need some paper and pencils for the class.", "ru": "Нам нужны бумага и карандаши для занятия.", "vocab": [ { "en": "pencils", "ru": "карандаши" }, { "en": "class", "ru": "занятие, урок" } ] },
+    { "level": "A2", "en": "Do you know who made this sculpture?", "ru": "Ты знаешь, кто сделал эту скульптуру?", "vocab": [ { "en": "Do you know", "ru": "ты знаешь" }, { "en": "sculpture", "ru": "скульптура" } ] },
+    { "level": "A2", "en": "I bought a poster for my bedroom wall.", "ru": "Я купил постер на стену в спальню.", "vocab": [ { "en": "poster", "ru": "постер, плакат" }, { "en": "wall", "ru": "стена" } ] },
+    { "level": "B1", "en": "The new exhibition opens next week, do you fancy going?", "ru": "Новая выставка открывается на следующей неделе, хочешь сходить?", "vocab": [ { "en": "exhibition", "ru": "выставка" }, { "en": "fancy going", "ru": "хочешь сходить" } ] },
+    { "level": "B1", "en": "I've started taking an evening class in graphic design.", "ru": "Я начал ходить на вечерние курсы графического дизайна.", "vocab": [ { "en": "evening class", "ru": "вечерние курсы" }, { "en": "graphic design", "ru": "графический дизайн" } ] },
+    { "level": "B1", "en": "The logo looks a bit dated, we should redesign it.", "ru": "Логотип выглядит немного устаревшим, надо его переделать.", "vocab": [ { "en": "logo", "ru": "логотип" }, { "en": "dated", "ru": "устаревший" } ] },
+    { "level": "B1", "en": "She works as a freelance illustrator for children's books.", "ru": "Она работает иллюстратором-фрилансером детских книг.", "vocab": [ { "en": "freelance", "ru": "внештатный, на фрилансе" }, { "en": "illustrator", "ru": "иллюстратор" } ] },
+    { "level": "B1", "en": "I love the way the artist uses light in this portrait.", "ru": "Мне очень нравится, как художник работает со светом в этом портрете.", "vocab": [ { "en": "artist", "ru": "художник" }, { "en": "portrait", "ru": "портрет" } ] },
+    { "level": "B1", "en": "The gallery was crowded, so we couldn't see much.", "ru": "В галерее было полно народу, так что мы мало что увидели.", "vocab": [ { "en": "gallery", "ru": "галерея" }, { "en": "crowded", "ru": "переполненный, многолюдный" } ] },
+    { "level": "B1", "en": "Modern art isn't really my thing, to be honest.", "ru": "Честно говоря, современное искусство — не совсем моё.", "vocab": [ { "en": "Modern art", "ru": "современное искусство" }, { "en": "my thing", "ru": "моё (по душе)" } ] },
+    { "level": "B1", "en": "Could you sketch a quick layout for the homepage?", "ru": "Можешь набросать черновой макет главной страницы?", "vocab": [ { "en": "sketch", "ru": "набросать" }, { "en": "layout", "ru": "макет, компоновка" } ] },
+    { "level": "B2", "en": "The piece is striking, but the message feels a little heavy-handed.", "ru": "Работа впечатляет, но посыл кажется немного топорным.", "vocab": [ { "en": "striking", "ru": "поразительный, впечатляющий" }, { "en": "heavy-handed", "ru": "топорный, прямолинейный" } ] },
+    { "level": "B2", "en": "Good design is invisible; you only notice it when it fails.", "ru": "Хороший дизайн незаметен — его замечаешь, только когда он не работает.", "vocab": [ { "en": "invisible", "ru": "незаметный, невидимый" }, { "en": "fails", "ru": "не срабатывает, даёт сбой" } ] },
+    { "level": "B2", "en": "Her work blurs the line between fine art and advertising.", "ru": "Её работы стирают границу между изобразительным искусством и рекламой.", "vocab": [ { "en": "blurs the line", "ru": "стирает границу" }, { "en": "fine art", "ru": "изобразительное искусство" } ] },
+    { "level": "B2", "en": "The curator put together a thought-provoking retrospective of his early work.", "ru": "Куратор собрал заставляющую задуматься ретроспективу его ранних работ.", "vocab": [ { "en": "curator", "ru": "куратор" }, { "en": "thought-provoking", "ru": "заставляющий задуматься" } ] },
+    { "level": "B2", "en": "I find minimalist interiors soothing, though some people call them cold.", "ru": "Минималистичные интерьеры меня успокаивают, хотя некоторые называют их холодными.", "vocab": [ { "en": "minimalist", "ru": "минималистичный" }, { "en": "soothing", "ru": "успокаивающий" } ] },
+    { "level": "B2", "en": "The client wants a bold palette, but nothing too garish.", "ru": "Клиент хочет смелую палитру, но без кричащих цветов.", "vocab": [ { "en": "bold palette", "ru": "смелая палитра" }, { "en": "garish", "ru": "кричащий, безвкусный" } ] },
+    { "level": "B2", "en": "Street art has gone from vandalism to a legitimate genre.", "ru": "Стрит-арт прошёл путь от вандализма до признанного жанра.", "vocab": [ { "en": "Street art", "ru": "стрит-арт, уличное искусство" }, { "en": "legitimate", "ru": "признанный, полноправный" } ] },
+    { "level": "B2", "en": "The brushwork is loose and expressive, almost careless in places.", "ru": "Мазки свободные и выразительные, местами почти небрежные.", "vocab": [ { "en": "brushwork", "ru": "манера письма, мазки" }, { "en": "expressive", "ru": "выразительный" } ] }
+  ]
+}

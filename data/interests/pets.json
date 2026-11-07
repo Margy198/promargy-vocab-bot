@@ -1,0 +1,32 @@
+{
+  "key": "pets",
+  "title": "Животные",
+  "emoji": "🐶",
+  "group": "Жизнь",
+  "sentences": [
+    { "level": "A2", "en": "I have a cat and her name is Luna.", "ru": "У меня есть кошка, её зовут Луна.", "vocab": [ { "en": "cat", "ru": "кошка" }, { "en": "her name is", "ru": "её зовут" } ] },
+    { "level": "A2", "en": "Our dog loves long walks in the park.", "ru": "Наша собака обожает долгие прогулки в парке.", "vocab": [ { "en": "dog", "ru": "собака" }, { "en": "long walks", "ru": "долгие прогулки" } ] },
+    { "level": "A2", "en": "Do you have any pets at home?", "ru": "У тебя есть дома какие-нибудь животные?", "vocab": [ { "en": "pets", "ru": "домашние животные" }, { "en": "at home", "ru": "дома" } ] },
+    { "level": "A2", "en": "The puppy is very small and sleeps all day.", "ru": "Щенок совсем маленький и спит весь день.", "vocab": [ { "en": "puppy", "ru": "щенок" }, { "en": "sleeps all day", "ru": "спит весь день" } ] },
+    { "level": "A2", "en": "I feed the fish every morning before work.", "ru": "Я кормлю рыбок каждое утро перед работой.", "vocab": [ { "en": "feed", "ru": "кормить" }, { "en": "fish", "ru": "рыбки" } ] },
+    { "level": "A2", "en": "My rabbit eats carrots and fresh grass.", "ru": "Мой кролик ест морковку и свежую траву.", "vocab": [ { "en": "rabbit", "ru": "кролик" }, { "en": "fresh grass", "ru": "свежая трава" } ] },
+    { "level": "A2", "en": "We need to take the dog to the vet tomorrow.", "ru": "Завтра нам нужно отвезти собаку к ветеринару.", "vocab": [ { "en": "take the dog", "ru": "отвести собаку" }, { "en": "vet", "ru": "ветеринар" } ] },
+    { "level": "A2", "en": "Can you walk the dog tonight? I'm really tired.", "ru": "Можешь выгулять собаку сегодня вечером? Я очень устала.", "vocab": [ { "en": "walk the dog", "ru": "выгулять собаку" }, { "en": "tired", "ru": "уставший" } ] },
+    { "level": "B1", "en": "We adopted a dog from a shelter last year.", "ru": "В прошлом году мы взяли собаку из приюта.", "vocab": [ { "en": "adopted", "ru": "взяли (приютили)" }, { "en": "shelter", "ru": "приют" } ] },
+    { "level": "B1", "en": "My cat sheds everywhere, so I hoover almost every day.", "ru": "Моя кошка повсюду линяет, так что я пылесошу почти каждый день.", "vocab": [ { "en": "sheds", "ru": "линяет" }, { "en": "hoover", "ru": "пылесосить" } ] },
+    { "level": "B1", "en": "He's a rescue dog, so he's still a bit nervous around strangers.", "ru": "Он из приюта, поэтому всё ещё немного нервничает рядом с незнакомыми людьми.", "vocab": [ { "en": "rescue dog", "ru": "спасённая собака, собака из приюта" }, { "en": "nervous around strangers", "ru": "нервничает рядом с незнакомцами" } ] },
+    { "level": "B1", "en": "Who's going to look after the cat while we're away?", "ru": "Кто будет присматривать за кошкой, пока нас нет?", "vocab": [ { "en": "look after", "ru": "присматривать за" }, { "en": "while we're away", "ru": "пока нас нет" } ] },
+    { "level": "B1", "en": "The groomer said she needs to lose a bit of weight.", "ru": "Грумер сказал, что ей нужно немного сбросить вес.", "vocab": [ { "en": "groomer", "ru": "грумер" }, { "en": "lose a bit of weight", "ru": "немного сбросить вес" } ] },
+    { "level": "B1", "en": "Don't forget to top up the water bowl before you go.", "ru": "Не забудь долить воды в миску перед уходом.", "vocab": [ { "en": "top up", "ru": "долить, пополнить" }, { "en": "water bowl", "ru": "миска с водой" } ] },
+    { "level": "B1", "en": "Our parrot can say a few words and whistles all the time.", "ru": "Наш попугай умеет говорить несколько слов и постоянно свистит.", "vocab": [ { "en": "parrot", "ru": "попугай" }, { "en": "whistles", "ru": "свистит" } ] },
+    { "level": "B1", "en": "I'm allergic to cats, so we got a hamster instead.", "ru": "У меня аллергия на кошек, поэтому мы завели хомяка.", "vocab": [ { "en": "allergic to", "ru": "аллергия на" }, { "en": "hamster", "ru": "хомяк" } ] },
+    { "level": "B2", "en": "House-training a puppy takes patience and a lot of paper towels.", "ru": "Приучить щенка к туалету — это терпение и куча бумажных полотенец.", "vocab": [ { "en": "House-training", "ru": "приучение к туалету дома" }, { "en": "takes patience", "ru": "требует терпения" } ] },
+    { "level": "B2", "en": "She's a bit of a drama queen whenever her food is late.", "ru": "Она устраивает целую драму всякий раз, когда еда задерживается.", "vocab": [ { "en": "drama queen", "ru": "любительница устраивать драму" }, { "en": "whenever", "ru": "всякий раз, когда" } ] },
+    { "level": "B2", "en": "Getting pet insurance was the best decision we ever made.", "ru": "Оформить страховку для питомца было лучшим нашим решением.", "vocab": [ { "en": "pet insurance", "ru": "страховка для питомца" }, { "en": "best decision", "ru": "лучшее решение" } ] },
+    { "level": "B2", "en": "Our dog gets separation anxiety, so we can't leave him for long.", "ru": "У нашей собаки тревога разлуки, поэтому мы не можем оставлять его надолго.", "vocab": [ { "en": "separation anxiety", "ru": "тревога разлуки" }, { "en": "leave him for long", "ru": "оставлять его надолго" } ] },
+    { "level": "B2", "en": "Putting her down was heartbreaking, but she was in a lot of pain.", "ru": "Усыпить её было невыносимо тяжело, но она очень страдала.", "vocab": [ { "en": "Putting her down", "ru": "усыпить её (животное)" }, { "en": "heartbreaking", "ru": "разрывающий сердце" } ] },
+    { "level": "B2", "en": "The cat has basically taken over the whole sofa.", "ru": "Кошка, по сути, захватила весь диван.", "vocab": [ { "en": "taken over", "ru": "захватила, заняла" }, { "en": "basically", "ru": "по сути, фактически" } ] },
+    { "level": "B2", "en": "Fostering kittens is rewarding, but saying goodbye never gets easier.", "ru": "Передержка котят приносит радость, но прощаться с ними легче не становится.", "vocab": [ { "en": "Fostering", "ru": "временная передержка (животных)" }, { "en": "rewarding", "ru": "приносящий удовлетворение" } ] },
+    { "level": "B2", "en": "He's a bit of a handful, but you can't help loving him.", "ru": "С ним хлопотно, но невозможно его не любить.", "vocab": [ { "en": "a bit of a handful", "ru": "хлопотный, с ним непросто" }, { "en": "can't help loving", "ru": "невозможно не любить" } ] }
+  ]
+}

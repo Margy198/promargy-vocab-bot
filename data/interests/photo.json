@@ -1,0 +1,32 @@
+{
+  "key": "photo",
+  "title": "Фотография",
+  "emoji": "📷",
+  "group": "Хобби",
+  "sentences": [
+    { "level": "A2", "en": "Can you take a photo of us in front of the museum?", "ru": "Можешь сфотографировать нас на фоне музея?", "vocab": [ { "en": "take a photo", "ru": "сделать фото, сфотографировать" }, { "en": "in front of", "ru": "перед, напротив" } ] },
+    { "level": "A2", "en": "I like taking pictures of flowers in the park.", "ru": "Мне нравится фотографировать цветы в парке.", "vocab": [ { "en": "taking pictures", "ru": "фотографировать" }, { "en": "in the park", "ru": "в парке" } ] },
+    { "level": "A2", "en": "Smile and look at the camera, everyone!", "ru": "Все улыбаемся и смотрим в камеру!", "vocab": [ { "en": "Smile", "ru": "улыбнитесь" }, { "en": "camera", "ru": "камера, фотоаппарат" } ] },
+    { "level": "A2", "en": "This photo is too dark, let's try again.", "ru": "Это фото слишком тёмное, давай попробуем ещё раз.", "vocab": [ { "en": "too dark", "ru": "слишком тёмное" }, { "en": "try again", "ru": "попробовать ещё раз" } ] },
+    { "level": "A2", "en": "I take a lot of selfies when I travel.", "ru": "Когда я путешествую, я делаю много селфи.", "vocab": [ { "en": "selfies", "ru": "селфи" }, { "en": "when I travel", "ru": "когда я путешествую" } ] },
+    { "level": "A2", "en": "We printed our holiday photos and put them in an album.", "ru": "Мы распечатали фотографии из отпуска и положили их в альбом.", "vocab": [ { "en": "printed", "ru": "распечатали" }, { "en": "album", "ru": "альбом" } ] },
+    { "level": "A2", "en": "Don't move, the picture will be blurry!", "ru": "Не двигайся, а то снимок получится размытым!", "vocab": [ { "en": "Don't move", "ru": "не двигайся" }, { "en": "blurry", "ru": "размытый, нечёткий" } ] },
+    { "level": "A2", "en": "She posted a nice picture of the sunset online.", "ru": "Она выложила в интернет красивое фото заката.", "vocab": [ { "en": "posted", "ru": "выложила, опубликовала" }, { "en": "sunset", "ru": "закат" } ] },
+    { "level": "B1", "en": "The lighting is much better in the early morning.", "ru": "Ранним утром освещение гораздо лучше.", "vocab": [ { "en": "lighting", "ru": "освещение" }, { "en": "early morning", "ru": "раннее утро" } ] },
+    { "level": "B1", "en": "I've just bought a second-hand camera lens from a friend.", "ru": "Я только что купил у друга подержанный объектив.", "vocab": [ { "en": "second-hand", "ru": "подержанный, б/у" }, { "en": "lens", "ru": "объектив" } ] },
+    { "level": "B1", "en": "Could you move a bit to the left? You're in the shadow.", "ru": "Можешь немного подвинуться влево? Ты в тени.", "vocab": [ { "en": "move a bit", "ru": "подвинуться немного" }, { "en": "in the shadow", "ru": "в тени" } ] },
+    { "level": "B1", "en": "I usually edit my photos on my phone, nothing fancy.", "ru": "Обычно я редактирую фото на телефоне, ничего особенного.", "vocab": [ { "en": "edit", "ru": "редактировать, обрабатывать" }, { "en": "nothing fancy", "ru": "ничего особенного" } ] },
+    { "level": "B1", "en": "Let's take a group shot before everyone leaves.", "ru": "Давайте сделаем общий снимок, пока все не разошлись.", "vocab": [ { "en": "group shot", "ru": "групповой снимок" }, { "en": "leaves", "ru": "уйдёт, уедет" } ] },
+    { "level": "B1", "en": "My memory card is full, I need to delete some pictures.", "ru": "Карта памяти заполнена, нужно удалить несколько снимков.", "vocab": [ { "en": "memory card", "ru": "карта памяти" }, { "en": "delete", "ru": "удалить" } ] },
+    { "level": "B1", "en": "The background is too busy, let's find a plain wall.", "ru": "Фон слишком пёстрый, давай найдём однотонную стену.", "vocab": [ { "en": "background", "ru": "фон" }, { "en": "plain", "ru": "однотонный, простой" } ] },
+    { "level": "B1", "en": "He's been doing a photography course at the weekend.", "ru": "Он по выходным ходит на курс фотографии.", "vocab": [ { "en": "photography course", "ru": "курс фотографии" }, { "en": "at the weekend", "ru": "по выходным (брит.)" } ] },
+    { "level": "B2", "en": "Shooting in RAW gives you far more flexibility when editing.", "ru": "Съёмка в RAW даёт гораздо больше свободы при обработке.", "vocab": [ { "en": "Shooting in RAW", "ru": "съёмка в формате RAW" }, { "en": "flexibility", "ru": "гибкость, свобода действий" } ] },
+    { "level": "B2", "en": "Her portraits capture something genuine that staged photos never do.", "ru": "Её портреты улавливают что-то настоящее, чего никогда не бывает в постановочных фото.", "vocab": [ { "en": "capture", "ru": "улавливать, передавать" }, { "en": "staged", "ru": "постановочные" } ] },
+    { "level": "B2", "en": "A shallow depth of field makes the subject really pop.", "ru": "Малая глубина резкости заставляет объект по-настоящему выделяться.", "vocab": [ { "en": "depth of field", "ru": "глубина резкости" }, { "en": "pop", "ru": "выделяться, бросаться в глаза" } ] },
+    { "level": "B2", "en": "I tend to overexpose slightly and fix it in post.", "ru": "Я обычно слегка пересвечиваю, а потом исправляю на постобработке.", "vocab": [ { "en": "overexpose", "ru": "пересветить, переэкспонировать" }, { "en": "in post", "ru": "на постобработке" } ] },
+    { "level": "B2", "en": "Street photography is all about timing and a bit of nerve.", "ru": "Уличная фотография — это всё про момент и немного смелости.", "vocab": [ { "en": "Street photography", "ru": "уличная фотография" }, { "en": "nerve", "ru": "смелость, выдержка" } ] },
+    { "level": "B2", "en": "The golden hour is fleeting, so set up your tripod early.", "ru": "Золотой час быстро проходит, так что ставь штатив заранее.", "vocab": [ { "en": "golden hour", "ru": "золотой час" }, { "en": "tripod", "ru": "штатив" } ] },
+    { "level": "B2", "en": "The composition is strong, but the horizon is slightly off.", "ru": "Композиция сильная, но горизонт немного завален.", "vocab": [ { "en": "composition", "ru": "композиция" }, { "en": "slightly off", "ru": "немного не так, слегка завален" } ] },
+    { "level": "B2", "en": "Don't rely on filters to rescue a poorly framed shot.", "ru": "Не надейся, что фильтры спасут плохо скадрированный кадр.", "vocab": [ { "en": "rely on", "ru": "полагаться на" }, { "en": "framed", "ru": "скадрированный, выстроенный в кадре" } ] }
+  ]
+}

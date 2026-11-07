@@ -1,0 +1,32 @@
+{
+  "key": "sport",
+  "title": "Спорт и фитнес",
+  "emoji": "🏋️",
+  "group": "Хобби",
+  "sentences": [
+    { "level": "A2", "en": "I go to the gym three times a week.", "ru": "Я хожу в спортзал три раза в неделю.", "vocab": [ { "en": "go to the gym", "ru": "ходить в спортзал" }, { "en": "three times a week", "ru": "три раза в неделю" } ] },
+    { "level": "A2", "en": "Do you want to go for a run tomorrow morning?", "ru": "Хочешь пойти на пробежку завтра утром?", "vocab": [ { "en": "go for a run", "ru": "пойти на пробежку" }, { "en": "tomorrow morning", "ru": "завтра утром" } ] },
+    { "level": "A2", "en": "My legs really hurt after yesterday's workout.", "ru": "У меня очень болят ноги после вчерашней тренировки.", "vocab": [ { "en": "hurt", "ru": "болят" }, { "en": "workout", "ru": "тренировка" } ] },
+    { "level": "A2", "en": "She swims in the pool every Saturday.", "ru": "Она плавает в бассейне каждую субботу.", "vocab": [ { "en": "swims", "ru": "плавает" }, { "en": "pool", "ru": "бассейн" } ] },
+    { "level": "A2", "en": "Don't forget to drink water during exercise.", "ru": "Не забывай пить воду во время занятий.", "vocab": [ { "en": "drink water", "ru": "пить воду" }, { "en": "exercise", "ru": "физическая нагрузка, упражнения" } ] },
+    { "level": "A2", "en": "We played tennis, and I lost again.", "ru": "Мы играли в теннис, и я снова проиграл.", "vocab": [ { "en": "played tennis", "ru": "играли в теннис" }, { "en": "lost", "ru": "проиграл" } ] },
+    { "level": "A2", "en": "I need new running shoes, these are too old.", "ru": "Мне нужны новые кроссовки для бега, эти слишком старые.", "vocab": [ { "en": "running shoes", "ru": "кроссовки для бега" }, { "en": "too old", "ru": "слишком старые" } ] },
+    { "level": "A2", "en": "He rides his bike to work every day.", "ru": "Он каждый день ездит на работу на велосипеде.", "vocab": [ { "en": "rides his bike", "ru": "ездит на велосипеде" }, { "en": "every day", "ru": "каждый день" } ] },
+    { "level": "B1", "en": "I've signed up for a half marathon in October.", "ru": "Я записался на полумарафон в октябре.", "vocab": [ { "en": "signed up for", "ru": "записался на" }, { "en": "half marathon", "ru": "полумарафон" } ] },
+    { "level": "B1", "en": "You should warm up properly before lifting weights.", "ru": "Нужно как следует размяться перед тем, как поднимать тяжести.", "vocab": [ { "en": "warm up", "ru": "размяться" }, { "en": "lifting weights", "ru": "поднимать тяжести" } ] },
+    { "level": "B1", "en": "I'm trying to get back in shape after the holidays.", "ru": "Я пытаюсь вернуться в форму после праздников.", "vocab": [ { "en": "get back in shape", "ru": "вернуться в форму" }, { "en": "after the holidays", "ru": "после праздников" } ] },
+    { "level": "B1", "en": "My trainer says I should rest at least one day a week.", "ru": "Мой тренер говорит, что мне нужно отдыхать хотя бы один день в неделю.", "vocab": [ { "en": "trainer", "ru": "тренер" }, { "en": "rest", "ru": "отдыхать" } ] },
+    { "level": "B1", "en": "I pulled a muscle, so no training for a week.", "ru": "Я потянул мышцу, так что неделю без тренировок.", "vocab": [ { "en": "pulled a muscle", "ru": "потянул мышцу" }, { "en": "training", "ru": "тренировки" } ] },
+    { "level": "B1", "en": "How many sets and reps are you doing today?", "ru": "Сколько подходов и повторений ты сегодня делаешь?", "vocab": [ { "en": "sets", "ru": "подходы" }, { "en": "reps", "ru": "повторения" } ] },
+    { "level": "B1", "en": "I'd love to try rock climbing, but I'm scared of heights.", "ru": "Я бы с удовольствием попробовал скалолазание, но боюсь высоты.", "vocab": [ { "en": "rock climbing", "ru": "скалолазание" }, { "en": "scared of heights", "ru": "боюсь высоты" } ] },
+    { "level": "B1", "en": "She's been doing yoga to improve her flexibility.", "ru": "Она занимается йогой, чтобы улучшить гибкость.", "vocab": [ { "en": "improve", "ru": "улучшить" }, { "en": "flexibility", "ru": "гибкость" } ] },
+    { "level": "B2", "en": "I plateaued after six months, so I switched to a new programme.", "ru": "Через полгода я вышел на плато, поэтому перешёл на новую программу.", "vocab": [ { "en": "plateaued", "ru": "вышел на плато, перестал прогрессировать" }, { "en": "switched to", "ru": "перешёл на" } ] },
+    { "level": "B2", "en": "Consistency beats intensity when it comes to long-term fitness.", "ru": "Когда речь о форме на долгий срок, регулярность важнее интенсивности.", "vocab": [ { "en": "Consistency", "ru": "регулярность, постоянство" }, { "en": "when it comes to", "ru": "когда дело касается" } ] },
+    { "level": "B2", "en": "He's pushing himself too hard and risks burning out.", "ru": "Он слишком сильно себя загоняет и рискует выгореть.", "vocab": [ { "en": "pushing himself", "ru": "выкладывается, заставляет себя" }, { "en": "burning out", "ru": "выгореть" } ] },
+    { "level": "B2", "en": "Recovery is just as crucial as the sessions themselves.", "ru": "Восстановление не менее важно, чем сами занятия.", "vocab": [ { "en": "Recovery", "ru": "восстановление" }, { "en": "crucial", "ru": "крайне важный" } ] },
+    { "level": "B2", "en": "I've been tracking my heart rate to avoid overtraining.", "ru": "Я отслеживаю пульс, чтобы не перетренироваться.", "vocab": [ { "en": "heart rate", "ru": "пульс, частота сердечных сокращений" }, { "en": "overtraining", "ru": "перетренированность" } ] },
+    { "level": "B2", "en": "The coach drilled us relentlessly until the routine was second nature.", "ru": "Тренер неустанно гонял нас, пока связка не стала выполняться на автомате.", "vocab": [ { "en": "relentlessly", "ru": "неустанно, безжалостно" }, { "en": "second nature", "ru": "вторая натура, на автомате" } ] },
+    { "level": "B2", "en": "Strength training is hugely underrated for people over forty.", "ru": "Силовые тренировки сильно недооценены среди людей старше сорока.", "vocab": [ { "en": "Strength training", "ru": "силовые тренировки" }, { "en": "underrated", "ru": "недооценённый" } ] },
+    { "level": "B2", "en": "She's in peak condition and could set a personal best this weekend.", "ru": "Она в пиковой форме и в эти выходные может поставить личный рекорд.", "vocab": [ { "en": "peak condition", "ru": "пиковая форма" }, { "en": "personal best", "ru": "личный рекорд" } ] }
+  ]
+}

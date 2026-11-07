@@ -1,0 +1,224 @@
+{
+  "key": "health",
+  "title": "Здоровье",
+  "emoji": "🩺",
+  "group": "Мир вокруг",
+  "sentences": [
+    {
+      "level": "A2",
+      "en": "I have a headache, so I'm going to take a painkiller.",
+      "ru": "У меня болит голова, так что я приму обезболивающее.",
+      "vocab": [
+        { "en": "headache", "ru": "головная боль" },
+        { "en": "take a painkiller", "ru": "принять обезболивающее" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "Do you have an appointment with the doctor tomorrow morning?",
+      "ru": "У тебя завтра утром приём у врача?",
+      "vocab": [
+        { "en": "appointment", "ru": "приём, запись (к врачу)" },
+        { "en": "doctor", "ru": "врач" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "She doesn't feel well, so she stayed in bed today.",
+      "ru": "Ей нездоровится, поэтому она сегодня осталась в постели.",
+      "vocab": [
+        { "en": "feel well", "ru": "хорошо себя чувствовать" },
+        { "en": "stayed in bed", "ru": "осталась в постели" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "How often do you go to the gym every week?",
+      "ru": "Как часто ты ходишь в спортзал каждую неделю?",
+      "vocab": [
+        { "en": "go to the gym", "ru": "ходить в спортзал" },
+        { "en": "every week", "ru": "каждую неделю" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "You should drink more water and get enough sleep.",
+      "ru": "Тебе стоит пить больше воды и высыпаться.",
+      "vocab": [
+        { "en": "drink more water", "ru": "пить больше воды" },
+        { "en": "get enough sleep", "ru": "высыпаться" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "My throat hurts and I have a cough.",
+      "ru": "У меня болит горло и есть кашель.",
+      "vocab": [
+        { "en": "throat", "ru": "горло" },
+        { "en": "cough", "ru": "кашель" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "Can I get something for a cold at this pharmacy?",
+      "ru": "Можно купить что-нибудь от простуды в этой аптеке?",
+      "vocab": [
+        { "en": "a cold", "ru": "простуда" },
+        { "en": "pharmacy", "ru": "аптека" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "He caught the flu and missed three days of work.",
+      "ru": "Он подхватил грипп и пропустил три рабочих дня.",
+      "vocab": [
+        { "en": "caught the flu", "ru": "подхватил грипп" },
+        { "en": "missed", "ru": "пропустил" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "I've been feeling tired lately, so I'm getting a blood test.",
+      "ru": "В последнее время я чувствую усталость, поэтому сдаю анализ крови.",
+      "vocab": [
+        { "en": "feeling tired", "ru": "чувствовать усталость" },
+        { "en": "blood test", "ru": "анализ крови" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "The doctor prescribed antibiotics, but I haven't picked them up yet.",
+      "ru": "Врач выписал антибиотики, но я их ещё не забрал.",
+      "vocab": [
+        { "en": "prescribed", "ru": "выписал (лекарство)" },
+        { "en": "picked them up", "ru": "забрал их" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "If the pain doesn't go away, you'd better see a specialist.",
+      "ru": "Если боль не пройдёт, лучше обратись к специалисту.",
+      "vocab": [
+        { "en": "go away", "ru": "проходить, исчезать" },
+        { "en": "specialist", "ru": "узкий специалист" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "Our company offers health insurance, which covers dental care too.",
+      "ru": "Наша компания предоставляет медицинскую страховку, которая покрывает и стоматологию.",
+      "vocab": [
+        { "en": "health insurance", "ru": "медицинская страховка" },
+        { "en": "dental care", "ru": "стоматологическая помощь" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "I'm trying to cut down on sugar, but it's really hard.",
+      "ru": "Я пытаюсь есть меньше сахара, но это очень трудно.",
+      "vocab": [
+        { "en": "cut down on", "ru": "сократить потребление" },
+        { "en": "sugar", "ru": "сахар" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "She sprained her ankle while running and can't walk properly.",
+      "ru": "Она растянула лодыжку на пробежке и не может нормально ходить.",
+      "vocab": [
+        { "en": "sprained her ankle", "ru": "растянула лодыжку" },
+        { "en": "properly", "ru": "нормально, как следует" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "Have you ever had an allergic reaction to any medicine?",
+      "ru": "У вас когда-нибудь была аллергическая реакция на какое-нибудь лекарство?",
+      "vocab": [
+        { "en": "allergic reaction", "ru": "аллергическая реакция" },
+        { "en": "medicine", "ru": "лекарство" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "Sitting all day is bad for your back, so take regular breaks.",
+      "ru": "Сидеть весь день вредно для спины, так что делай регулярные перерывы.",
+      "vocab": [
+        { "en": "bad for your back", "ru": "вредно для спины" },
+        { "en": "regular breaks", "ru": "регулярные перерывы" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "After months of burnout, he finally decided to put his health first.",
+      "ru": "После месяцев выгорания он наконец решил поставить здоровье на первое место.",
+      "vocab": [
+        { "en": "burnout", "ru": "выгорание" },
+        { "en": "put his health first", "ru": "поставить здоровье на первое место" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "The symptoms came on suddenly, which is why they ran extra tests.",
+      "ru": "Симптомы появились внезапно, поэтому ему сделали дополнительные анализы.",
+      "vocab": [
+        { "en": "came on suddenly", "ru": "появились внезапно" },
+        { "en": "ran extra tests", "ru": "провели дополнительные анализы" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Preventive check-ups are far cheaper than treating a condition that's been neglected.",
+      "ru": "Профилактические осмотры куда дешевле, чем лечение запущенной болезни.",
+      "vocab": [
+        { "en": "Preventive check-ups", "ru": "профилактические осмотры" },
+        { "en": "neglected", "ru": "запущенный, оставленный без внимания" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Her immune system is weakened, so even a mild infection could be serious.",
+      "ru": "Её иммунитет ослаблен, так что даже лёгкая инфекция может быть опасной.",
+      "vocab": [
+        { "en": "immune system", "ru": "иммунная система" },
+        { "en": "mild infection", "ru": "лёгкая инфекция" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "I was on the mend until I overdid it at the gym last weekend.",
+      "ru": "Я шёл на поправку, пока не перестарался в зале на прошлых выходных.",
+      "vocab": [
+        { "en": "on the mend", "ru": "на поправке, идти на поправку" },
+        { "en": "overdid it", "ru": "перестарался" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Chronic stress takes a toll on your heart, whether you notice it or not.",
+      "ru": "Хронический стресс бьёт по сердцу, замечаете вы это или нет.",
+      "vocab": [
+        { "en": "Chronic stress", "ru": "хронический стресс" },
+        { "en": "takes a toll on", "ru": "наносит урон, сказывается на" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "He's been off sick for two weeks and still hasn't fully recovered.",
+      "ru": "Он две недели на больничном и до сих пор не до конца восстановился.",
+      "vocab": [
+        { "en": "off sick", "ru": "на больничном" },
+        { "en": "fully recovered", "ru": "полностью восстановился" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "The side effects outweighed the benefits, so they switched her medication.",
+      "ru": "Побочные эффекты перевесили пользу, поэтому ей сменили препарат.",
+      "vocab": [
+        { "en": "side effects", "ru": "побочные эффекты" },
+        { "en": "outweighed", "ru": "перевесили" }
+      ]
+    }
+  ]
+}

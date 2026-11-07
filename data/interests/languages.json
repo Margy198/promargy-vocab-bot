@@ -1,0 +1,224 @@
+{
+  "key": "languages",
+  "title": "Изучение языков",
+  "emoji": "🗣",
+  "group": "Мир вокруг",
+  "sentences": [
+    {
+      "level": "A2",
+      "en": "I speak Russian and a little English.",
+      "ru": "Я говорю по-русски и немного по-английски.",
+      "vocab": [
+        { "en": "speak", "ru": "говорить (на языке)" },
+        { "en": "a little", "ru": "немного" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "How do you say this word in English?",
+      "ru": "Как сказать это слово по-английски?",
+      "vocab": [
+        { "en": "How do you say", "ru": "как сказать" },
+        { "en": "word", "ru": "слово" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "I learn ten new words every day with an app.",
+      "ru": "Я учу десять новых слов каждый день с помощью приложения.",
+      "vocab": [
+        { "en": "new words", "ru": "новые слова" },
+        { "en": "app", "ru": "приложение" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "My teacher is from London, and she speaks very fast.",
+      "ru": "Моя преподавательница из Лондона, и она говорит очень быстро.",
+      "vocab": [
+        { "en": "teacher", "ru": "учитель, преподаватель" },
+        { "en": "speaks very fast", "ru": "говорит очень быстро" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "Can you repeat that, please? I didn't understand.",
+      "ru": "Повторите, пожалуйста. Я не понял.",
+      "vocab": [
+        { "en": "repeat", "ru": "повторить" },
+        { "en": "didn't understand", "ru": "не понял" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "Grammar is difficult, but I practise every morning.",
+      "ru": "Грамматика сложная, но я занимаюсь каждое утро.",
+      "vocab": [
+        { "en": "Grammar", "ru": "грамматика" },
+        { "en": "practise", "ru": "практиковаться, тренироваться" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "We watch films in English with subtitles.",
+      "ru": "Мы смотрим фильмы на английском с субтитрами.",
+      "vocab": [
+        { "en": "films", "ru": "фильмы" },
+        { "en": "subtitles", "ru": "субтитры" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "I'm not good at spelling, so I check every word.",
+      "ru": "У меня плохо с правописанием, поэтому я проверяю каждое слово.",
+      "vocab": [
+        { "en": "not good at", "ru": "плохо получается, не силён в" },
+        { "en": "spelling", "ru": "правописание" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "I've been learning English for two years, but I still make mistakes.",
+      "ru": "Я учу английский уже два года, но всё ещё делаю ошибки.",
+      "vocab": [
+        { "en": "for two years", "ru": "в течение двух лет, уже два года" },
+        { "en": "make mistakes", "ru": "делать ошибки" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "The hardest part for me is understanding native speakers.",
+      "ru": "Самое сложное для меня — понимать носителей языка.",
+      "vocab": [
+        { "en": "hardest part", "ru": "самое сложное" },
+        { "en": "native speakers", "ru": "носители языка" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "I'd like to improve my pronunciation before the interview.",
+      "ru": "Я хотел бы улучшить произношение перед собеседованием.",
+      "vocab": [
+        { "en": "improve", "ru": "улучшить" },
+        { "en": "pronunciation", "ru": "произношение" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "Do you pick up new phrases from TV series or from books?",
+      "ru": "Ты подхватываешь новые фразы из сериалов или из книг?",
+      "vocab": [
+        { "en": "pick up", "ru": "подхватывать, усваивать" },
+        { "en": "phrases", "ru": "фразы" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "Speaking is scary at first, but it gets easier with practice.",
+      "ru": "Говорить поначалу страшно, но с практикой становится легче.",
+      "vocab": [
+        { "en": "at first", "ru": "поначалу" },
+        { "en": "gets easier", "ru": "становится легче" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "My colleague switches between three languages without any effort.",
+      "ru": "Мой коллега переключается между тремя языками без всяких усилий.",
+      "vocab": [
+        { "en": "switches between", "ru": "переключается между" },
+        { "en": "without any effort", "ru": "без всяких усилий" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "I keep forgetting the past forms of irregular verbs.",
+      "ru": "Я постоянно забываю формы прошедшего времени неправильных глаголов.",
+      "vocab": [
+        { "en": "keep forgetting", "ru": "постоянно забываю" },
+        { "en": "irregular verbs", "ru": "неправильные глаголы" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "Try to think in English instead of translating everything in your head.",
+      "ru": "Старайся думать по-английски, а не переводить всё в голове.",
+      "vocab": [
+        { "en": "think in English", "ru": "думать по-английски" },
+        { "en": "translating", "ru": "переводить" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Her English is fluent, though a slight accent gives her away.",
+      "ru": "Она свободно говорит по-английски, хотя лёгкий акцент её выдаёт.",
+      "vocab": [
+        { "en": "fluent", "ru": "беглый, свободный (о речи)" },
+        { "en": "gives her away", "ru": "выдаёт её" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Immersion works wonders, but only if you actually talk to people.",
+      "ru": "Погружение в среду творит чудеса, но только если ты действительно общаешься с людьми.",
+      "vocab": [
+        { "en": "Immersion", "ru": "погружение в языковую среду" },
+        { "en": "works wonders", "ru": "творит чудеса" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "I hit a plateau at B2 and couldn't seem to get past it.",
+      "ru": "Я упёрся в плато на уровне B2 и никак не мог его преодолеть.",
+      "vocab": [
+        { "en": "hit a plateau", "ru": "упереться в плато, остановиться в прогрессе" },
+        { "en": "get past", "ru": "преодолеть, пройти дальше" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Idioms are tricky because you can't work them out word by word.",
+      "ru": "Идиомы коварны, потому что их нельзя разобрать слово за словом.",
+      "vocab": [
+        { "en": "Idioms", "ru": "идиомы" },
+        { "en": "work them out", "ru": "разобраться в них, вычислить смысл" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Fear of sounding foolish holds back far more learners than lack of vocabulary.",
+      "ru": "Страх показаться глупым сдерживает куда больше учеников, чем нехватка слов.",
+      "vocab": [
+        { "en": "holds back", "ru": "сдерживает, тормозит" },
+        { "en": "lack of vocabulary", "ru": "нехватка словарного запаса" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Once you get the hang of phrasal verbs, conversations feel much more natural.",
+      "ru": "Как только освоишь фразовые глаголы, разговоры звучат гораздо естественнее.",
+      "vocab": [
+        { "en": "get the hang of", "ru": "освоить, приноровиться" },
+        { "en": "phrasal verbs", "ru": "фразовые глаголы" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Reading widely exposes you to vocabulary that textbooks never cover.",
+      "ru": "Чтение разных текстов знакомит с лексикой, которой нет в учебниках.",
+      "vocab": [
+        { "en": "Reading widely", "ru": "чтение самых разных текстов" },
+        { "en": "exposes you to", "ru": "знакомит тебя с, даёт доступ к" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Had I started speaking earlier, I wouldn't have been so self-conscious now.",
+      "ru": "Если бы я начал говорить раньше, сейчас я бы так не стеснялся.",
+      "vocab": [
+        { "en": "started speaking", "ru": "начал говорить" },
+        { "en": "self-conscious", "ru": "стеснительный, неловко себя чувствующий" }
+      ]
+    }
+  ]
+}

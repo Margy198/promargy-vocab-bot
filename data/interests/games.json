@@ -1,0 +1,32 @@
+{
+  "key": "games",
+  "title": "Видеоигры",
+  "emoji": "🎮",
+  "group": "Хобби",
+  "sentences": [
+    { "level": "A2", "en": "I play video games with my friends on weekends.", "ru": "По выходным я играю в видеоигры с друзьями.", "vocab": [ { "en": "play video games", "ru": "играть в видеоигры" }, { "en": "on weekends", "ru": "по выходным" } ] },
+    { "level": "A2", "en": "This game is free, but you can buy extra skins.", "ru": "Эта игра бесплатная, но можно купить дополнительные скины.", "vocab": [ { "en": "free", "ru": "бесплатная" }, { "en": "skins", "ru": "скины (внешний вид персонажа)" } ] },
+    { "level": "A2", "en": "My controller doesn't work, can I use yours?", "ru": "Мой геймпад не работает, можно взять твой?", "vocab": [ { "en": "controller", "ru": "геймпад, контроллер" }, { "en": "doesn't work", "ru": "не работает" } ] },
+    { "level": "A2", "en": "We lost the match because our team was too slow.", "ru": "Мы проиграли матч, потому что наша команда была слишком медленной.", "vocab": [ { "en": "lost the match", "ru": "проиграли матч" }, { "en": "too slow", "ru": "слишком медленный" } ] },
+    { "level": "A2", "en": "Do you want to play one more round?", "ru": "Хочешь сыграть ещё один раунд?", "vocab": [ { "en": "want to play", "ru": "хочешь поиграть" }, { "en": "one more round", "ru": "ещё один раунд" } ] },
+    { "level": "A2", "en": "The new console is expensive, so I'm saving money.", "ru": "Новая приставка дорогая, поэтому я коплю деньги.", "vocab": [ { "en": "console", "ru": "консоль, приставка" }, { "en": "saving money", "ru": "коплю деньги" } ] },
+    { "level": "A2", "en": "My little brother always wins at racing games.", "ru": "Мой младший брат всегда выигрывает в гонках.", "vocab": [ { "en": "wins", "ru": "выигрывает" }, { "en": "racing games", "ru": "гонки (игры)" } ] },
+    { "level": "A2", "en": "Press this button to jump over the wall.", "ru": "Нажми эту кнопку, чтобы перепрыгнуть через стену.", "vocab": [ { "en": "Press this button", "ru": "нажми эту кнопку" }, { "en": "jump over", "ru": "перепрыгнуть через" } ] },
+    { "level": "B1", "en": "I've been stuck on this level for three days now.", "ru": "Я застрял на этом уровне уже три дня.", "vocab": [ { "en": "stuck on", "ru": "застрял на" }, { "en": "level", "ru": "уровень" } ] },
+    { "level": "B1", "en": "Let's team up and play co-op mode tonight.", "ru": "Давай объединимся и поиграем в кооперативе сегодня вечером.", "vocab": [ { "en": "team up", "ru": "объединиться в команду" }, { "en": "co-op mode", "ru": "кооперативный режим" } ] },
+    { "level": "B1", "en": "The graphics are amazing, but the story is a bit boring.", "ru": "Графика потрясающая, но сюжет немного скучный.", "vocab": [ { "en": "graphics", "ru": "графика" }, { "en": "a bit boring", "ru": "немного скучный" } ] },
+    { "level": "B1", "en": "My headset broke, so I can't hear my teammates.", "ru": "У меня сломалась гарнитура, и я не слышу товарищей по команде.", "vocab": [ { "en": "headset", "ru": "гарнитура" }, { "en": "teammates", "ru": "товарищи по команде" } ] },
+    { "level": "B1", "en": "You can save your progress at any checkpoint.", "ru": "Сохранить прогресс можно на любой контрольной точке.", "vocab": [ { "en": "save your progress", "ru": "сохранить прогресс" }, { "en": "checkpoint", "ru": "контрольная точка" } ] },
+    { "level": "B1", "en": "She streams her gameplay on Twitch every Friday night.", "ru": "Каждую пятницу вечером она стримит свой геймплей на Twitch.", "vocab": [ { "en": "streams", "ru": "стримит, ведёт трансляцию" }, { "en": "gameplay", "ru": "геймплей, игровой процесс" } ] },
+    { "level": "B1", "en": "I didn't expect the boss fight to be so hard.", "ru": "Я не ожидал, что бой с боссом будет таким сложным.", "vocab": [ { "en": "didn't expect", "ru": "не ожидал" }, { "en": "boss fight", "ru": "бой с боссом" } ] },
+    { "level": "B1", "en": "The update fixed some bugs, but it also added new ones.", "ru": "Обновление исправило некоторые баги, но добавило новые.", "vocab": [ { "en": "update", "ru": "обновление" }, { "en": "bugs", "ru": "баги, ошибки" } ] },
+    { "level": "B2", "en": "The game's open world is immersive, but the side quests get repetitive.", "ru": "Открытый мир игры затягивает, но побочные задания быстро становятся однообразными.", "vocab": [ { "en": "immersive", "ru": "захватывающий, с эффектом погружения" }, { "en": "side quests", "ru": "побочные задания" } ] },
+    { "level": "B2", "en": "Honestly, the microtransactions ruin an otherwise brilliant experience.", "ru": "Честно говоря, микротранзакции портят в остальном блестящую игру.", "vocab": [ { "en": "microtransactions", "ru": "микротранзакции" }, { "en": "otherwise", "ru": "в остальном" } ] },
+    { "level": "B2", "en": "Once you get the hang of the controls, it's incredibly rewarding.", "ru": "Стоит освоиться с управлением — и игра приносит огромное удовольствие.", "vocab": [ { "en": "get the hang of", "ru": "освоиться с, приноровиться" }, { "en": "rewarding", "ru": "приносящий удовлетворение" } ] },
+    { "level": "B2", "en": "The developers delayed the release to polish the final build.", "ru": "Разработчики отложили выход, чтобы доработать финальную версию.", "vocab": [ { "en": "developers", "ru": "разработчики" }, { "en": "polish", "ru": "доработать, отшлифовать" } ] },
+    { "level": "B2", "en": "Competitive multiplayer can be toxic, so I mostly play solo.", "ru": "Соревновательный мультиплеер бывает токсичным, поэтому я в основном играю один.", "vocab": [ { "en": "toxic", "ru": "токсичный" }, { "en": "solo", "ru": "в одиночку" } ] },
+    { "level": "B2", "en": "The learning curve is steep, but the payoff is worth it.", "ru": "Порог вхождения высокий, но отдача того стоит.", "vocab": [ { "en": "learning curve", "ru": "кривая обучения, порог вхождения" }, { "en": "payoff", "ru": "отдача, награда за усилия" } ] },
+    { "level": "B2", "en": "Speedrunners have found a glitch that skips half the game.", "ru": "Спидраннеры нашли глюк, который позволяет пропустить половину игры.", "vocab": [ { "en": "glitch", "ru": "глюк, сбой" }, { "en": "skips", "ru": "пропускает" } ] },
+    { "level": "B2", "en": "The indie studio pulled off a sequel that outshines the original.", "ru": "Инди-студии удалось сделать продолжение, которое затмевает оригинал.", "vocab": [ { "en": "pulled off", "ru": "сумели сделать, провернули" }, { "en": "outshines", "ru": "затмевает, превосходит" } ] }
+  ]
+}

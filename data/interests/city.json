@@ -1,0 +1,32 @@
+{
+  "key": "city",
+  "title": "Город и транспорт",
+  "emoji": "🏙",
+  "group": "Жизнь",
+  "sentences": [
+    { "level": "A2", "en": "I take the metro to work every morning.", "ru": "Я каждое утро езжу на работу на метро.", "vocab": [ { "en": "take the metro", "ru": "ехать на метро" }, { "en": "every morning", "ru": "каждое утро" } ] },
+    { "level": "A2", "en": "Excuse me, where is the nearest bus stop?", "ru": "Извините, где ближайшая автобусная остановка?", "vocab": [ { "en": "nearest", "ru": "ближайший" }, { "en": "bus stop", "ru": "автобусная остановка" } ] },
+    { "level": "A2", "en": "The main square is very busy on Saturdays.", "ru": "По субботам на главной площади очень многолюдно.", "vocab": [ { "en": "main square", "ru": "главная площадь" }, { "en": "busy", "ru": "многолюдный, оживлённый" } ] },
+    { "level": "A2", "en": "How do I get to the museum from here?", "ru": "Как мне отсюда добраться до музея?", "vocab": [ { "en": "How do I get to", "ru": "Как мне добраться до" }, { "en": "from here", "ru": "отсюда" } ] },
+    { "level": "A2", "en": "Is this the right train for the airport?", "ru": "Это тот поезд, который идёт в аэропорт?", "vocab": [ { "en": "right train", "ru": "нужный поезд" }, { "en": "for the airport", "ru": "до аэропорта" } ] },
+    { "level": "A2", "en": "There's a nice park near my house.", "ru": "Рядом с моим домом есть хороший парк.", "vocab": [ { "en": "park", "ru": "парк" }, { "en": "near my house", "ru": "рядом с моим домом" } ] },
+    { "level": "A2", "en": "I don't have a car, so I walk a lot.", "ru": "У меня нет машины, поэтому я много хожу пешком.", "vocab": [ { "en": "don't have a car", "ru": "нет машины" }, { "en": "walk a lot", "ru": "много ходить пешком" } ] },
+    { "level": "A2", "en": "The last bus leaves at midnight, so don't be late.", "ru": "Последний автобус уходит в полночь, так что не опаздывай.", "vocab": [ { "en": "last bus", "ru": "последний автобус" }, { "en": "midnight", "ru": "полночь" } ] },
+    { "level": "B1", "en": "I missed my stop because I was looking at my phone.", "ru": "Я проехал свою остановку, потому что смотрел в телефон.", "vocab": [ { "en": "missed my stop", "ru": "пропустил свою остановку" }, { "en": "looking at my phone", "ru": "смотрел в телефон" } ] },
+    { "level": "B1", "en": "You can top up your travel card at any station.", "ru": "Пополнить проездную карту можно на любой станции.", "vocab": [ { "en": "travel card", "ru": "проездная карта" }, { "en": "any station", "ru": "любая станция" } ] },
+    { "level": "B1", "en": "The traffic is terrible in the mornings, so I cycle instead.", "ru": "По утрам ужасные пробки, поэтому я езжу на велосипеде.", "vocab": [ { "en": "traffic", "ru": "движение, пробки" }, { "en": "cycle", "ru": "ездить на велосипеде" } ] },
+    { "level": "B1", "en": "Which line do I need to change to for the stadium?", "ru": "На какую ветку мне нужно пересесть, чтобы доехать до стадиона?", "vocab": [ { "en": "line", "ru": "линия, ветка метро" }, { "en": "change to", "ru": "пересесть на" } ] },
+    { "level": "B1", "en": "The neighbourhood has changed a lot since we moved here.", "ru": "Район сильно изменился с тех пор, как мы сюда переехали.", "vocab": [ { "en": "neighbourhood", "ru": "район" }, { "en": "changed a lot", "ru": "сильно изменился" } ] },
+    { "level": "B1", "en": "Taxis are expensive here, so I usually get the tram.", "ru": "Такси здесь дорогое, поэтому я обычно езжу на трамвае.", "vocab": [ { "en": "Taxis", "ru": "такси" }, { "en": "get the tram", "ru": "сесть на трамвай" } ] },
+    { "level": "B1", "en": "There's a street market every Sunday with amazing food stalls.", "ru": "Каждое воскресенье здесь уличный рынок с потрясающими лотками с едой.", "vocab": [ { "en": "street market", "ru": "уличный рынок" }, { "en": "food stalls", "ru": "лотки, ларьки с едой" } ] },
+    { "level": "B1", "en": "The trains are often crowded during rush hour, especially on Mondays.", "ru": "В час пик поезда часто переполнены, особенно по понедельникам.", "vocab": [ { "en": "crowded", "ru": "переполненный" }, { "en": "rush hour", "ru": "час пик" } ] },
+    { "level": "B2", "en": "The city is pretty walkable, but public transport is hit and miss.", "ru": "По городу удобно ходить пешком, а вот общественный транспорт — как повезёт.", "vocab": [ { "en": "walkable", "ru": "удобный для пешеходов" }, { "en": "hit and miss", "ru": "как повезёт, ненадёжный" } ] },
+    { "level": "B2", "en": "Rents in the centre have skyrocketed, pushing people out to the suburbs.", "ru": "Аренда в центре взлетела до небес, вытесняя людей в пригороды.", "vocab": [ { "en": "skyrocketed", "ru": "взлетели до небес" }, { "en": "suburbs", "ru": "пригороды" } ] },
+    { "level": "B2", "en": "I love the buzz of a big city, but the noise gets to me.", "ru": "Я люблю драйв большого города, но шум меня достаёт.", "vocab": [ { "en": "buzz", "ru": "оживление, драйв" }, { "en": "gets to me", "ru": "достаёт меня, действует на нервы" } ] },
+    { "level": "B2", "en": "The new bike lanes have made commuting far less stressful.", "ru": "Новые велодорожки сделали поездки на работу гораздо менее напряжёнными.", "vocab": [ { "en": "bike lanes", "ru": "велодорожки" }, { "en": "commuting", "ru": "поездки на работу и обратно" } ] },
+    { "level": "B2", "en": "The metro is reliable, although it does get stuffy in summer.", "ru": "Метро надёжное, хотя летом в нём бывает душно.", "vocab": [ { "en": "reliable", "ru": "надёжный" }, { "en": "stuffy", "ru": "душно" } ] },
+    { "level": "B2", "en": "Gentrification has turned this once rough area into a trendy hotspot.", "ru": "Джентрификация превратила этот когда-то неблагополучный район в модное место.", "vocab": [ { "en": "Gentrification", "ru": "джентрификация (облагораживание района)" }, { "en": "trendy hotspot", "ru": "модное, популярное место" } ] },
+    { "level": "B2", "en": "You'll need to tap in and out, or you'll get charged the maximum fare.", "ru": "Нужно прикладывать карту на входе и на выходе, иначе спишут максимальный тариф.", "vocab": [ { "en": "tap in and out", "ru": "приложить карту на входе и выходе" }, { "en": "maximum fare", "ru": "максимальный тариф" } ] },
+    { "level": "B2", "en": "Living downtown means I can get by without a car entirely.", "ru": "Жизнь в центре позволяет мне полностью обходиться без машины.", "vocab": [ { "en": "downtown", "ru": "в центре города" }, { "en": "get by without", "ru": "обходиться без" } ] }
+  ]
+}

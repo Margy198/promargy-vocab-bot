@@ -1,0 +1,32 @@
+{
+  "key": "family",
+  "title": "Семья и дети",
+  "emoji": "👨‍👩‍👧",
+  "group": "Жизнь",
+  "sentences": [
+    { "level": "A2", "en": "I have two brothers and one younger sister.", "ru": "У меня два брата и одна младшая сестра.", "vocab": [ { "en": "brothers", "ru": "братья" }, { "en": "younger sister", "ru": "младшая сестра" } ] },
+    { "level": "A2", "en": "My daughter is five and she loves drawing.", "ru": "Моей дочке пять лет, и она обожает рисовать.", "vocab": [ { "en": "daughter", "ru": "дочь" }, { "en": "loves drawing", "ru": "обожает рисовать" } ] },
+    { "level": "A2", "en": "We visit my grandparents every Sunday for lunch.", "ru": "Каждое воскресенье мы ездим к бабушке с дедушкой на обед.", "vocab": [ { "en": "grandparents", "ru": "бабушка и дедушка" }, { "en": "every Sunday", "ru": "каждое воскресенье" } ] },
+    { "level": "A2", "en": "Does your son go to school yet?", "ru": "Твой сын уже ходит в школу?", "vocab": [ { "en": "son", "ru": "сын" }, { "en": "go to school", "ru": "ходить в школу" } ] },
+    { "level": "A2", "en": "My parents live in a village near Moscow.", "ru": "Мои родители живут в деревне под Москвой.", "vocab": [ { "en": "parents", "ru": "родители" }, { "en": "village", "ru": "деревня" } ] },
+    { "level": "A2", "en": "Can you pick up the kids after work today?", "ru": "Ты можешь забрать детей после работы сегодня?", "vocab": [ { "en": "pick up the kids", "ru": "забрать детей" }, { "en": "after work", "ru": "после работы" } ] },
+    { "level": "A2", "en": "Our baby doesn't sleep well at night yet.", "ru": "Наш малыш пока плохо спит по ночам.", "vocab": [ { "en": "baby", "ru": "малыш, младенец" }, { "en": "sleep well", "ru": "хорошо спать" } ] },
+    { "level": "A2", "en": "We're having a big family dinner on Saturday.", "ru": "В субботу у нас большой семейный ужин.", "vocab": [ { "en": "We're having", "ru": "У нас будет (устраиваем)" }, { "en": "big family dinner", "ru": "большой семейный ужин" } ] },
+    { "level": "B1", "en": "My sister is expecting a baby in March, so we're all excited.", "ru": "Моя сестра ждёт ребёнка в марте, и мы все в предвкушении.", "vocab": [ { "en": "expecting a baby", "ru": "ждёт ребёнка" }, { "en": "excited", "ru": "в радостном волнении, в предвкушении" } ] },
+    { "level": "B1", "en": "Who looks after the children when you're both at work?", "ru": "Кто присматривает за детьми, когда вы оба на работе?", "vocab": [ { "en": "looks after", "ru": "присматривает за" }, { "en": "both at work", "ru": "оба на работе" } ] },
+    { "level": "B1", "en": "I grew up in a big family, so I'm used to noise.", "ru": "Я вырос в большой семье, поэтому привык к шуму.", "vocab": [ { "en": "grew up", "ru": "вырос" }, { "en": "used to noise", "ru": "привык к шуму" } ] },
+    { "level": "B1", "en": "My teenage son spends hours on his phone every day.", "ru": "Мой сын-подросток каждый день часами сидит в телефоне.", "vocab": [ { "en": "teenage", "ru": "подросток, подросткового возраста" }, { "en": "spends hours", "ru": "проводит часы" } ] },
+    { "level": "B1", "en": "We're trying to spend more quality time together as a family.", "ru": "Мы стараемся проводить больше полноценного времени вместе всей семьёй.", "vocab": [ { "en": "quality time", "ru": "время, проведённое с пользой и вниманием друг к другу" }, { "en": "as a family", "ru": "всей семьёй" } ] },
+    { "level": "B1", "en": "Her husband works abroad, so she's bringing up the kids alone.", "ru": "Её муж работает за границей, поэтому она воспитывает детей одна.", "vocab": [ { "en": "works abroad", "ru": "работает за границей" }, { "en": "bringing up", "ru": "воспитывает, растит" } ] },
+    { "level": "B1", "en": "My cousin and I get on really well, we're like best friends.", "ru": "Мы с двоюродным братом отлично ладим, мы как лучшие друзья.", "vocab": [ { "en": "cousin", "ru": "двоюродный брат / сестра" }, { "en": "get on really well", "ru": "отлично ладим" } ] },
+    { "level": "B1", "en": "The kids are off school next week, so we need a plan.", "ru": "На следующей неделе у детей каникулы, так что нам нужен план.", "vocab": [ { "en": "off school", "ru": "не ходят в школу, на каникулах" }, { "en": "need a plan", "ru": "нужен план" } ] },
+    { "level": "B2", "en": "Juggling work and two toddlers is exhausting, but we're managing.", "ru": "Совмещать работу и двух малышей выматывает, но мы справляемся.", "vocab": [ { "en": "Juggling", "ru": "совмещать, разрываться между" }, { "en": "toddlers", "ru": "малыши (1–3 года)" } ] },
+    { "level": "B2", "en": "My parents are getting on a bit, so I visit more often now.", "ru": "Родители уже в возрасте, поэтому теперь я навещаю их чаще.", "vocab": [ { "en": "getting on a bit", "ru": "уже в возрасте, стареют" }, { "en": "more often", "ru": "чаще" } ] },
+    { "level": "B2", "en": "We have a strict no-screens rule at the dinner table.", "ru": "У нас строгое правило: никаких экранов за обеденным столом.", "vocab": [ { "en": "no-screens rule", "ru": "правило «без экранов»" }, { "en": "dinner table", "ru": "обеденный стол" } ] },
+    { "level": "B2", "en": "My brother and I fell out years ago and barely speak now.", "ru": "Мы с братом поссорились много лет назад и теперь почти не общаемся.", "vocab": [ { "en": "fell out", "ru": "поссорились, рассорились" }, { "en": "barely speak", "ru": "почти не разговариваем" } ] },
+    { "level": "B2", "en": "Being a stay-at-home dad was never part of the plan, but I love it.", "ru": "Быть папой-домохозяином никогда не входило в мои планы, но мне это нравится.", "vocab": [ { "en": "stay-at-home dad", "ru": "папа, сидящий дома с детьми" }, { "en": "part of the plan", "ru": "частью плана" } ] },
+    { "level": "B2", "en": "She takes after her grandmother, stubborn and incredibly kind.", "ru": "Она пошла в бабушку: упрямая и невероятно добрая.", "vocab": [ { "en": "takes after", "ru": "пошла в (похожа на родственника)" }, { "en": "stubborn", "ru": "упрямая" } ] },
+    { "level": "B2", "en": "Parental leave here is generous, which made the decision much easier.", "ru": "Отпуск по уходу за ребёнком здесь щедрый, и это сильно облегчило решение.", "vocab": [ { "en": "Parental leave", "ru": "отпуск по уходу за ребёнком" }, { "en": "generous", "ru": "щедрый" } ] },
+    { "level": "B2", "en": "We don't want to spoil him, but it's hard to say no sometimes.", "ru": "Мы не хотим его баловать, но иногда трудно сказать «нет».", "vocab": [ { "en": "spoil", "ru": "баловать" }, { "en": "say no", "ru": "отказать, сказать «нет»" } ] }
+  ]
+}

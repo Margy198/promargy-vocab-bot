@@ -1,0 +1,224 @@
+{
+  "key": "society",
+  "title": "Новости и общество",
+  "emoji": "📰",
+  "group": "Мир вокруг",
+  "sentences": [
+    {
+      "level": "A2",
+      "en": "I read the news on my phone every morning.",
+      "ru": "Я читаю новости на телефоне каждое утро.",
+      "vocab": [
+        { "en": "read the news", "ru": "читать новости" },
+        { "en": "every morning", "ru": "каждое утро" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "Did you hear about the new metro line in our city?",
+      "ru": "Ты слышал о новой линии метро в нашем городе?",
+      "vocab": [
+        { "en": "hear about", "ru": "слышать о" },
+        { "en": "metro line", "ru": "линия метро" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "Many people in my town work in a big factory.",
+      "ru": "Многие люди в моём городе работают на большом заводе.",
+      "vocab": [
+        { "en": "town", "ru": "небольшой город" },
+        { "en": "factory", "ru": "завод, фабрика" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "The shops are closed on Sunday in this country.",
+      "ru": "В этой стране магазины по воскресеньям закрыты.",
+      "vocab": [
+        { "en": "shops", "ru": "магазины" },
+        { "en": "closed on Sunday", "ru": "закрыты по воскресеньям" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "There was a big festival in the main square last weekend.",
+      "ru": "На главной площади в прошлые выходные был большой фестиваль.",
+      "vocab": [
+        { "en": "festival", "ru": "фестиваль" },
+        { "en": "main square", "ru": "главная площадь" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "My neighbours are friendly, and we often help each other.",
+      "ru": "Мои соседи приветливые, и мы часто помогаем друг другу.",
+      "vocab": [
+        { "en": "neighbours", "ru": "соседи" },
+        { "en": "help each other", "ru": "помогать друг другу" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "Prices in the supermarket are higher than last year.",
+      "ru": "Цены в супермаркете выше, чем в прошлом году.",
+      "vocab": [
+        { "en": "Prices", "ru": "цены" },
+        { "en": "higher than", "ru": "выше, чем" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "What's the most popular newspaper in your city?",
+      "ru": "Какая самая популярная газета в твоём городе?",
+      "vocab": [
+        { "en": "popular", "ru": "популярный" },
+        { "en": "newspaper", "ru": "газета" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "The local council has decided to build a new school nearby.",
+      "ru": "Местные власти решили построить поблизости новую школу.",
+      "vocab": [
+        { "en": "local council", "ru": "местный совет, местные власти" },
+        { "en": "nearby", "ru": "поблизости" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "I don't trust everything I see in the headlines.",
+      "ru": "Я не верю всему, что вижу в заголовках.",
+      "vocab": [
+        { "en": "trust", "ru": "доверять" },
+        { "en": "headlines", "ru": "заголовки" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "Thousands of people volunteered to help after the flood.",
+      "ru": "Тысячи людей вызвались помочь после наводнения.",
+      "vocab": [
+        { "en": "volunteered", "ru": "вызвались добровольцами" },
+        { "en": "after the flood", "ru": "после наводнения" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "The government is planning to raise the retirement age again.",
+      "ru": "Правительство снова планирует повысить пенсионный возраст.",
+      "vocab": [
+        { "en": "government", "ru": "правительство" },
+        { "en": "retirement age", "ru": "пенсионный возраст" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "Have you signed up for the charity run next month?",
+      "ru": "Ты записался на благотворительный забег в следующем месяце?",
+      "vocab": [
+        { "en": "signed up for", "ru": "записался на" },
+        { "en": "charity run", "ru": "благотворительный забег" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "Rent has gone up so much that young people are moving out of the city.",
+      "ru": "Аренда так подорожала, что молодёжь уезжает из города.",
+      "vocab": [
+        { "en": "gone up", "ru": "выросла, подорожала" },
+        { "en": "moving out", "ru": "съезжают, уезжают" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "The journalist interviewed residents about the new parking rules.",
+      "ru": "Журналист опросил жителей о новых правилах парковки.",
+      "vocab": [
+        { "en": "journalist", "ru": "журналист" },
+        { "en": "residents", "ru": "жители" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "It's a public holiday on Monday, so the banks will be shut.",
+      "ru": "В понедельник государственный праздник, так что банки будут закрыты.",
+      "vocab": [
+        { "en": "public holiday", "ru": "государственный праздник, выходной" },
+        { "en": "shut", "ru": "закрыты" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "The story went viral before anyone had bothered to check the facts.",
+      "ru": "История разлетелась по сети раньше, чем кто-то удосужился проверить факты.",
+      "vocab": [
+        { "en": "went viral", "ru": "стала вирусной, разлетелась по сети" },
+        { "en": "check the facts", "ru": "проверить факты" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "An ageing population puts pressure on healthcare and pensions alike.",
+      "ru": "Стареющее население создаёт нагрузку и на здравоохранение, и на пенсионную систему.",
+      "vocab": [
+        { "en": "ageing population", "ru": "стареющее население" },
+        { "en": "puts pressure on", "ru": "оказывает давление на, создаёт нагрузку" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "The report highlights a growing gap between rural and urban incomes.",
+      "ru": "Доклад подчёркивает растущий разрыв между доходами в сельской местности и в городах.",
+      "vocab": [
+        { "en": "highlights", "ru": "подчёркивает, выделяет" },
+        { "en": "rural", "ru": "сельский" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Misinformation spreads fastest when it confirms what people already believe.",
+      "ru": "Дезинформация распространяется быстрее всего, когда подтверждает то, во что люди уже верят.",
+      "vocab": [
+        { "en": "Misinformation", "ru": "дезинформация" },
+        { "en": "confirms", "ru": "подтверждает" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Local businesses are struggling to stay afloat amid rising costs.",
+      "ru": "Местный бизнес с трудом держится на плаву на фоне растущих расходов.",
+      "vocab": [
+        { "en": "stay afloat", "ru": "держаться на плаву" },
+        { "en": "amid", "ru": "на фоне, посреди" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "The census revealed that one in five residents was born abroad.",
+      "ru": "Перепись показала, что каждый пятый житель родился за границей.",
+      "vocab": [
+        { "en": "census", "ru": "перепись населения" },
+        { "en": "born abroad", "ru": "родился за границей" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Commuters were stranded for hours after the rail strike brought the city to a standstill.",
+      "ru": "Люди, едущие на работу, часами не могли выбраться после того, как забастовка железнодорожников парализовала город.",
+      "vocab": [
+        { "en": "Commuters", "ru": "люди, ездящие на работу (из пригорода)" },
+        { "en": "standstill", "ru": "полная остановка, паралич" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "The debate over housing has dragged on for years without any real outcome.",
+      "ru": "Споры о жилье тянутся годами без какого-либо реального результата.",
+      "vocab": [
+        { "en": "dragged on", "ru": "затянулись, тянутся" },
+        { "en": "outcome", "ru": "результат, исход" }
+      ]
+    }
+  ]
+}

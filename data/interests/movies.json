@@ -1,0 +1,32 @@
+{
+  "key": "movies",
+  "title": "Кино и сериалы",
+  "emoji": "🎬",
+  "group": "Хобби",
+  "sentences": [
+    { "level": "A2", "en": "Do you want to watch a movie tonight?", "ru": "Хочешь посмотреть фильм сегодня вечером?", "vocab": [ { "en": "watch a movie", "ru": "посмотреть фильм" }, { "en": "tonight", "ru": "сегодня вечером" } ] },
+    { "level": "A2", "en": "I don't like horror films, they scare me.", "ru": "Я не люблю фильмы ужасов, они меня пугают.", "vocab": [ { "en": "horror films", "ru": "фильмы ужасов" }, { "en": "scare me", "ru": "пугают меня" } ] },
+    { "level": "A2", "en": "We bought popcorn and found our seats in the cinema.", "ru": "Мы купили попкорн и нашли свои места в кинотеатре.", "vocab": [ { "en": "popcorn", "ru": "попкорн" }, { "en": "seats", "ru": "места" } ] },
+    { "level": "A2", "en": "My favourite actor is in this new comedy.", "ru": "В этой новой комедии играет мой любимый актёр.", "vocab": [ { "en": "favourite actor", "ru": "любимый актёр" }, { "en": "comedy", "ru": "комедия" } ] },
+    { "level": "A2", "en": "The film was too long, so I fell asleep.", "ru": "Фильм был слишком длинный, и я заснул.", "vocab": [ { "en": "too long", "ru": "слишком длинный" }, { "en": "fell asleep", "ru": "заснул" } ] },
+    { "level": "A2", "en": "Can you turn on the subtitles, please?", "ru": "Можешь включить субтитры, пожалуйста?", "vocab": [ { "en": "turn on", "ru": "включить" }, { "en": "subtitles", "ru": "субтитры" } ] },
+    { "level": "A2", "en": "I watched three episodes of the series last night.", "ru": "Вчера вечером я посмотрел три серии сериала.", "vocab": [ { "en": "episodes", "ru": "серии, эпизоды" }, { "en": "last night", "ru": "вчера вечером" } ] },
+    { "level": "A2", "en": "The tickets cost ten dollars for the evening show.", "ru": "Билеты на вечерний сеанс стоят десять долларов.", "vocab": [ { "en": "tickets", "ru": "билеты" }, { "en": "evening show", "ru": "вечерний сеанс" } ] },
+    { "level": "B1", "en": "Have you seen the trailer for the new Marvel film yet?", "ru": "Ты уже видел трейлер нового фильма Marvel?", "vocab": [ { "en": "trailer", "ru": "трейлер" }, { "en": "yet", "ru": "уже (в вопросе)" } ] },
+    { "level": "B1", "en": "I'd rather stay in and binge-watch a series this weekend.", "ru": "Я бы лучше остался дома и посмотрел сериал запоем в эти выходные.", "vocab": [ { "en": "stay in", "ru": "остаться дома" }, { "en": "binge-watch", "ru": "смотреть запоем" } ] },
+    { "level": "B1", "en": "The plot was predictable, but the acting was really good.", "ru": "Сюжет был предсказуемый, но актёрская игра была очень хорошей.", "vocab": [ { "en": "plot", "ru": "сюжет" }, { "en": "predictable", "ru": "предсказуемый" } ] },
+    { "level": "B1", "en": "We should book tickets online before they sell out.", "ru": "Нам стоит забронировать билеты онлайн, пока их не раскупили.", "vocab": [ { "en": "book tickets", "ru": "забронировать билеты" }, { "en": "sell out", "ru": "распродаться, закончиться" } ] },
+    { "level": "B1", "en": "Don't tell me the ending, I'm only halfway through!", "ru": "Не рассказывай концовку, я только на середине!", "vocab": [ { "en": "ending", "ru": "концовка" }, { "en": "halfway through", "ru": "на середине" } ] },
+    { "level": "B1", "en": "This documentary is based on a true story from the 1980s.", "ru": "Этот документальный фильм основан на реальных событиях 1980-х.", "vocab": [ { "en": "documentary", "ru": "документальный фильм" }, { "en": "based on a true story", "ru": "основан на реальных событиях" } ] },
+    { "level": "B1", "en": "The sequel wasn't as good as the original, in my opinion.", "ru": "По-моему, продолжение было не таким хорошим, как оригинал.", "vocab": [ { "en": "sequel", "ru": "сиквел, продолжение" }, { "en": "in my opinion", "ru": "по моему мнению" } ] },
+    { "level": "B1", "en": "Which streaming service are you subscribed to at the moment?", "ru": "На какой стриминговый сервис ты сейчас подписан?", "vocab": [ { "en": "streaming service", "ru": "стриминговый сервис" }, { "en": "subscribed to", "ru": "подписан на" } ] },
+    { "level": "B2", "en": "The film got glowing reviews, but honestly it left me cold.", "ru": "Фильм получил восторженные отзывы, но, честно говоря, меня он не тронул.", "vocab": [ { "en": "glowing reviews", "ru": "восторженные отзывы" }, { "en": "left me cold", "ru": "оставил меня равнодушным" } ] },
+    { "level": "B2", "en": "I can't stand films that rely on cheap plot twists.", "ru": "Терпеть не могу фильмы, которые держатся на дешёвых сюжетных поворотах.", "vocab": [ { "en": "can't stand", "ru": "терпеть не могу" }, { "en": "plot twists", "ru": "сюжетные повороты" } ] },
+    { "level": "B2", "en": "The cinematography was stunning, even if the dialogue felt a bit clunky.", "ru": "Операторская работа была потрясающей, хотя диалоги звучали немного топорно.", "vocab": [ { "en": "cinematography", "ru": "операторская работа" }, { "en": "clunky", "ru": "неуклюжий, топорный" } ] },
+    { "level": "B2", "en": "She gave a compelling performance that definitely deserves an award.", "ru": "Она сыграла настолько убедительно, что это точно заслуживает награды.", "vocab": [ { "en": "compelling performance", "ru": "убедительная актёрская игра" }, { "en": "deserves", "ru": "заслуживает" } ] },
+    { "level": "B2", "en": "The pacing drags in the middle, but the finale makes up for it.", "ru": "В середине темп провисает, но финал это компенсирует.", "vocab": [ { "en": "pacing", "ru": "темп повествования" }, { "en": "makes up for", "ru": "компенсирует" } ] },
+    { "level": "B2", "en": "Critics have been raving about this indie film for months.", "ru": "Критики уже несколько месяцев в восторге от этого независимого фильма.", "vocab": [ { "en": "Critics", "ru": "критики" }, { "en": "indie film", "ru": "независимое кино" } ] },
+    { "level": "B2", "en": "I'd argue the book is far more nuanced than the adaptation.", "ru": "Я бы сказал, что книга гораздо тоньше и многограннее, чем экранизация.", "vocab": [ { "en": "nuanced", "ru": "тонкий, многогранный" }, { "en": "adaptation", "ru": "экранизация" } ] },
+    { "level": "B2", "en": "The show jumped the shark after the third season, sadly.", "ru": "К сожалению, после третьего сезона сериал скатился.", "vocab": [ { "en": "jumped the shark", "ru": "скатился, исчерпал себя" }, { "en": "season", "ru": "сезон" } ] }
+  ]
+}

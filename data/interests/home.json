@@ -1,0 +1,32 @@
+{
+  "key": "home",
+  "title": "Дом и ремонт",
+  "emoji": "🏠",
+  "group": "Жизнь",
+  "sentences": [
+    { "level": "A2", "en": "We live in a small flat on the third floor.", "ru": "Мы живём в маленькой квартире на третьем этаже.", "vocab": [ { "en": "small flat", "ru": "маленькая квартира" }, { "en": "third floor", "ru": "третий этаж" } ] },
+    { "level": "A2", "en": "Where do you keep the clean towels?", "ru": "Где ты хранишь чистые полотенца?", "vocab": [ { "en": "keep", "ru": "хранить, держать" }, { "en": "clean towels", "ru": "чистые полотенца" } ] },
+    { "level": "A2", "en": "The kitchen is nice, but the bathroom is really old.", "ru": "Кухня хорошая, а вот ванная совсем старая.", "vocab": [ { "en": "kitchen", "ru": "кухня" }, { "en": "bathroom", "ru": "ванная комната" } ] },
+    { "level": "A2", "en": "Can you turn off the lights when you leave?", "ru": "Выключи, пожалуйста, свет, когда будешь уходить.", "vocab": [ { "en": "turn off", "ru": "выключить" }, { "en": "when you leave", "ru": "когда уходишь" } ] },
+    { "level": "A2", "en": "I need to clean the windows this weekend.", "ru": "Мне нужно помыть окна на этих выходных.", "vocab": [ { "en": "clean the windows", "ru": "помыть окна" }, { "en": "this weekend", "ru": "на этих выходных" } ] },
+    { "level": "A2", "en": "There isn't enough space for a big sofa here.", "ru": "Здесь недостаточно места для большого дивана.", "vocab": [ { "en": "enough space", "ru": "достаточно места" }, { "en": "sofa", "ru": "диван" } ] },
+    { "level": "A2", "en": "Our neighbours are very quiet, we never hear them.", "ru": "Наши соседи очень тихие, мы их никогда не слышим.", "vocab": [ { "en": "neighbours", "ru": "соседи" }, { "en": "quiet", "ru": "тихие" } ] },
+    { "level": "A2", "en": "Let's paint the bedroom walls light blue.", "ru": "Давай покрасим стены спальни в светло-голубой.", "vocab": [ { "en": "paint", "ru": "покрасить" }, { "en": "bedroom walls", "ru": "стены спальни" } ] },
+    { "level": "B1", "en": "We're renovating the kitchen, so we've been eating out all week.", "ru": "Мы делаем ремонт на кухне, поэтому всю неделю едим не дома.", "vocab": [ { "en": "renovating", "ru": "делаем ремонт" }, { "en": "eating out", "ru": "есть не дома, в кафе" } ] },
+    { "level": "B1", "en": "The tap in the bathroom has been dripping for days.", "ru": "Кран в ванной капает уже несколько дней.", "vocab": [ { "en": "tap", "ru": "кран" }, { "en": "dripping", "ru": "капает, подтекает" } ] },
+    { "level": "B1", "en": "Could you help me put up these shelves on Saturday?", "ru": "Поможешь мне повесить эти полки в субботу?", "vocab": [ { "en": "put up", "ru": "повесить, установить" }, { "en": "shelves", "ru": "полки" } ] },
+    { "level": "B1", "en": "Our rent is going up again next month, unfortunately.", "ru": "К сожалению, в следующем месяце наша аренда снова дорожает.", "vocab": [ { "en": "rent", "ru": "арендная плата" }, { "en": "going up", "ru": "растёт, повышается" } ] },
+    { "level": "B1", "en": "I finally got round to fixing the broken door handle.", "ru": "Я наконец-то добрался до сломанной дверной ручки и починил её.", "vocab": [ { "en": "got round to", "ru": "наконец добрался до (дела)" }, { "en": "door handle", "ru": "дверная ручка" } ] },
+    { "level": "B1", "en": "The landlord said he'd send a plumber by Tuesday.", "ru": "Арендодатель сказал, что пришлёт сантехника до вторника.", "vocab": [ { "en": "landlord", "ru": "арендодатель, хозяин квартиры" }, { "en": "plumber", "ru": "сантехник" } ] },
+    { "level": "B1", "en": "We moved in last spring and still haven't unpacked everything.", "ru": "Мы въехали прошлой весной и до сих пор не всё распаковали.", "vocab": [ { "en": "moved in", "ru": "въехали, заселились" }, { "en": "unpacked", "ru": "распаковали" } ] },
+    { "level": "B1", "en": "It gets really cold in winter because the windows don't seal properly.", "ru": "Зимой здесь очень холодно, потому что окна плохо закрываются.", "vocab": [ { "en": "seal properly", "ru": "плотно закрываться, герметично прилегать" }, { "en": "gets really cold", "ru": "становится очень холодно" } ] },
+    { "level": "B2", "en": "The flat has loads of character, but it needs a lot of work.", "ru": "Квартира очень атмосферная, но ей нужен серьёзный ремонт.", "vocab": [ { "en": "loads of character", "ru": "очень атмосферная, с характером" }, { "en": "needs a lot of work", "ru": "требует серьёзного ремонта" } ] },
+    { "level": "B2", "en": "We went way over budget once we started knocking down walls.", "ru": "Мы сильно вышли за рамки бюджета, как только начали сносить стены.", "vocab": [ { "en": "over budget", "ru": "сверх бюджета" }, { "en": "knocking down walls", "ru": "сносить стены" } ] },
+    { "level": "B2", "en": "I'd rather hire someone than spend every weekend on DIY.", "ru": "Я лучше найму кого-нибудь, чем буду тратить каждые выходные на ремонт своими руками.", "vocab": [ { "en": "hire someone", "ru": "нанять кого-то" }, { "en": "DIY", "ru": "ремонт своими руками" } ] },
+    { "level": "B2", "en": "The contractor keeps pushing back the deadline, which is driving me mad.", "ru": "Подрядчик всё время переносит сроки, и это сводит меня с ума.", "vocab": [ { "en": "pushing back the deadline", "ru": "переносить сроки" }, { "en": "driving me mad", "ru": "сводит меня с ума" } ] },
+    { "level": "B2", "en": "A fresh coat of paint can completely transform a dull room.", "ru": "Свежий слой краски может полностью преобразить унылую комнату.", "vocab": [ { "en": "fresh coat of paint", "ru": "свежий слой краски" }, { "en": "dull", "ru": "унылый, скучный" } ] },
+    { "level": "B2", "en": "We're thinking of converting the attic into a home office.", "ru": "Мы подумываем переоборудовать чердак под домашний кабинет.", "vocab": [ { "en": "converting", "ru": "переоборудовать" }, { "en": "attic", "ru": "чердак" } ] },
+    { "level": "B2", "en": "The mortgage is manageable, but the utility bills are a nightmare.", "ru": "Ипотека вполне подъёмная, а вот коммунальные платежи — просто кошмар.", "vocab": [ { "en": "mortgage", "ru": "ипотека" }, { "en": "utility bills", "ru": "коммунальные платежи" } ] },
+    { "level": "B2", "en": "Decluttering the garage took a whole weekend, but it was worth it.", "ru": "Разбор хлама в гараже занял все выходные, но оно того стоило.", "vocab": [ { "en": "Decluttering", "ru": "расхламление, разбор хлама" }, { "en": "worth it", "ru": "того стоило" } ] }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "key": "startups",
+  "title": "Бизнес и стартапы",
+  "emoji": "🚀",
+  "group": "Работа и карьера",
+  "sentences": [
+    { "level": "A2", "en": "My friend has a small business. She sells cakes online.", "ru": "У моей подруги небольшой бизнес. Она продаёт торты онлайн.", "vocab": [ { "en": "small business", "ru": "малый бизнес" }, { "en": "sells", "ru": "продаёт" } ] },
+    { "level": "A2", "en": "We need money to start our company.", "ru": "Нам нужны деньги, чтобы открыть нашу компанию.", "vocab": [ { "en": "need money", "ru": "нужны деньги" }, { "en": "start our company", "ru": "открыть нашу компанию" } ] },
+    { "level": "A2", "en": "Is your product ready? No, not yet.", "ru": "Ваш продукт готов? Нет, пока нет.", "vocab": [ { "en": "product", "ru": "продукт" }, { "en": "not yet", "ru": "пока нет" } ] },
+    { "level": "A2", "en": "Our users like the app, but they want more features.", "ru": "Нашим пользователям нравится приложение, но они хотят больше функций.", "vocab": [ { "en": "users", "ru": "пользователи" }, { "en": "features", "ru": "функции" } ] },
+    { "level": "A2", "en": "How much does it cost to make one unit?", "ru": "Сколько стоит произвести одну единицу товара?", "vocab": [ { "en": "How much does it cost", "ru": "сколько стоит" }, { "en": "unit", "ru": "единица товара" } ] },
+    { "level": "A2", "en": "I have an idea for a new app.", "ru": "У меня есть идея для нового приложения.", "vocab": [ { "en": "idea", "ru": "идея" }, { "en": "app", "ru": "приложение" } ] },
+    { "level": "A2", "en": "We don't have a website yet, only a page on Instagram.", "ru": "У нас пока нет сайта, только страница в Instagram.", "vocab": [ { "en": "website", "ru": "сайт" }, { "en": "page", "ru": "страница" } ] },
+    { "level": "A2", "en": "They opened their first shop last month.", "ru": "В прошлом месяце они открыли свой первый магазин.", "vocab": [ { "en": "opened", "ru": "открыли" }, { "en": "first shop", "ru": "первый магазин" } ] },
+    { "level": "B1", "en": "We're looking for an investor who believes in our idea.", "ru": "Мы ищем инвестора, который верит в нашу идею.", "vocab": [ { "en": "investor", "ru": "инвестор" }, { "en": "believes in", "ru": "верит в" } ] },
+    { "level": "B1", "en": "The startup grew from three people to fifty in two years.", "ru": "Стартап вырос с трёх человек до пятидесяти за два года.", "vocab": [ { "en": "grew", "ru": "вырос" }, { "en": "in two years", "ru": "за два года" } ] },
+    { "level": "B1", "en": "Have you tested the product with real clients yet?", "ru": "Вы уже тестировали продукт с реальными клиентами?", "vocab": [ { "en": "tested", "ru": "тестировали" }, { "en": "real clients", "ru": "реальные клиенты" } ] },
+    { "level": "B1", "en": "Our main competitor just lowered their prices, so we have to react.", "ru": "Наш главный конкурент только что снизил цены, так что нам нужно реагировать.", "vocab": [ { "en": "competitor", "ru": "конкурент" }, { "en": "lowered their prices", "ru": "снизили цены" } ] },
+    { "level": "B1", "en": "We launched the beta version last week and got great feedback.", "ru": "На прошлой неделе мы запустили бета-версию и получили отличные отзывы.", "vocab": [ { "en": "launched", "ru": "запустили" }, { "en": "beta version", "ru": "бета-версия" } ] },
+    { "level": "B1", "en": "If we don't find customers soon, we'll run out of money.", "ru": "Если мы в ближайшее время не найдём клиентов, у нас закончатся деньги.", "vocab": [ { "en": "find customers", "ru": "найти клиентов" }, { "en": "run out of money", "ru": "остаться без денег" } ] },
+    { "level": "B1", "en": "She pitched her startup to a room full of investors.", "ru": "Она презентовала свой стартап полному залу инвесторов.", "vocab": [ { "en": "pitched", "ru": "презентовала (проект)" }, { "en": "a room full of", "ru": "полный зал" } ] },
+    { "level": "B1", "en": "We need a clear business plan before we talk to the bank.", "ru": "Нам нужен чёткий бизнес-план, прежде чем идти в банк.", "vocab": [ { "en": "business plan", "ru": "бизнес-план" }, { "en": "talk to the bank", "ru": "обратиться в банк" } ] },
+    { "level": "B2", "en": "We're bootstrapping for now rather than giving away equity too early.", "ru": "Пока мы развиваемся на свои средства, а не раздаём долю слишком рано.", "vocab": [ { "en": "bootstrapping", "ru": "развиваться на собственные средства" }, { "en": "equity", "ru": "доля в компании" } ] },
+    { "level": "B2", "en": "The founders pivoted twice before they finally found product-market fit.", "ru": "Основатели дважды меняли направление, прежде чем наконец нашли соответствие продукта рынку.", "vocab": [ { "en": "pivoted", "ru": "сменили направление" }, { "en": "product-market fit", "ru": "соответствие продукта рынку" } ] },
+    { "level": "B2", "en": "Our burn rate is too high; we've got maybe six months of runway.", "ru": "Мы тратим слишком быстро — денег хватит примерно на шесть месяцев.", "vocab": [ { "en": "burn rate", "ru": "скорость расходования средств" }, { "en": "runway", "ru": "запас времени до конца денег" } ] },
+    { "level": "B2", "en": "Scaling too fast nearly killed the company in its second year.", "ru": "Слишком быстрое масштабирование чуть не погубило компанию на второй год.", "vocab": [ { "en": "Scaling", "ru": "масштабирование" }, { "en": "nearly killed", "ru": "чуть не погубило" } ] },
+    { "level": "B2", "en": "We closed a seed round last month, which gives us some breathing room.", "ru": "В прошлом месяце мы закрыли посевной раунд, и это даёт нам передышку.", "vocab": [ { "en": "seed round", "ru": "посевной раунд" }, { "en": "breathing room", "ru": "передышка" } ] },
+    { "level": "B2", "en": "Churn has been creeping up, so we need to dig into why users leave.", "ru": "Отток постепенно растёт, так что нужно разобраться, почему пользователи уходят.", "vocab": [ { "en": "Churn", "ru": "отток клиентов" }, { "en": "dig into", "ru": "разобраться в" } ] },
+    { "level": "B2", "en": "Don't build things nobody asked for; validate the demand first.", "ru": "Не делайте то, чего никто не просил, — сначала подтвердите спрос.", "vocab": [ { "en": "validate", "ru": "проверить, подтвердить" }, { "en": "demand", "ru": "спрос" } ] },
+    { "level": "B2", "en": "The acquisition fell through at the last minute over valuation disagreements.", "ru": "Сделка по поглощению сорвалась в последний момент из-за разногласий по оценке.", "vocab": [ { "en": "fell through", "ru": "сорвалась" }, { "en": "valuation", "ru": "оценка стоимости" } ] }
+  ]
+}

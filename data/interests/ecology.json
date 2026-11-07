@@ -1,0 +1,224 @@
+{
+  "key": "ecology",
+  "title": "Экология",
+  "emoji": "🌱",
+  "group": "Мир вокруг",
+  "sentences": [
+    {
+      "level": "A2",
+      "en": "Please don't throw plastic bottles into the river.",
+      "ru": "Пожалуйста, не бросайте пластиковые бутылки в реку.",
+      "vocab": [
+        { "en": "throw", "ru": "бросать" },
+        { "en": "plastic bottles", "ru": "пластиковые бутылки" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "We recycle paper and glass at home every week.",
+      "ru": "Мы каждую неделю сдаём на переработку бумагу и стекло.",
+      "vocab": [
+        { "en": "recycle", "ru": "перерабатывать, сдавать на переработку" },
+        { "en": "glass", "ru": "стекло" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "Turn off the lights when you leave the room.",
+      "ru": "Выключай свет, когда выходишь из комнаты.",
+      "vocab": [
+        { "en": "Turn off", "ru": "выключать" },
+        { "en": "leave", "ru": "выходить, покидать" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "There are a lot of trees in the park near my house.",
+      "ru": "В парке рядом с моим домом много деревьев.",
+      "vocab": [
+        { "en": "trees", "ru": "деревья" },
+        { "en": "near", "ru": "рядом с" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "The air in big cities is often very dirty.",
+      "ru": "Воздух в больших городах часто очень грязный.",
+      "vocab": [
+        { "en": "air", "ru": "воздух" },
+        { "en": "dirty", "ru": "грязный" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "I take a cloth bag to the supermarket instead of a plastic one.",
+      "ru": "Я беру в супермаркет тканевую сумку вместо пластикового пакета.",
+      "vocab": [
+        { "en": "cloth bag", "ru": "тканевая сумка" },
+        { "en": "instead of", "ru": "вместо" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "Summers are getting hotter every year in my city.",
+      "ru": "Лето в моём городе с каждым годом становится жарче.",
+      "vocab": [
+        { "en": "getting hotter", "ru": "становится жарче" },
+        { "en": "every year", "ru": "каждый год" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "We should save water and not waste food.",
+      "ru": "Нам стоит экономить воду и не выбрасывать еду.",
+      "vocab": [
+        { "en": "save water", "ru": "экономить воду" },
+        { "en": "waste food", "ru": "выбрасывать еду, переводить продукты" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "Our office switched to paper cups, but it's still a lot of waste.",
+      "ru": "Наш офис перешёл на бумажные стаканчики, но мусора всё равно много.",
+      "vocab": [
+        { "en": "switched to", "ru": "перешёл на" },
+        { "en": "waste", "ru": "отходы, мусор" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "Many people buy second-hand clothes to reduce their impact on the planet.",
+      "ru": "Многие покупают одежду с рук, чтобы меньше вредить планете.",
+      "vocab": [
+        { "en": "second-hand", "ru": "подержанный, бывший в употреблении" },
+        { "en": "reduce", "ru": "сократить, уменьшить" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "The city is planting more trees to fight pollution.",
+      "ru": "Город сажает больше деревьев, чтобы бороться с загрязнением.",
+      "vocab": [
+        { "en": "planting", "ru": "сажает" },
+        { "en": "pollution", "ru": "загрязнение" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "I'd rather cycle to work than sit in traffic and burn fuel.",
+      "ru": "Я лучше поеду на работу на велосипеде, чем буду стоять в пробке и жечь бензин.",
+      "vocab": [
+        { "en": "cycle to work", "ru": "ездить на работу на велосипеде" },
+        { "en": "burn fuel", "ru": "жечь топливо" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "Have you ever taken part in a beach clean-up?",
+      "ru": "Ты когда-нибудь участвовал в уборке пляжа?",
+      "vocab": [
+        { "en": "taken part in", "ru": "участвовал в" },
+        { "en": "clean-up", "ru": "уборка, субботник" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "Global warming is causing more floods and droughts around the world.",
+      "ru": "Глобальное потепление вызывает всё больше наводнений и засух по всему миру.",
+      "vocab": [
+        { "en": "Global warming", "ru": "глобальное потепление" },
+        { "en": "droughts", "ru": "засухи" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "We've cut our electricity bill by using solar panels.",
+      "ru": "Мы снизили счёт за электричество благодаря солнечным панелям.",
+      "vocab": [
+        { "en": "electricity bill", "ru": "счёт за электричество" },
+        { "en": "solar panels", "ru": "солнечные панели" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "It's getting harder to find a place that doesn't sell bottled water.",
+      "ru": "Всё труднее найти место, где не продают воду в бутылках.",
+      "vocab": [
+        { "en": "getting harder", "ru": "становится труднее" },
+        { "en": "bottled water", "ru": "бутилированная вода" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Companies love talking about sustainability, but greenwashing is still widespread.",
+      "ru": "Компании любят говорить об устойчивом развитии, но гринвошинг по-прежнему повсюду.",
+      "vocab": [
+        { "en": "sustainability", "ru": "устойчивое развитие, экологичность" },
+        { "en": "greenwashing", "ru": "гринвошинг, показная экологичность" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Unless emissions fall sharply, coastal cities will face serious flooding.",
+      "ru": "Если выбросы резко не сократятся, прибрежные города столкнутся с серьёзными наводнениями.",
+      "vocab": [
+        { "en": "emissions", "ru": "выбросы" },
+        { "en": "coastal", "ru": "прибрежный" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Fast fashion has a huge carbon footprint that most shoppers never see.",
+      "ru": "У быстрой моды огромный углеродный след, которого большинство покупателей не видит.",
+      "vocab": [
+        { "en": "Fast fashion", "ru": "быстрая мода" },
+        { "en": "carbon footprint", "ru": "углеродный след" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Renewable energy is finally becoming cheaper than coal in many countries.",
+      "ru": "Возобновляемая энергия наконец становится дешевле угля во многих странах.",
+      "vocab": [
+        { "en": "Renewable energy", "ru": "возобновляемая энергия" },
+        { "en": "coal", "ru": "уголь" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "We can't rely on recycling alone; cutting consumption matters far more.",
+      "ru": "Нельзя полагаться только на переработку — куда важнее сокращать потребление.",
+      "vocab": [
+        { "en": "rely on", "ru": "полагаться на" },
+        { "en": "consumption", "ru": "потребление" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Deforestation is wiping out habitats faster than species can adapt.",
+      "ru": "Вырубка лесов уничтожает места обитания быстрее, чем виды успевают приспособиться.",
+      "vocab": [
+        { "en": "Deforestation", "ru": "вырубка лесов" },
+        { "en": "wiping out", "ru": "уничтожает, стирает с лица земли" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "The landfill near the town is almost full, and nobody wants a new one.",
+      "ru": "Свалка под городом почти заполнена, и никто не хочет новую.",
+      "vocab": [
+        { "en": "landfill", "ru": "свалка, полигон отходов" },
+        { "en": "almost full", "ru": "почти заполнена" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Small habits add up: skipping one flight a year makes a real difference.",
+      "ru": "Мелкие привычки накапливаются: отказ от одного перелёта в год реально что-то меняет.",
+      "vocab": [
+        { "en": "add up", "ru": "накапливаться, складываться" },
+        { "en": "makes a real difference", "ru": "реально что-то меняет" }
+      ]
+    }
+  ]
+}

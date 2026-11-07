@@ -1,0 +1,32 @@
+{
+  "key": "shopping",
+  "title": "Шопинг и мода",
+  "emoji": "🛍",
+  "group": "Жизнь",
+  "sentences": [
+    { "level": "A2", "en": "This jacket is nice, but how much does it cost?", "ru": "Куртка хорошая, но сколько она стоит?", "vocab": [ { "en": "jacket", "ru": "куртка" }, { "en": "how much does it cost", "ru": "сколько это стоит" } ] },
+    { "level": "A2", "en": "Do you have this T-shirt in a bigger size?", "ru": "У вас есть эта футболка размером побольше?", "vocab": [ { "en": "T-shirt", "ru": "футболка" }, { "en": "bigger size", "ru": "размер побольше" } ] },
+    { "level": "A2", "en": "I'm going to the shops, do you need anything?", "ru": "Я иду в магазин, тебе что-нибудь нужно?", "vocab": [ { "en": "going to the shops", "ru": "иду в магазин" }, { "en": "need anything", "ru": "нужно что-нибудь" } ] },
+    { "level": "A2", "en": "Can I pay by card or only in cash?", "ru": "Можно оплатить картой или только наличными?", "vocab": [ { "en": "pay by card", "ru": "оплатить картой" }, { "en": "in cash", "ru": "наличными" } ] },
+    { "level": "A2", "en": "These shoes are too small for me.", "ru": "Эти туфли мне малы.", "vocab": [ { "en": "shoes", "ru": "туфли, обувь" }, { "en": "too small", "ru": "слишком малы" } ] },
+    { "level": "A2", "en": "The shop opens at nine and closes at eight.", "ru": "Магазин открывается в девять и закрывается в восемь.", "vocab": [ { "en": "opens", "ru": "открывается" }, { "en": "closes", "ru": "закрывается" } ] },
+    { "level": "A2", "en": "I bought a new dress for the party.", "ru": "Я купила новое платье на вечеринку.", "vocab": [ { "en": "bought", "ru": "купила" }, { "en": "dress", "ru": "платье" } ] },
+    { "level": "A2", "en": "Excuse me, where is the fitting room, please?", "ru": "Извините, где здесь примерочная?", "vocab": [ { "en": "Excuse me", "ru": "Извините" }, { "en": "fitting room", "ru": "примерочная" } ] },
+    { "level": "B1", "en": "I'd like to return this, it doesn't fit properly.", "ru": "Я хотела бы это вернуть, оно плохо сидит.", "vocab": [ { "en": "return", "ru": "вернуть (товар)" }, { "en": "doesn't fit", "ru": "не подходит по размеру, не сидит" } ] },
+    { "level": "B1", "en": "Everything is half price this week, so let's have a look.", "ru": "На этой неделе всё за полцены, так что давай посмотрим.", "vocab": [ { "en": "half price", "ru": "за полцены" }, { "en": "have a look", "ru": "взглянуть, посмотреть" } ] },
+    { "level": "B1", "en": "Do you still have the receipt for the headphones?", "ru": "У тебя ещё остался чек на наушники?", "vocab": [ { "en": "receipt", "ru": "чек" }, { "en": "headphones", "ru": "наушники" } ] },
+    { "level": "B1", "en": "I usually shop online because it saves so much time.", "ru": "Я обычно покупаю онлайн, потому что это экономит столько времени.", "vocab": [ { "en": "shop online", "ru": "делать покупки онлайн" }, { "en": "saves so much time", "ru": "экономит столько времени" } ] },
+    { "level": "B1", "en": "That coat really suits you, you should get it.", "ru": "Это пальто тебе очень идёт, бери.", "vocab": [ { "en": "suits you", "ru": "тебе идёт" }, { "en": "coat", "ru": "пальто" } ] },
+    { "level": "B1", "en": "They're out of stock, but they can order it for me.", "ru": "У них нет в наличии, но они могут заказать для меня.", "vocab": [ { "en": "out of stock", "ru": "нет в наличии" }, { "en": "order it", "ru": "заказать это" } ] },
+    { "level": "B1", "en": "I can't afford a new laptop right now, maybe next month.", "ru": "Сейчас я не могу позволить себе новый ноутбук, может, в следующем месяце.", "vocab": [ { "en": "can't afford", "ru": "не могу себе позволить" }, { "en": "right now", "ru": "прямо сейчас" } ] },
+    { "level": "B1", "en": "She's always browsing, but she hardly ever buys anything.", "ru": "Она вечно разглядывает товары, но почти никогда ничего не покупает.", "vocab": [ { "en": "browsing", "ru": "просто смотреть, разглядывать товары" }, { "en": "hardly ever", "ru": "почти никогда" } ] },
+    { "level": "B2", "en": "I got sucked into a sale and spent way more than I planned.", "ru": "Меня затянула распродажа, и я потратила гораздо больше, чем планировала.", "vocab": [ { "en": "got sucked into", "ru": "меня затянуло, я поддалась" }, { "en": "way more than", "ru": "гораздо больше, чем" } ] },
+    { "level": "B2", "en": "Fast fashion is cheap, but the quality is absolutely dreadful.", "ru": "Быстрая мода дешёвая, но качество просто ужасное.", "vocab": [ { "en": "Fast fashion", "ru": "быстрая мода (массовые дешёвые бренды)" }, { "en": "dreadful", "ru": "ужасный, отвратительный" } ] },
+    { "level": "B2", "en": "It's a bit pricey, but it'll last for years.", "ru": "Дороговато, но прослужит годами.", "vocab": [ { "en": "pricey", "ru": "дороговато" }, { "en": "last for years", "ru": "прослужит годами" } ] },
+    { "level": "B2", "en": "The delivery was late and the package turned up damaged.", "ru": "Доставка опоздала, а посылка пришла повреждённой.", "vocab": [ { "en": "delivery", "ru": "доставка" }, { "en": "turned up", "ru": "прибыл, появился" } ] },
+    { "level": "B2", "en": "I'm trying to buy fewer things and invest in timeless pieces.", "ru": "Я стараюсь покупать меньше вещей и вкладываться в то, что не выходит из моды.", "vocab": [ { "en": "invest in", "ru": "вкладываться в" }, { "en": "timeless pieces", "ru": "вещи вне времени, классика" } ] },
+    { "level": "B2", "en": "Their customer service is appalling; I waited a week for a reply.", "ru": "Их служба поддержки ужасна: я ждала ответа неделю.", "vocab": [ { "en": "customer service", "ru": "служба поддержки клиентов" }, { "en": "appalling", "ru": "ужасающий, возмутительный" } ] },
+    { "level": "B2", "en": "That bag is a total rip-off, you can get the same one elsewhere.", "ru": "Эта сумка — сплошной грабёж, такую же можно купить в другом месте.", "vocab": [ { "en": "rip-off", "ru": "грабёж, неоправданно дорогая вещь" }, { "en": "elsewhere", "ru": "в другом месте" } ] },
+    { "level": "B2", "en": "I bagged a bargain on a designer coat in the January sales.", "ru": "Я урвала дизайнерское пальто по выгодной цене на январских распродажах.", "vocab": [ { "en": "bagged a bargain", "ru": "урвала выгодную покупку" }, { "en": "January sales", "ru": "январские распродажи" } ] }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "key": "yoga",
+  "title": "Йога и медитация",
+  "emoji": "🧘",
+  "group": "Хобби",
+  "sentences": [
+    { "level": "A2", "en": "I do yoga every morning for twenty minutes.", "ru": "Каждое утро я занимаюсь йогой по двадцать минут.", "vocab": [ { "en": "do yoga", "ru": "заниматься йогой" }, { "en": "every morning", "ru": "каждое утро" } ] },
+    { "level": "A2", "en": "Sit down, close your eyes and breathe slowly.", "ru": "Сядьте, закройте глаза и дышите медленно.", "vocab": [ { "en": "close your eyes", "ru": "закройте глаза" }, { "en": "breathe", "ru": "дышать" } ] },
+    { "level": "A2", "en": "Where is my yoga mat? I can't find it.", "ru": "Где мой коврик для йоги? Не могу его найти.", "vocab": [ { "en": "yoga mat", "ru": "коврик для йоги" }, { "en": "can't find", "ru": "не могу найти" } ] },
+    { "level": "A2", "en": "This pose is hard for me, my legs are tired.", "ru": "Эта поза для меня сложная, у меня устали ноги.", "vocab": [ { "en": "pose", "ru": "поза" }, { "en": "tired", "ru": "уставшие, устали" } ] },
+    { "level": "A2", "en": "Our class starts at seven, don't be late.", "ru": "Наше занятие начинается в семь, не опаздывай.", "vocab": [ { "en": "class starts", "ru": "занятие начинается" }, { "en": "late", "ru": "поздно, с опозданием" } ] },
+    { "level": "A2", "en": "I feel calm and happy after meditation.", "ru": "После медитации я чувствую себя спокойным и счастливым.", "vocab": [ { "en": "calm", "ru": "спокойный" }, { "en": "meditation", "ru": "медитация" } ] },
+    { "level": "A2", "en": "Can you stretch your arms up to the ceiling?", "ru": "Можете вытянуть руки вверх к потолку?", "vocab": [ { "en": "stretch", "ru": "вытянуть, потянуться" }, { "en": "ceiling", "ru": "потолок" } ] },
+    { "level": "A2", "en": "She uses an app to meditate before sleep.", "ru": "Она медитирует перед сном с помощью приложения.", "vocab": [ { "en": "meditate", "ru": "медитировать" }, { "en": "before sleep", "ru": "перед сном" } ] },
+    { "level": "B1", "en": "I've been practising yoga for two years and feel much stronger.", "ru": "Я занимаюсь йогой уже два года и чувствую себя гораздо сильнее.", "vocab": [ { "en": "practising", "ru": "практикую, занимаюсь" }, { "en": "stronger", "ru": "сильнее" } ] },
+    { "level": "B1", "en": "Try to focus on your breath and let the thoughts go.", "ru": "Постарайтесь сосредоточиться на дыхании и отпустить мысли.", "vocab": [ { "en": "focus on", "ru": "сосредоточиться на" }, { "en": "let the thoughts go", "ru": "отпустить мысли" } ] },
+    { "level": "B1", "en": "Meditation helps me deal with stress at work.", "ru": "Медитация помогает мне справляться со стрессом на работе.", "vocab": [ { "en": "deal with", "ru": "справляться с" }, { "en": "stress", "ru": "стресс" } ] },
+    { "level": "B1", "en": "I can't touch my toes yet, but I'm getting there.", "ru": "Я пока не достаю до пальцев ног, но уже близко.", "vocab": [ { "en": "touch my toes", "ru": "дотянуться до пальцев ног" }, { "en": "getting there", "ru": "постепенно получается" } ] },
+    { "level": "B1", "en": "Our instructor always ends the class with a short relaxation.", "ru": "Наш инструктор всегда заканчивает занятие короткой релаксацией.", "vocab": [ { "en": "instructor", "ru": "инструктор" }, { "en": "relaxation", "ru": "релаксация, расслабление" } ] },
+    { "level": "B1", "en": "I prefer a gentle flow in the evening to wind down.", "ru": "Вечером я предпочитаю мягкую практику, чтобы расслабиться.", "vocab": [ { "en": "gentle", "ru": "мягкий, спокойный" }, { "en": "wind down", "ru": "расслабиться, сбавить обороты" } ] },
+    { "level": "B1", "en": "Hold the position for five breaths, then switch sides.", "ru": "Удерживайте положение пять вдохов, затем поменяйте сторону.", "vocab": [ { "en": "Hold the position", "ru": "удерживайте положение" }, { "en": "switch sides", "ru": "поменять сторону" } ] },
+    { "level": "B1", "en": "A ten-minute body scan really clears my head.", "ru": "Десятиминутное сканирование тела отлично проясняет голову.", "vocab": [ { "en": "body scan", "ru": "сканирование тела (практика)" }, { "en": "clears my head", "ru": "проясняет голову" } ] },
+    { "level": "B2", "en": "Mindfulness isn't about emptying your mind but noticing what's there.", "ru": "Осознанность — это не опустошение ума, а умение замечать, что в нём есть.", "vocab": [ { "en": "Mindfulness", "ru": "осознанность" }, { "en": "emptying your mind", "ru": "опустошить ум" } ] },
+    { "level": "B2", "en": "I used to dismiss meditation as woo-woo until I tried it.", "ru": "Раньше я отмахивался от медитации как от эзотерики, пока не попробовал.", "vocab": [ { "en": "dismiss", "ru": "отмахиваться от, не принимать всерьёз" }, { "en": "woo-woo", "ru": "эзотерика, мистическая ерунда (разг.)" } ] },
+    { "level": "B2", "en": "Listen to your body and back off if anything feels sharp.", "ru": "Прислушивайтесь к телу и ослабьте усилие, если чувствуете резкую боль.", "vocab": [ { "en": "Listen to your body", "ru": "прислушивайтесь к своему телу" }, { "en": "back off", "ru": "ослабить, отступить" } ] },
+    { "level": "B2", "en": "Consistent practice has done wonders for my posture and sleep.", "ru": "Регулярная практика сотворила чудеса с моей осанкой и сном.", "vocab": [ { "en": "done wonders", "ru": "сотворила чудеса" }, { "en": "posture", "ru": "осанка" } ] },
+    { "level": "B2", "en": "The retreat was a digital detox: no phones, no Wi-Fi, just silence.", "ru": "Ретрит стал цифровым детоксом: ни телефонов, ни Wi-Fi, только тишина.", "vocab": [ { "en": "retreat", "ru": "ретрит" }, { "en": "digital detox", "ru": "цифровой детокс" } ] },
+    { "level": "B2", "en": "Breathwork can settle the nervous system within a few minutes.", "ru": "Дыхательные практики могут успокоить нервную систему за несколько минут.", "vocab": [ { "en": "Breathwork", "ru": "дыхательные практики" }, { "en": "nervous system", "ru": "нервная система" } ] },
+    { "level": "B2", "en": "I struggle to sit still, so walking meditation suits me better.", "ru": "Мне трудно сидеть неподвижно, поэтому медитация при ходьбе подходит мне больше.", "vocab": [ { "en": "sit still", "ru": "сидеть неподвижно" }, { "en": "suits me", "ru": "подходит мне" } ] },
+    { "level": "B2", "en": "Don't beat yourself up if your mind wanders; just gently return.", "ru": "Не корите себя, если мысли блуждают, — просто мягко возвращайтесь.", "vocab": [ { "en": "beat yourself up", "ru": "корить себя" }, { "en": "mind wanders", "ru": "мысли блуждают" } ] }
+  ]
+}

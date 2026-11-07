@@ -1,0 +1,224 @@
+{
+  "key": "psychology",
+  "title": "Психология",
+  "emoji": "🧠",
+  "group": "Мир вокруг",
+  "sentences": [
+    {
+      "level": "A2",
+      "en": "I feel nervous before every exam, even when I'm ready.",
+      "ru": "Я нервничаю перед каждым экзаменом, даже когда готов.",
+      "vocab": [
+        { "en": "feel nervous", "ru": "нервничать" },
+        { "en": "ready", "ru": "готов" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "He's in a bad mood because he didn't sleep well.",
+      "ru": "Он в плохом настроении, потому что плохо спал.",
+      "vocab": [
+        { "en": "in a bad mood", "ru": "в плохом настроении" },
+        { "en": "sleep well", "ru": "хорошо спать" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "My friend is very shy, but she is a good listener.",
+      "ru": "Моя подруга очень стеснительная, но она умеет слушать.",
+      "vocab": [
+        { "en": "shy", "ru": "стеснительный" },
+        { "en": "good listener", "ru": "хороший слушатель" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "I don't like talking about my feelings with strangers.",
+      "ru": "Я не люблю говорить о своих чувствах с незнакомыми людьми.",
+      "vocab": [
+        { "en": "feelings", "ru": "чувства" },
+        { "en": "strangers", "ru": "незнакомые люди" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "Do you remember your dreams when you wake up?",
+      "ru": "Ты помнишь свои сны, когда просыпаешься?",
+      "vocab": [
+        { "en": "dreams", "ru": "сны" },
+        { "en": "wake up", "ru": "просыпаться" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "He is always calm, even in difficult situations.",
+      "ru": "Он всегда спокоен, даже в сложных ситуациях.",
+      "vocab": [
+        { "en": "calm", "ru": "спокойный" },
+        { "en": "difficult situations", "ru": "сложные ситуации" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "Take a deep breath and relax for a minute.",
+      "ru": "Сделай глубокий вдох и расслабься на минутку.",
+      "vocab": [
+        { "en": "deep breath", "ru": "глубокий вдох" },
+        { "en": "relax", "ru": "расслабиться" }
+      ]
+    },
+    {
+      "level": "A2",
+      "en": "Sometimes I worry too much about small things.",
+      "ru": "Иногда я слишком переживаю из-за мелочей.",
+      "vocab": [
+        { "en": "worry", "ru": "переживать, беспокоиться" },
+        { "en": "small things", "ru": "мелочи" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "She's been seeing a therapist since her divorce last year.",
+      "ru": "Она ходит к психотерапевту с момента развода в прошлом году.",
+      "vocab": [
+        { "en": "seeing a therapist", "ru": "ходить к психотерапевту" },
+        { "en": "divorce", "ru": "развод" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "I tend to overthink everything, which makes decisions really slow.",
+      "ru": "Я склонен всё слишком обдумывать, из-за чего решения даются очень медленно.",
+      "vocab": [
+        { "en": "overthink", "ru": "слишком много думать, накручивать себя" },
+        { "en": "decisions", "ru": "решения" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "It's hard to set boundaries with people you care about.",
+      "ru": "Трудно выстраивать границы с людьми, которые тебе дороги.",
+      "vocab": [
+        { "en": "set boundaries", "ru": "выстраивать границы" },
+        { "en": "care about", "ru": "дорожить, заботиться о" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "He keeps putting things off because he's afraid of failing.",
+      "ru": "Он постоянно всё откладывает, потому что боится провала.",
+      "vocab": [
+        { "en": "putting things off", "ru": "откладывать дела" },
+        { "en": "afraid of failing", "ru": "боится потерпеть неудачу" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "Have you noticed how the weather affects your energy?",
+      "ru": "Ты замечал, как погода влияет на твою энергию?",
+      "vocab": [
+        { "en": "noticed", "ru": "замечал" },
+        { "en": "affects", "ru": "влияет на" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "Talking to a friend helped me deal with the anxiety.",
+      "ru": "Разговор с другом помог мне справиться с тревогой.",
+      "vocab": [
+        { "en": "deal with", "ru": "справиться с" },
+        { "en": "anxiety", "ru": "тревога" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "I lost my temper at work and now I feel guilty.",
+      "ru": "Я вышел из себя на работе, и теперь мне стыдно.",
+      "vocab": [
+        { "en": "lost my temper", "ru": "вышел из себя" },
+        { "en": "feel guilty", "ru": "чувствовать вину" }
+      ]
+    },
+    {
+      "level": "B1",
+      "en": "Our brain needs rest, so don't skip your days off.",
+      "ru": "Мозгу нужен отдых, так что не пропускай выходные.",
+      "vocab": [
+        { "en": "brain", "ru": "мозг" },
+        { "en": "days off", "ru": "выходные дни" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Self-doubt creeps in whenever I compare myself to colleagues online.",
+      "ru": "Неуверенность в себе подкрадывается всякий раз, когда я сравниваю себя с коллегами в сети.",
+      "vocab": [
+        { "en": "Self-doubt", "ru": "неуверенность в себе" },
+        { "en": "compare myself to", "ru": "сравнивать себя с" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Once you recognise your triggers, it's easier to stay in control.",
+      "ru": "Когда ты распознаёшь свои триггеры, проще сохранять самообладание.",
+      "vocab": [
+        { "en": "triggers", "ru": "триггеры, раздражители" },
+        { "en": "stay in control", "ru": "сохранять самообладание" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "People often mistake confidence for competence, which explains a lot.",
+      "ru": "Люди часто принимают уверенность за компетентность, и это многое объясняет.",
+      "vocab": [
+        { "en": "mistake confidence for competence", "ru": "принимать уверенность за компетентность" },
+        { "en": "explains a lot", "ru": "многое объясняет" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Her perfectionism is holding her back more than any lack of talent.",
+      "ru": "Её перфекционизм мешает ей больше, чем любой недостаток таланта.",
+      "vocab": [
+        { "en": "perfectionism", "ru": "перфекционизм" },
+        { "en": "holding her back", "ru": "сдерживает её, мешает ей" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "Vulnerability isn't weakness; it's what builds genuine trust between people.",
+      "ru": "Уязвимость — не слабость; именно она создаёт настоящее доверие между людьми.",
+      "vocab": [
+        { "en": "Vulnerability", "ru": "уязвимость" },
+        { "en": "genuine trust", "ru": "настоящее доверие" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "He bottles up his emotions until they eventually boil over.",
+      "ru": "Он держит эмоции в себе, пока они в итоге не выплёскиваются.",
+      "vocab": [
+        { "en": "bottles up", "ru": "держит в себе, подавляет" },
+        { "en": "boil over", "ru": "выплеснуться, перелиться через край" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "A growth mindset means treating setbacks as feedback, not as proof of failure.",
+      "ru": "Установка на рост — это воспринимать неудачи как обратную связь, а не как доказательство провала.",
+      "vocab": [
+        { "en": "growth mindset", "ru": "установка на рост" },
+        { "en": "setbacks", "ru": "неудачи, откаты назад" }
+      ]
+    },
+    {
+      "level": "B2",
+      "en": "We're wired to seek approval, which is why criticism stings so much.",
+      "ru": "Мы устроены так, что ищем одобрения, поэтому критика так больно ранит.",
+      "vocab": [
+        { "en": "wired to", "ru": "устроены так, чтобы (от природы)" },
+        { "en": "stings", "ru": "жалит, больно задевает" }
+      ]
+    }
+  ]
+}

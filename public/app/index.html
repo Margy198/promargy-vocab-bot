@@ -167,6 +167,12 @@
   .opt { display: block; width: 100%; text-align: left; font: inherit; font-size: 16px; padding: 14px 16px; margin-top: 10px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--card); color: var(--text); cursor: pointer; box-shadow: var(--shadow); }
   .opt:active { transform: scale(.99); }
   .opt.ok { background: #e9f6e5; border-color: #8fcf7f; color: #2f6b22; } .opt.bad { background: #ffe1ec; border-color: #ff9ec4; color: #8f3d64; } .opt.dim { opacity: .5; }
+  .chip { display: inline-block; padding: 8px 12px; border-radius: 20px; border: 1.5px solid var(--line); background: var(--card); font-size: 14px; margin: 0 6px 8px 0; cursor: pointer; color: var(--text-2); }
+  .chip.on { background: var(--g-accent); border-color: transparent; box-shadow: 0 4px 12px var(--glow); }
+  .chip.pending { border-style: dashed; } .chip.err { border-color: #ff9ec4; }
+  .sent { font-size: 18px; line-height: 1.4; color: var(--text-2); } .sent b { color: var(--accent); font-weight: 600; }
+  .sent-ru { font-size: 14px; color: var(--muted); margin-top: 6px; }
+  .voc { margin-top: 10px; font-size: 14px; } .voc div { padding: 3px 0; } .voc .e { color: var(--text-2); font-weight: 500; }
   .back { background: none; border: none; font: inherit; color: var(--accent); font-size: 14px; padding: 0; cursor: pointer; }
 </style>
 </head>
@@ -253,12 +259,16 @@
       case "noteAdd": { const note = { id: Math.random().toString(36).slice(2), topicId: extra.topicId || null, text: extra.text, createdAt: new Date().toISOString(), updatedAt: null }; demoCourse.notes.unshift(note); return { ok: true, note, notes: demoCourse.notes }; }
       case "noteEdit": demoCourse.notes = demoCourse.notes.map((n) => (n.id === extra.id ? { ...n, text: extra.text, updatedAt: new Date().toISOString() } : n)); return { ok: true, notes: demoCourse.notes };
       case "noteDelete": demoCourse.notes = demoCourse.notes.filter((n) => n.id !== extra.id); return { ok: true, notes: demoCourse.notes };
+      case "interests": return { ok: true, catalog: demoCourse.catalog || (demoCourse.catalog = await demoFetchJson("__interests/index.json")), picked: demoCourse.picked || [], custom: demoCourse.custom || [], generationAvailable: false };
+      case "interestsSet": demoCourse.picked = extra.picked; demoCourse.custom = (extra.custom || []).map((n) => ({ name: n, slug: n, status: "unavailable", count: 0 })); return demoAsync("interests", {});
+      case "feed": { const items = []; for (const k of demoCourse.picked || []) { const t = await demoFetchJson("__interests/" + k + ".json"); for (const sn of t.sentences.filter((x) => x.level !== "B2").slice(0, 3)) items.push({ ...sn, topic: t.title, topicKey: k, emoji: t.emoji }); } return { ok: true, items: items.slice(0, 8), total: items.length, band: ["A2", "B1"] }; }
+      case "interestsAddWords": { let added = 0; for (const it of extra.items) if (!demoState.words.find((w) => w.en.toLowerCase() === it.en.toLowerCase())) { demoState.words.push({ en: it.en, ru: it.ru, topic: it.topic, errors: 0, due: true }); added++; } return { ok: true, added, moved: 0, total: demoState.words.length }; }
       case "slang": return { ok: true, items: [["Bored to death", "До смерти скучно / Умираю со скуки", "How was the meeting?", "Как прошла встреча?", "It was so boring, I was bored to death."], ["You've got to be kidding", "Ты, наверное, шутишь!", "I won the lottery!", "Я выиграл в лотерею!", "You've got to be kidding me!"], ["Sick and tired", "Меня это достало / Надоело", "Are you okay with your job lately?", "У тебя всё в порядке с работой?", "Honestly, I'm sick and tired of it."], ["Couch potato", "Как овощ / Как комнатное растение", "What did you do all weekend?", "Что ты делал все выходные?", "Nothing, I was just a couch potato."], ["Hit the sack", "Идти спать", "It's late.", "Уже поздно.", "Yeah, time to hit the sack."]].map(([en, ru, setupEn, setupRu, ex]) => ({ en, ru, example: { setupEn, setupRu, en: ex } })) };
     }
     return null;
   }
   function demo(action, extra) {
-    if (["course", "topic", "courseSet", "courseLevel", "notes", "noteAdd", "noteEdit", "noteDelete", "slang"].includes(action)) return demoAsync(action, extra);
+    if (["course", "topic", "courseSet", "courseLevel", "notes", "noteAdd", "noteEdit", "noteDelete", "slang", "interests", "interestsSet", "feed", "interestsAddWords"].includes(action)) return demoAsync(action, extra);
     const today = new Date(); const days = [];
     for (let i = 13; i >= 0; i--) { const d = new Date(today.getTime() - i * 864e5); days.push({ date: d.toISOString().slice(0, 10), answers: [12, 20, 0, 15, 24, 18, 9, 30, 22, 0, 16, 25, 19, 7][13 - i] }); }
     const id = demoState.identity;
@@ -590,7 +600,7 @@
   function go(view, extra) { state.study = Object.assign({ view }, extra || {}); renderStudy(); window.scrollTo(0, 0); }
   function studyBack() {
     const v = state.study;
-    const map = { topics: () => go("home"), category: () => go("topics"), topic: () => go("category", { key: v.cat || categoryOfTopic(v.id) }), lesson: () => go("topic", { id: v.id }), exercises: () => go("topic", { id: v.id }), selfcheck: () => go("topic", { id: v.id }), tnotes: () => go("topic", { id: v.id }), notes: () => go("home"), nfolder: () => go("notes"), slang: () => go("home"), search: () => go("topics"), checkpoint: () => go("topics", { level: v.level }) };
+    const map = { topics: () => go("home"), category: () => go("topics"), topic: () => go("category", { key: v.cat || categoryOfTopic(v.id) }), lesson: () => go("topic", { id: v.id }), exercises: () => go("topic", { id: v.id }), selfcheck: () => go("topic", { id: v.id }), tnotes: () => go("topic", { id: v.id }), notes: () => go("home"), nfolder: () => go("notes"), slang: () => go("home"), search: () => go("topics"), checkpoint: () => go("topics", { level: v.level }), interests: () => go("home"), ipick: () => go("interests"), iquiz: () => go("interests") };
     if (map[v.view]) map[v.view](); else go("home");
   }
   function syncBackButton() { if (!tg || !tg.BackButton) return; try { if (state.study.view === "home") tg.BackButton.hide(); else tg.BackButton.show(); } catch (e) {} }
@@ -600,7 +610,7 @@
     const root = $("#page-study"); syncBackButton();
     if (!state.course) { root.innerHTML = state.courseError ? `<div class="notice">Курс пока не загружен на сервер (${esc(state.courseError)}). Напиши преподавателю.</div>` : `<div class="notice">Загружаю курс…</div>`; return; }
     const v = state.study.view;
-    const fn = { home: renderStudyHome, topics: renderTopics, category: renderCategory, topic: renderTopic, lesson: renderLesson, exercises: renderExercises, selfcheck: renderSelfcheck, tnotes: renderTopicNotes, notes: renderNotesFolders, nfolder: renderNotesFolder, slang: renderSlang, search: renderSearch, checkpoint: renderCheckpoint }[v] || renderStudyHome;
+    const fn = { home: renderStudyHome, topics: renderTopics, category: renderCategory, topic: renderTopic, lesson: renderLesson, exercises: renderExercises, selfcheck: renderSelfcheck, tnotes: renderTopicNotes, notes: renderNotesFolders, nfolder: renderNotesFolder, slang: renderSlang, search: renderSearch, checkpoint: renderCheckpoint, interests: renderInterests, ipick: renderInterestPicker, iquiz: renderInterestQuiz }[v] || renderStudyHome;
     fn(root);
     const b = $("#study-back"); if (b) b.addEventListener("click", () => { haptic(); studyBack(); });
   }
@@ -623,8 +633,10 @@
       <div class="card outline" style="margin-top:18px">${outline}</div>
       <div style="margin-top:18px"><button class="btn" id="go-topics" style="background:var(--g-aqua);font-size:15px">Далее</button></div>
       ${cont ? `<div class="card aqua" style="margin-top:14px;cursor:pointer" id="continue"><div class="row between"><div><div class="muted" style="color:var(--text-2);opacity:.7">Продолжить · ${esc(cont.t.level || "")}</div><div style="font-size:17px;margin-top:2px">${esc(cont.t.emoji || "")} ${esc(cont.t.title)}</div></div><button class="fab">${iconArrow()}</button></div></div>` : ""}
-      <div class="row" style="margin-top:14px;gap:10px"><button class="btn" id="go-notes" style="flex:1">📝 Заметки</button><button class="btn" id="go-slang" style="flex:1">💬 Сленг</button></div>
+      <div class="card lavender" style="margin-top:14px;cursor:pointer" id="go-interests"><div class="row between"><div><div style="font-size:17px">🎯 Мои темы</div><div class="muted" style="color:var(--text-2);opacity:.75;margin-top:2px">предложения и слова по тому, что интересно именно тебе</div></div><button class="fab">${iconArrow()}</button></div></div>
+      <div class="row" style="margin-top:12px;gap:10px"><button class="btn" id="go-notes" style="flex:1">📝 Заметки</button><button class="btn" id="go-slang" style="flex:1">💬 Сленг</button></div>
       <div style="height:8px"></div>`;
+    $("#go-interests").addEventListener("click", () => { haptic(); go("interests"); });
     $("#go-topics").addEventListener("click", () => { haptic(); go("topics"); });
     const cnt = $("#continue"); if (cnt) cnt.addEventListener("click", () => { haptic(); openTopic(cont.t.id); });
     $("#go-notes").addEventListener("click", () => go("notes"));
@@ -1125,6 +1137,73 @@
     root.querySelectorAll("[data-slang]").forEach((el) => el.addEventListener("click", () => go("slang", { q })));
     if (!state.notes) loadNotes().then(() => { if (state.study.view === "search") renderStudy(); });
     if (!state.slang && !notesOnly) api("slang").then((r) => { if (r && r.ok) { state.slang = r.items; if (state.study.view === "search") renderStudy(); } });
+  }
+
+  // --- мои темы: интересы ученика → предложения и лексика ---
+  async function loadInterests() { const r = await api("interests"); if (r && r.ok) state.interests = r; return state.interests; }
+  async function loadFeed() { const r = await api("feed"); if (r && r.ok) state.feed = r; return state.feed; }
+  function renderInterests(root) {
+    const hdr = `<div class="head lavender"><div class="row between"><div>${backLink("Учёба")}<div class="ttl" style="margin-top:6px">🎯 Мои темы</div><div class="sub">предложения и слова по твоим интересам</div></div><button class="fab ghost" id="i-edit" title="Выбрать темы" style="margin-top:22px">✏️</button></div></div>`;
+    if (!state.interests) { root.innerHTML = `${hdr}<div class="notice">Загружаю…</div>`; loadInterests().then(() => renderStudy()); return; }
+    const ints = state.interests; const has = ints.picked.length || ints.custom.length;
+    if (!has) return go("ipick");
+    if (!state.feed) { root.innerHTML = `${hdr}<div class="notice">Подбираю предложения…</div>`; loadFeed().then(() => renderStudy()); return; }
+    const f = state.feed;
+    const chips = ints.picked.map((k) => { const c = ints.catalog.find((x) => x.key === k); return c ? `<span class="chip on">${c.emoji} ${esc(c.title)}</span>` : ""; }).join("") + ints.custom.map((c) => `<span class="chip ${c.status === "ready" ? "on" : c.status === "pending" ? "pending" : "err"}">✨ ${esc(c.name)}${c.status === "pending" ? " · готовится" : c.status === "ready" ? "" : c.status === "unavailable" ? " · генерация выключена" : " · ошибка"}</span>`).join("");
+    const cards = f.items.map((it, i) => {
+      let en = esc(it.en); for (const v of it.vocab) { const re = new RegExp(esc(v.en).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"); en = en.replace(re, (m) => `<b>${m}</b>`); }
+      return `<div class="card" data-i="${i}"><div class="muted" style="margin-bottom:6px">${esc(it.emoji || "")} ${esc(it.topic)} · ${esc(it.level)}</div><div class="sent">${en}</div><div class="sent-ru">${esc(it.ru)}</div><div class="voc">${it.vocab.map((v) => `<div><span class="e">${esc(v.en)}</span> — ${esc(v.ru)}</div>`).join("")}</div><div style="margin-top:10px"><button class="btn small i-add" data-i="${i}">➕ В словарь</button></div></div>`;
+    }).join("");
+    root.innerHTML = `${hdr}<div style="margin-bottom:8px">${chips}</div>
+      ${f.items.length ? `<div class="row between" style="margin:14px 0 4px"><h2 style="margin:0">Предложения на сегодня</h2><span class="muted">${f.items.length} из ${f.total}</span></div>
+      <div style="margin:10px 0 4px"><button class="btn primary" id="i-quiz">⚡ Тренировать</button></div>${cards}
+      <div style="margin-top:12px"><button class="btn" id="i-addall">➕ Все слова дня в словарь</button></div>` : `<div class="notice" style="margin-top:12px">${ints.custom.some((c) => c.status === "pending") ? "Твоя тема ещё готовится — загляни через минуту." : "Пока нет предложений: выбери темы из списка."}</div>`}
+      <div class="muted" style="margin-top:14px;line-height:1.5">Каждый день — новые 8 предложений по твоим темам, уровень подбирается под твой уровень курса. Слова добавляются в словарь в папку с названием темы.</div><div style="height:16px"></div>`;
+    $("#i-edit").addEventListener("click", () => go("ipick"));
+    const q = $("#i-quiz"); if (q) q.addEventListener("click", () => { haptic(); go("iquiz", { i: 0, picked: null, score: 0 }); });
+    root.querySelectorAll(".i-add").forEach((b) => b.addEventListener("click", async () => { const it = f.items[Number(b.dataset.i)]; const r = await api("interestsAddWords", { items: it.vocab.map((v) => ({ en: v.en, ru: v.ru, topic: it.topic })) }); if (r && r.ok) { state.vocab = null; toast(r.added ? `Добавлено: ${r.added}` : "Эти слова уже в словаре"); b.textContent = "✓ В словаре"; } }));
+    const all = $("#i-addall"); if (all) all.addEventListener("click", async () => { const items = f.items.flatMap((it) => it.vocab.map((v) => ({ en: v.en, ru: v.ru, topic: it.topic }))); const r = await api("interestsAddWords", { items }); if (r && r.ok) { state.vocab = null; toast(`Добавлено: ${r.added}${r.moved ? `, перенесено: ${r.moved}` : ""}`); } });
+  }
+  function renderInterestPicker(root) {
+    if (!state.interests) { root.innerHTML = `<div class="notice">Загружаю…</div>`; loadInterests().then(() => renderStudy()); return; }
+    const ints = state.interests; const st = state.study;
+    if (!st.sel) { st.sel = new Set(ints.picked); st.custom = ints.custom.map((c) => c.name); }
+    const ORDER = ["Работа и карьера", "Жизнь", "Хобби", "Мир вокруг"];
+    const groups = [...new Set(ints.catalog.map((c) => c.group))].sort((a, b) => (ORDER.indexOf(a) + 99) % 99 - (ORDER.indexOf(b) + 99) % 99);
+    root.innerHTML = `<div class="head lavender"><div>${backLink("Мои темы")}<div class="ttl" style="margin-top:6px">Что тебе интересно?</div><div class="sub">выбери несколько тем — предложения и слова будут про это</div></div></div>
+      ${groups.map((g) => `<h2 style="margin:14px 0 8px">${esc(g)}</h2><div>${ints.catalog.filter((c) => c.group === g).map((c) => `<span class="chip ${st.sel.has(c.key) ? "on" : ""}" data-k="${c.key}">${c.emoji} ${esc(c.title)}</span>`).join("")}</div>`).join("")}
+      <h2 style="margin:16px 0 8px">Своя тема</h2>
+      <div>${st.custom.map((n, i) => `<span class="chip on" data-c="${i}">✨ ${esc(n)} ✕</span>`).join("")}</div>
+      <div class="row" style="margin-top:6px"><input class="txt" id="i-custom" placeholder="например: парусный спорт, Marvel, бариста" maxlength="40" /><button class="btn small" id="i-custom-add">Добавить</button></div>
+      ${ints.generationAvailable ? `<div class="muted" style="margin-top:6px">Для своей темы предложения сгенерируются за минуту-две.</div>` : `<div class="muted" style="margin-top:6px">Свои темы сохранятся, но предложения для них появятся, когда преподаватель включит генерацию.</div>`}
+      <div style="margin-top:18px"><button class="btn primary" id="i-save">Сохранить (${st.sel.size + st.custom.length})</button></div><div style="height:16px"></div>`;
+    root.querySelectorAll(".chip[data-k]").forEach((el) => el.addEventListener("click", () => { const k = el.dataset.k; if (st.sel.has(k)) st.sel.delete(k); else st.sel.add(k); haptic(); renderStudy(); }));
+    root.querySelectorAll(".chip[data-c]").forEach((el) => el.addEventListener("click", () => { st.custom.splice(Number(el.dataset.c), 1); renderStudy(); }));
+    $("#i-custom-add").addEventListener("click", () => { const v = $("#i-custom").value.trim(); if (v.length < 2) return; if (st.custom.length >= 5) return toast("Не больше 5 своих тем"); st.custom.push(v); renderStudy(); });
+    $("#i-save").addEventListener("click", async () => { const r = await api("interestsSet", { picked: [...st.sel], custom: st.custom }); if (r && r.ok) { state.interests = r; state.feed = null; toast("Темы сохранены"); go("interests"); } else toast("Не сохранилось"); });
+  }
+  // тренировка: предложение с пропуском и 3 варианта из слов этой же темы
+  function renderInterestQuiz(root) {
+    const f = state.feed; const st = state.study; if (!f || !f.items.length) return go("interests");
+    const items = f.items; const i = st.i || 0;
+    if (i >= items.length) { root.innerHTML = `<div class="head lavender"><div>${backLink("Мои темы")}<div class="ttl" style="margin-top:6px">⚡ Итог</div></div></div><div class="card aqua" style="text-align:center"><div class="big">${st.score}<span style="font-size:20px;color:var(--muted)"> / ${items.length}</span></div><div style="margin-top:6px">${st.score === items.length ? "Идеально! 🎉" : "Хорошо — завтра будут новые предложения"}</div></div><div class="navbtns"><button class="btn" id="q-again">Ещё раз</button><button class="btn primary" id="q-back">К предложениям</button></div>`; $("#q-again").addEventListener("click", () => go("iquiz", { i: 0, score: 0 })); $("#q-back").addEventListener("click", () => go("interests")); return; }
+    const it = items[i]; const target = it.vocab[(i + (st.score || 0)) % it.vocab.length] || it.vocab[0];
+    const re = new RegExp(target.en.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+    const qEn = esc(it.en).replace(new RegExp(esc(target.en).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), `<code>${"_".repeat(Math.min(10, Math.max(4, target.en.length)))}</code>`);
+    // варианты: это слово + 2 других слова того же уровня/темы из ленты
+    // неверные варианты — слова той же темы (сначала из этой же темы, потом из остальных)
+    const pick = (list) => [...new Set(list.filter((x) => x !== it).flatMap((x) => x.vocab.map((v) => v.en)).filter((v) => v.toLowerCase() !== target.en.toLowerCase() && Math.abs(v.split(" ").length - target.en.split(" ").length) <= 1))];
+    let others = pick(items.filter((x) => x.topicKey === it.topicKey)); if (others.length < 2) others = others.concat(pick(items).filter((v) => !others.includes(v)));
+    const opts = st.opts && st.optsFor === i ? st.opts : seededShuffle([target.en, ...seededShuffle(others, i * 13 + 7).slice(0, 2)], i * 31 + 3).map((t) => ({ text: t, ok: t === target.en }));
+    st.opts = opts; st.optsFor = i;
+    const answered = st.picked !== null && st.picked !== undefined;
+    root.innerHTML = `<div class="head lavender"><div>${backLink("Мои темы")}<div class="ttl" style="margin-top:6px">⚡ Тренировка</div><div class="sub">${esc(it.emoji || "")} ${esc(it.topic)} · ${i + 1} из ${items.length}</div></div></div>
+      <div class="bar" style="margin:4px 0 12px"><i style="width:${Math.round((i / items.length) * 100)}%"></i></div>
+      <div class="card"><div class="muted" style="margin-bottom:6px">Вставь слово</div><div class="sent">${qEn}</div><div class="sent-ru">${esc(it.ru)}</div></div>
+      ${opts.map((o, k) => `<button class="opt ${answered ? (o.ok ? "ok" : k === st.picked ? "bad" : "dim") : ""}" data-k="${k}" ${answered ? "disabled" : ""}>${esc(o.text)}</button>`).join("")}
+      ${answered ? `<div class="card" style="margin-top:14px;background:${opts[st.picked].ok ? "#e9f6e5" : "#ffe1ec"}"><div style="font-size:15px;font-weight:500;color:${opts[st.picked].ok ? "#2f6b22" : "#8f3d64"}">${opts[st.picked].ok ? "Верно! ✓" : "Не совсем"}</div><div class="sent" style="font-size:16px;margin-top:6px">${esc(it.en).replace(new RegExp(esc(target.en).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), (m) => `<b>${m}</b>`)}</div><div class="muted" style="margin-top:4px">${esc(target.en)} — ${esc(target.ru)}</div></div><div style="margin-top:12px"><button class="btn primary" id="q-next">${i + 1 >= items.length ? "Итог" : "Далее"}</button></div>` : ""}`;
+    root.querySelectorAll(".opt").forEach((b) => b.addEventListener("click", () => { st.picked = Number(b.dataset.k); if (opts[st.picked].ok) { st.score = (st.score || 0) + 1; haptic("medium"); } renderStudy(); }));
+    const n = $("#q-next"); if (n) n.addEventListener("click", () => { st.i = i + 1; st.picked = null; renderStudy(); window.scrollTo(0, 0); });
   }
 
   // --- сленг ---

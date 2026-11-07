@@ -1,0 +1,32 @@
+{
+  "key": "food",
+  "title": "Еда и кулинария",
+  "emoji": "🍳",
+  "group": "Жизнь",
+  "sentences": [
+    { "level": "A2", "en": "What do you usually have for breakfast?", "ru": "Что ты обычно ешь на завтрак?", "vocab": [ { "en": "have for breakfast", "ru": "есть на завтрак" }, { "en": "usually", "ru": "обычно" } ] },
+    { "level": "A2", "en": "I don't like spicy food, it's too hot for me.", "ru": "Я не люблю острую еду, для меня она слишком острая.", "vocab": [ { "en": "spicy food", "ru": "острая еда" }, { "en": "too hot", "ru": "слишком острая" } ] },
+    { "level": "A2", "en": "Can we get the bill, please? We're in a hurry.", "ru": "Можно нам счёт, пожалуйста? Мы торопимся.", "vocab": [ { "en": "get the bill", "ru": "получить счёт" }, { "en": "in a hurry", "ru": "в спешке, торопимся" } ] },
+    { "level": "A2", "en": "My mum makes the best pancakes on Sunday mornings.", "ru": "Моя мама печёт лучшие блины по воскресеньям с утра.", "vocab": [ { "en": "pancakes", "ru": "блины" }, { "en": "on Sunday mornings", "ru": "по утрам в воскресенье" } ] },
+    { "level": "A2", "en": "I'm cooking dinner tonight, so don't be late.", "ru": "Сегодня я готовлю ужин, так что не опаздывай.", "vocab": [ { "en": "cooking dinner", "ru": "готовлю ужин" }, { "en": "don't be late", "ru": "не опаздывай" } ] },
+    { "level": "A2", "en": "This soup is a bit salty, but the salad is great.", "ru": "Суп немного солёный, но салат отличный.", "vocab": [ { "en": "a bit salty", "ru": "немного солёный" }, { "en": "salad", "ru": "салат" } ] },
+    { "level": "A2", "en": "Would you like a cup of tea or some coffee?", "ru": "Хотите чашку чая или кофе?", "vocab": [ { "en": "Would you like", "ru": "Хотите, не желаете ли" }, { "en": "a cup of tea", "ru": "чашка чая" } ] },
+    { "level": "A2", "en": "I'm so hungry, let's order a pizza and watch a film.", "ru": "Я так хочу есть, давай закажем пиццу и посмотрим фильм.", "vocab": [ { "en": "hungry", "ru": "голодный" }, { "en": "order a pizza", "ru": "заказать пиццу" } ] },
+    { "level": "B1", "en": "We've run out of olive oil, can you grab some on your way home?", "ru": "У нас закончилось оливковое масло, захватишь по дороге домой?", "vocab": [ { "en": "run out of", "ru": "закончилось, израсходовали" }, { "en": "grab some", "ru": "захватить немного" } ] },
+    { "level": "B1", "en": "I'm trying to cut down on sugar, so no dessert for me.", "ru": "Я стараюсь есть меньше сахара, так что мне без десерта.", "vocab": [ { "en": "cut down on", "ru": "сократить потребление" }, { "en": "dessert", "ru": "десерт" } ] },
+    { "level": "B1", "en": "Could you book a table for four at eight o'clock?", "ru": "Не могли бы вы забронировать столик на четверых на восемь часов?", "vocab": [ { "en": "book a table", "ru": "забронировать столик" }, { "en": "for four", "ru": "на четверых" } ] },
+    { "level": "B1", "en": "Have you tried the new Thai place near the office?", "ru": "Ты пробовал новое тайское место рядом с офисом?", "vocab": [ { "en": "Have you tried", "ru": "Ты пробовал" }, { "en": "the new Thai place", "ru": "новое тайское заведение" } ] },
+    { "level": "B1", "en": "Let the meat rest for ten minutes before you slice it.", "ru": "Дай мясу отдохнуть десять минут, прежде чем нарезать.", "vocab": [ { "en": "Let the meat rest", "ru": "Дай мясу отдохнуть (постоять)" }, { "en": "slice", "ru": "нарезать ломтиками" } ] },
+    { "level": "B1", "en": "I'd rather eat in tonight, I'm sick of takeaways.", "ru": "Я бы лучше поел дома сегодня, мне надоела еда навынос.", "vocab": [ { "en": "eat in", "ru": "поесть дома" }, { "en": "takeaways", "ru": "еда навынос" } ] },
+    { "level": "B1", "en": "The recipe says to simmer the sauce for about twenty minutes.", "ru": "В рецепте сказано томить соус на медленном огне около двадцати минут.", "vocab": [ { "en": "recipe", "ru": "рецепт" }, { "en": "simmer", "ru": "варить на медленном огне, томить" } ] },
+    { "level": "B1", "en": "Don't overcook the pasta; it should still be a little firm.", "ru": "Не переваривай пасту — она должна оставаться немного плотной.", "vocab": [ { "en": "overcook", "ru": "переварить, пережарить" }, { "en": "firm", "ru": "плотный, упругий" } ] },
+    { "level": "B2", "en": "I'm a decent cook, but baking is a whole different story.", "ru": "Готовлю я неплохо, но выпечка — это совсем другая история.", "vocab": [ { "en": "decent cook", "ru": "неплохо готовлю (приличный повар)" }, { "en": "a whole different story", "ru": "совсем другое дело" } ] },
+    { "level": "B2", "en": "The portions were tiny and the service was painfully slow.", "ru": "Порции были крошечные, а обслуживание — мучительно медленное.", "vocab": [ { "en": "portions", "ru": "порции" }, { "en": "painfully slow", "ru": "мучительно медленный" } ] },
+    { "level": "B2", "en": "We ended up ordering way too much and took the leftovers home.", "ru": "В итоге мы заказали слишком много и забрали остатки домой.", "vocab": [ { "en": "ended up", "ru": "в итоге, в конце концов" }, { "en": "leftovers", "ru": "остатки еды" } ] },
+    { "level": "B2", "en": "She's gone vegan, which makes cooking for guests a bit tricky.", "ru": "Она стала веганом, и из-за этого готовить для гостей стало сложновато.", "vocab": [ { "en": "gone vegan", "ru": "стала веганом" }, { "en": "a bit tricky", "ru": "немного сложновато" } ] },
+    { "level": "B2", "en": "Whatever you do, don't skimp on the butter in this recipe.", "ru": "Что бы ты ни делал, не экономь на масле в этом рецепте.", "vocab": [ { "en": "skimp on", "ru": "экономить на" }, { "en": "Whatever you do", "ru": "Что бы ты ни делал" } ] },
+    { "level": "B2", "en": "This place does a killer brunch, but you'll have to queue.", "ru": "Здесь делают потрясающий бранч, но придётся постоять в очереди.", "vocab": [ { "en": "killer brunch", "ru": "потрясающий бранч" }, { "en": "have to queue", "ru": "придётся стоять в очереди" } ] },
+    { "level": "B2", "en": "I can't stand coriander; it tastes like soap to me.", "ru": "Терпеть не могу кинзу — для меня она на вкус как мыло.", "vocab": [ { "en": "can't stand", "ru": "терпеть не могу" }, { "en": "tastes like", "ru": "на вкус как" } ] },
+    { "level": "B2", "en": "Meal prepping on Sundays has saved me a fortune on lunches.", "ru": "Заготовка еды по воскресеньям сэкономила мне кучу денег на обедах.", "vocab": [ { "en": "Meal prepping", "ru": "заготовка еды на неделю" }, { "en": "saved me a fortune", "ru": "сэкономило мне кучу денег" } ] }
+  ]
+}

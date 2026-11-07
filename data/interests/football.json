@@ -1,0 +1,32 @@
+{
+  "key": "football",
+  "title": "Футбол",
+  "emoji": "⚽",
+  "group": "Хобби",
+  "sentences": [
+    { "level": "A2", "en": "My favourite team plays at home this Sunday.", "ru": "Моя любимая команда играет дома в это воскресенье.", "vocab": [ { "en": "favourite team", "ru": "любимая команда" }, { "en": "plays at home", "ru": "играет дома" } ] },
+    { "level": "A2", "en": "He scored two goals in the first half.", "ru": "Он забил два гола в первом тайме.", "vocab": [ { "en": "scored", "ru": "забил" }, { "en": "first half", "ru": "первый тайм" } ] },
+    { "level": "A2", "en": "We watch every match together at my place.", "ru": "Мы смотрим каждый матч вместе у меня дома.", "vocab": [ { "en": "match", "ru": "матч" }, { "en": "at my place", "ru": "у меня дома" } ] },
+    { "level": "A2", "en": "The ball went over the fence into the garden.", "ru": "Мяч улетел через забор в сад.", "vocab": [ { "en": "ball", "ru": "мяч" }, { "en": "over the fence", "ru": "через забор" } ] },
+    { "level": "A2", "en": "Do you play football with your friends after school?", "ru": "Ты играешь в футбол с друзьями после школы?", "vocab": [ { "en": "play football", "ru": "играть в футбол" }, { "en": "after school", "ru": "после школы" } ] },
+    { "level": "A2", "en": "The goalkeeper made a great save at the end.", "ru": "В конце вратарь сделал отличный сейв.", "vocab": [ { "en": "goalkeeper", "ru": "вратарь" }, { "en": "save", "ru": "сейв, спасение ворот" } ] },
+    { "level": "A2", "en": "I have a new shirt with my favourite player's name.", "ru": "У меня новая футболка с именем любимого игрока.", "vocab": [ { "en": "shirt", "ru": "футболка (игровая)" }, { "en": "player", "ru": "игрок" } ] },
+    { "level": "A2", "en": "The game finished two-two, so nobody won.", "ru": "Игра закончилась два-два, так что никто не выиграл.", "vocab": [ { "en": "finished", "ru": "закончилась" }, { "en": "nobody won", "ru": "никто не выиграл" } ] },
+    { "level": "B1", "en": "The referee gave him a yellow card for that tackle.", "ru": "Судья показал ему жёлтую карточку за этот подкат.", "vocab": [ { "en": "referee", "ru": "судья, арбитр" }, { "en": "yellow card", "ru": "жёлтая карточка" } ] },
+    { "level": "B1", "en": "We're through to the final after beating them on penalties!", "ru": "Мы вышли в финал, обыграв их по пенальти!", "vocab": [ { "en": "through to the final", "ru": "вышли в финал" }, { "en": "on penalties", "ru": "по пенальти" } ] },
+    { "level": "B1", "en": "Our striker got injured and will miss the next three games.", "ru": "Наш нападающий получил травму и пропустит следующие три игры.", "vocab": [ { "en": "striker", "ru": "нападающий" }, { "en": "got injured", "ru": "получил травму" } ] },
+    { "level": "B1", "en": "The match was postponed because of the heavy rain.", "ru": "Матч перенесли из-за сильного дождя.", "vocab": [ { "en": "postponed", "ru": "перенесён, отложен" }, { "en": "heavy rain", "ru": "сильный дождь" } ] },
+    { "level": "B1", "en": "They need a win tonight to stay in the league.", "ru": "Сегодня им нужна победа, чтобы остаться в лиге.", "vocab": [ { "en": "a win", "ru": "победа" }, { "en": "league", "ru": "лига" } ] },
+    { "level": "B1", "en": "I can't believe he missed from the penalty spot!", "ru": "Не могу поверить, что он промахнулся с одиннадцатиметровой!", "vocab": [ { "en": "missed", "ru": "промахнулся" }, { "en": "penalty spot", "ru": "одиннадцатиметровая отметка" } ] },
+    { "level": "B1", "en": "The crowd went wild when the equaliser went in.", "ru": "Трибуны взорвались, когда влетел гол, сравнявший счёт.", "vocab": [ { "en": "went wild", "ru": "обезумели от восторга" }, { "en": "equaliser", "ru": "гол, сравнявший счёт" } ] },
+    { "level": "B1", "en": "Our coach wants us to pass more and run less.", "ru": "Наш тренер хочет, чтобы мы больше пасовали и меньше бегали.", "vocab": [ { "en": "coach", "ru": "тренер" }, { "en": "pass", "ru": "пасовать, отдавать передачу" } ] },
+    { "level": "B2", "en": "They dominated possession but couldn't convert their chances.", "ru": "Они владели мячом, но не смогли реализовать свои моменты.", "vocab": [ { "en": "dominated possession", "ru": "владели мячом, контролировали игру" }, { "en": "convert their chances", "ru": "реализовать свои моменты" } ] },
+    { "level": "B2", "en": "The manager was sacked after a dismal run of results.", "ru": "Главного тренера уволили после провальной серии результатов.", "vocab": [ { "en": "sacked", "ru": "уволен" }, { "en": "dismal run", "ru": "провальная серия" } ] },
+    { "level": "B2", "en": "He was clearly offside, but the linesman didn't flag it.", "ru": "Он был в явном офсайде, но боковой судья не поднял флажок.", "vocab": [ { "en": "offside", "ru": "офсайд, вне игры" }, { "en": "flag", "ru": "зафиксировать, поднять флажок" } ] },
+    { "level": "B2", "en": "The underdogs pulled off a stunning upset in extra time.", "ru": "Аутсайдеры сотворили сенсацию в дополнительное время.", "vocab": [ { "en": "underdogs", "ru": "аутсайдеры" }, { "en": "upset", "ru": "сенсация, неожиданная победа" } ] },
+    { "level": "B2", "en": "Their defence fell apart once the captain was substituted.", "ru": "Их оборона развалилась, как только капитана заменили.", "vocab": [ { "en": "fell apart", "ru": "развалилась" }, { "en": "substituted", "ru": "заменён" } ] },
+    { "level": "B2", "en": "The transfer window closes tomorrow, and rumours are flying.", "ru": "Трансферное окно закрывается завтра, и слухи так и летают.", "vocab": [ { "en": "transfer window", "ru": "трансферное окно" }, { "en": "rumours", "ru": "слухи" } ] },
+    { "level": "B2", "en": "A last-minute winner sent the home fans into raptures.", "ru": "Победный гол на последней минуте привёл домашних болельщиков в восторг.", "vocab": [ { "en": "last-minute winner", "ru": "победный гол на последней минуте" }, { "en": "into raptures", "ru": "в восторг, в экстаз" } ] },
+    { "level": "B2", "en": "The club's relegation battle will go down to the wire.", "ru": "Борьба клуба за выживание в лиге продлится до самого конца.", "vocab": [ { "en": "relegation", "ru": "вылет в низшую лигу" }, { "en": "down to the wire", "ru": "до самого конца, до последнего" } ] }
+  ]
+}
