@@ -829,15 +829,40 @@
   }
   const exKey = (tid, n) => `exr:${tid}:${n}`;
   // Объяснение к ответу: пояснение из самого ответа (в скобках / после тире) или правило упражнения
+  // Объяснение правила к заданию: находим в теории темы самый подходящий фрагмент
+  // (по словам из названия упражнения, пояснения в ключе и самого ответа) и показываем его целиком.
+  const STOP = /^(или|для|как|что|это|the|and|with|from|все|всё|свой|своё|этот|эта|это|его|её|них|них|когда|где|если|чтобы|then|into|your|they|them|have|has|does|did|are|was|were|not|but|you|she|him|her|his|its|our|also|just|only|very|more|most|some|any|this|that|these|those|form|forms|write|put|choose|fill|make|use|correct|right|sentence|sentences|вставь|выбери|поставь|напиши|раскрой|скобки|скобках|правильную|правильный|форму|форма|слово|слова|предложение|предложения|ответ|ответы|задание|упражнение|добавь|замени|переведи|перевод|исправь|ошибку|ошибки)$/;
+  function keywordsFor(e, it) {
+    const kw = new Map(); const add = (w, wt) => { w = String(w || "").toLowerCase().trim(); if (w && !STOP.test(w) && (w.length > 2 || /^-[a-z]+$/.test(w))) kw.set(w, Math.max(kw.get(w) || 0, wt)); };
+    // 1) сам ответ и слово-подсказка — важнее всего
+    const ans = cleanAns(it.a).toLowerCase(); for (const w of ans.split(" ")) add(w, 5);
+    const hint = hintOf(it.q); if (hint && !hint.includes("/")) for (const w of hint.split(/\s+/)) add(w, 5);
+    // 2) окончания из ответа: studies → ies, watches → -es, doesn't → doesn't
+    for (const w of ans.split(" ")) { if (/ies$/.test(w)) { add("-ies", 4); add("ies", 4); } else if (/(s|sh|ch|x|o)es$/.test(w)) add("-es", 4); else if (/[^s]s$/.test(w) && w.length > 3) add("-s", 3); if (/ing$/.test(w)) add("-ing", 3); if (/ed$/.test(w)) add("-ed", 3); if (/n't$/.test(w)) { add(w, 4); add("отрицани", 2); } if (/^(do|does|did|is|are|was|were|am|will|would|can|could|should|must|have|has|had)$/.test(w)) add(w, 4); }
+    // 3) пояснение из ключа и название упражнения
+    for (const n of strip(it.a || "").match(/\(([^()]{3,})\)/g) || []) for (const w of n.split(/[^a-zа-яё'’-]+/)) add(w, 2);
+    for (const w of strip(e.title || "").split(/[^a-zа-яё'’-]+/)) add(w, 1);
+    return [...kw.entries()];
+  }
   function explainHtml(e, it) {
-    const t = state.topic; const rule = strip(e.title || "");
-    // ближайшая страница теории — по общим словам с названием упражнения
-    const th = t && t.sections.find((s) => s.key === "theory"); const pages = th && th.pages ? th.pages : [];
-    const words = rule.toLowerCase().split(/[^a-zа-яё'-]+/).filter((w) => w.length > 2 || /^-[a-z]+$/.test(w)).filter((w) => !/^(или|для|как|что|это|the|and|with|from|все|всё|свой|своё)$/.test(w));
-    let best = -1, bestScore = 0;
-    pages.forEach((pg, i) => { const pt = (pg.title || "").toLowerCase(); const sc = words.filter((w) => pt.includes(w)).length; if (sc > bestScore) { bestScore = sc; best = i; } });
-    const lessons = t ? lessonsOf(t) : []; const li = best >= 0 ? lessons.findIndex((l) => l.kind === "theory" && l.idx === best) : -1;
-    return `<div style="margin-top:8px;font-size:13px;color:var(--text-2)">📏 Правило: ${esc(rule)}${li >= 0 ? ` · <a href="#" class="ex-theory" data-i="${li}" style="color:var(--accent)">открыть теорию →</a>` : ""}</div>`;
+    const t = state.topic; if (!t) return "";
+    const kws = keywordsFor(e, it);
+    const th = t.sections.find((s) => s.key === "theory"); const pages = (th && th.pages && th.pages.length) ? th.pages : (th ? [{ title: "Теория", html: th.html }] : []);
+    const extra = ["pitfalls", "why"].map((k) => t.sections.find((s) => s.key === k)).filter(Boolean).map((s) => ({ title: strip(s.title), html: s.html, kind: s.key }));
+    const cands = pages.map((pg, i) => ({ ...pg, idx: i, kind: "theory" })).concat(extra);
+    const score = (txt) => { const l = txt.toLowerCase(); return kws.reduce((a, [w, wt]) => a + (l.includes(w) ? wt : 0), 0); };
+    let best = null, bestBlock = null, bestScore = -1;
+    for (const c of cands) {
+      const doc = new DOMParser().parseFromString(`<div>${c.html}</div>`, "text/html");
+      const blocks = [...doc.body.firstChild.querySelectorAll("p, li, blockquote, .callout, h4, h5, tr")].map((el) => ({ text: el.textContent.trim(), html: el.tagName === "TR" ? `<div>${[...el.children].map((td) => td.innerHTML.trim()).filter(Boolean).join(" — ")}</div>` : el.outerHTML })).filter((b) => b.text.length > 20 && b.text.length < 700 && !/[:：]$/.test(b.text));
+      const pageScore = score(c.title || "");
+      for (const b of blocks) { const sc = pageScore + score(b.text); if (sc > bestScore) { bestScore = sc; best = c; bestBlock = b; } }
+    }
+    if (!best || bestScore <= 0) { const first = cands[0]; if (!first) return ""; const doc = new DOMParser().parseFromString(`<div>${first.html}</div>`, "text/html"); const p0 = doc.body.firstChild.querySelector("p, li"); best = first; bestBlock = p0 ? { text: p0.textContent, html: p0.outerHTML } : null; }
+    if (!bestBlock) return "";
+    const lessons = lessonsOf(t); const li = best.kind === "theory" ? lessons.findIndex((l) => l.kind === "theory" && l.idx === best.idx) : lessons.findIndex((l) => l.kind === best.kind);
+    // соседний блок после найденного (пример к правилу), если короткий
+    return `<div style="margin-top:10px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.7)"><div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:4px">📏 Правило · ${esc(best.title || "теория")}</div><div class="content" style="font-size:14px">${bestBlock.html.replace(/^<(li|tr)>/, "<div>").replace(/<\/(li|tr)>$/, "</div>")}</div>${li >= 0 ? `<a href="#" class="ex-theory" data-i="${li}" style="color:var(--accent);font-size:13px">Открыть теорию полностью →</a>` : ""}</div>`;
   }
   // --- варианты ответов (как в Duolingo) ---
   const cleanAns = (h) => { let t = strip(String(h || "")); if (t.includes("✅")) t = t.split("✅").pop(); return t.replace(/\s*\((?:[^()]*)\)\s*$/, "").replace(/\s+[—–-]\s+.*$/, "").replace(/\s+/g, " ").trim(); };
@@ -1220,7 +1245,7 @@
     bindStart(root);
   }
 
-  if (DEMO) window.__dbg = { buildOptions, exItems, parseItems, cleanAns, mutate, topicAnswerPool };
+  if (DEMO) window.__dbg = { buildOptions, exItems, parseItems, cleanAns, mutate, topicAnswerPool, explainHtml, setTopic: (t) => { state.topic = t; } };
   // ---------- Навигация ----------
   async function showPage(name) {
     document.querySelectorAll(".page").forEach((p) => p.classList.toggle("active", p.id === "page-" + name));
