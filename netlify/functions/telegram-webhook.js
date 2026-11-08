@@ -20,6 +20,7 @@ import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { VOCAB as DEFAULT_VOCAB } from "../../data/vocab.mjs";
+import { PREP_ITEMS_A, PREP_ITEMS_B, COND_ITEMS } from "../../data/grammar-extra.mjs";
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET; // опционально, но рекомендуется
@@ -6317,6 +6318,9 @@ const GRAMMAR_EXERCISE_TYPES = {
   modalTo: "🔧 Модальные — нужна ли to",
   futureInPast: "⏳ Future in the Past vs Future Simple",
   someAnyNo: "🔸 Some / any / no (something, someone, somewhere…)",
+  prepA: "📍 at / in / on — место и время (до B1)",
+  prepB: "📍 at / in / on — бизнес и нюансы (B1+)",
+  condB1: "🔗 Условные и союзы: if / unless / when / until… (B1+)",
   mix: "🎲 Микс всех форматов",
 };
 const GRAMMAR_REAL_EXERCISE_TYPES = [
@@ -6333,6 +6337,9 @@ const GRAMMAR_REAL_EXERCISE_TYPES = [
   "modalTo",
   "futureInPast",
   "someAnyNo",
+  "prepA",
+  "prepB",
+  "condB1",
 ];
 
 const TRAP_WORDS = [
@@ -7672,6 +7679,20 @@ function buildCollocationQuestion(forbiddenText) {
   return null;
 }
 
+// --- Форматы на готовых заданиях с объяснением (at/in/on, условные) ---
+// Данные — в data/grammar-extra.mjs: предложение с «___», три варианта,
+// верный индекс и объяснение правила, которое показывается после ответа.
+function buildChoiceItemQuestion(items, forbiddenText) {
+  for (let attempt = 0; attempt < 15; attempt++) {
+    const item = items[Math.floor(Math.random() * items.length)];
+    const correctText = item.template.replace("___", item.options[item.correctIdx]);
+    if (forbiddenText && correctText.toLowerCase() === forbiddenText.toLowerCase()) continue;
+    const order = shuffle(item.options.map((_, i) => i));
+    return { correctText, questionLabel: item.template, options: order.map((i) => item.options[i]), correctPos: order.indexOf(item.correctIdx), explain: item.explain || null };
+  }
+  return null;
+}
+
 function buildGrammarQuestion(forbiddenText, exerciseType) {
   const requestedType = exerciseType || "tenses";
   for (let attempt = 0; attempt < 5; attempt++) {
@@ -7686,6 +7707,9 @@ function buildGrammarQuestion(forbiddenText, exerciseType) {
     else if (type === "gerundInfinitive") q = buildGerundInfinitiveQuestion(forbiddenText);
     else if (type === "collocations") q = buildCollocationQuestion(forbiddenText);
     else if (type === "someAnyNo") q = buildSomeAnyNoQuestion(forbiddenText);
+    else if (type === "prepA") q = buildChoiceItemQuestion(PREP_ITEMS_A, forbiddenText);
+    else if (type === "prepB") q = buildChoiceItemQuestion(PREP_ITEMS_B, forbiddenText);
+    else if (type === "condB1") q = buildChoiceItemQuestion(COND_ITEMS, forbiddenText);
     else if (type === "modalMeaning") q = buildModalMeaningQuestion(forbiddenText);
     else if (type === "modalTo") q = buildModalToQuestion(forbiddenText);
     else if (type === "futureInPast") q = buildFutureInPastQuestion(forbiddenText);
@@ -7707,6 +7731,7 @@ function buildGrammarPicked(prefix, forbiddenText, exerciseType) {
     text,
     mode: "grammar",
     exerciseType: exerciseType || "tenses",
+    explain: q.explain || null,
   };
 }
 // =================== Конец режима "Грамматика" ===================
@@ -8133,6 +8158,7 @@ async function deliverQuestion(chatId, picked) {
     shared: picked.shared !== undefined ? picked.shared : null,
     blitz: picked.blitz || null,
     direction: picked.direction || null,
+    explain: picked.explain || null,
   });
 }
 
@@ -10122,7 +10148,11 @@ async function handleCallback(callbackQuery) {
     const statsSuffix = suffixLines.length ? `\n\n${suffixLines.join("\n")}` : "";
     const CORRECT_MARKS = ["✅", "✅ 👍", "✅ 👌", "✅ 💪", "✅ 🙌"];
     const mark = isCorrect ? (s.streak > 0 && s.streak % 10 === 0 ? `✅ 🔥 ${s.streak} подряд!` : s.streak > 0 && s.streak % 5 === 0 ? `✅ 🎯 ${s.streak} подряд!` : CORRECT_MARKS[s.answered % CORRECT_MARKS.length]) : "❌";
-    const resultText = `${mark} *${mdEscape(pending.correctEn)}* — ${mdEscape(pending.correctRu)}${statsSuffix}`;
+    // Объяснение правила (форматы с готовыми заданиями) — показываем после каждого ответа
+    const explainLine = pending.explain ? `\n💡 ${mdEscape(pending.explain)}` : "";
+    const resultText = pending.explain
+      ? `${mark} *${mdEscape(pending.correctEn)}*${explainLine}${statsSuffix}`
+      : `${mark} *${mdEscape(pending.correctEn)}* — ${mdEscape(pending.correctRu)}${statsSuffix}`;
 
     if (blitzFinal) {
       const recLine = blitzFinal.isRecord
