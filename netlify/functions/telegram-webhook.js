@@ -20,7 +20,7 @@ import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { VOCAB as DEFAULT_VOCAB } from "../../data/vocab.mjs";
-import { PREP_ITEMS_A, PREP_ITEMS_B, COND_ITEMS } from "../../data/grammar-extra.mjs";
+import { PREP_ITEMS_A, PREP_ITEMS_B, COND_ITEMS, GERUND_PREP_ITEMS } from "../../data/grammar-extra.mjs";
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET; // опционально, но рекомендуется
@@ -6312,6 +6312,7 @@ const GRAMMAR_EXERCISE_TYPES = {
   vsV1: "🔤 Vs vs V1 (He/She vs We, только настоящее)",
   psVsPrPs: "🆕 Past Simple vs Present Perfect (для начинающих)",
   gerundInfinitive: "🎯 V-ing или to-V1 (enjoy doing / want to do)",
+  gerundPrep: "🧩 V-ing после предлогов (до B1): good at, look forward to…",
   trapWords: "🪤 Слова-ловушки (mean/present/fine...)",
   collocations: "🤝 give / get / take / have",
   modalMeaning: "🧭 Модальные — по смыслу",
@@ -6340,6 +6341,7 @@ const GRAMMAR_REAL_EXERCISE_TYPES = [
   "prepA",
   "prepB",
   "condB1",
+  "gerundPrep",
 ];
 
 const TRAP_WORDS = [
@@ -7710,6 +7712,7 @@ function buildGrammarQuestion(forbiddenText, exerciseType) {
     else if (type === "prepA") q = buildChoiceItemQuestion(PREP_ITEMS_A, forbiddenText);
     else if (type === "prepB") q = buildChoiceItemQuestion(PREP_ITEMS_B, forbiddenText);
     else if (type === "condB1") q = buildChoiceItemQuestion(COND_ITEMS, forbiddenText);
+    else if (type === "gerundPrep") q = buildChoiceItemQuestion(GERUND_PREP_ITEMS, forbiddenText);
     else if (type === "modalMeaning") q = buildModalMeaningQuestion(forbiddenText);
     else if (type === "modalTo") q = buildModalToQuestion(forbiddenText);
     else if (type === "futureInPast") q = buildFutureInPastQuestion(forbiddenText);
