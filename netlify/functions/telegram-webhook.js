@@ -6145,7 +6145,8 @@ async function addWords(chatId, pairs) {
           }
           continue;
         }
-        const fresh = { ...p };
+        // addedAt — день добавления (мск): по нему считаются «последние уроки»
+        const fresh = { ...p, addedAt: p.addedAt || mskNow(Date.now()).date };
         byKey.set(key, fresh);
         next.push(fresh);
         added += 1;
@@ -8039,18 +8040,32 @@ function srsDueCount(srs, vocab, today) {
   return vocab.filter((w) => srsIsDue(srs, w.en, today)).length;
 }
 
+// «Последние уроки»: урок = день, когда слова были добавлены (addedAt, мск).
+// Слова последних RECENT_LESSONS дней-добавлений идут первыми, остальные —
+// потом, вперемешку. Слова без addedAt (добавлены до этой версии) считаются старыми.
+const RECENT_LESSONS = 5;
+function recentLessonSet(vocab) {
+  const days = [...new Set(vocab.map((v) => v.addedAt).filter(Boolean))].sort().slice(-RECENT_LESSONS);
+  const set = new Set(days);
+  return new Set(vocab.filter((v) => v.addedAt && set.has(v.addedAt)).map((v) => v.en));
+}
+const randomOf = (arr) => arr[Math.floor(Math.random() * arr.length)];
 function pickQuestionWord(vocab, wrongMap, seenEnSet, excludeSet, srs = null, today = null) {
   const unseen = vocab.filter((v) => !seenEnSet.has(v.en));
   const unseenAndNotRecent = excludeSet && excludeSet.size ? unseen.filter((v) => !excludeSet.has(v.en)) : unseen;
 
   if (unseenAndNotRecent.length) {
-    const due = srs && today ? unseenAndNotRecent.filter((v) => srsIsDue(srs, v.en, today)) : [];
-    const pool = due.length ? due : unseenAndNotRecent;
-    return { word: pool[pool.length - 1], resetCycle: false };
+    const recent = recentLessonSet(vocab);
+    // 1) сначала слова последних уроков, 2) потом остальные — и там и там вперемешку, с приоритетом «пора повторить»
+    const fromRecent = unseenAndNotRecent.filter((v) => recent.has(v.en));
+    const stage = fromRecent.length ? fromRecent : unseenAndNotRecent;
+    const due = srs && today ? stage.filter((v) => srsIsDue(srs, v.en, today)) : [];
+    const pool = due.length ? due : stage;
+    return { word: randomOf(pool), resetCycle: false };
   }
 
   if (unseen.length) {
-    return { word: unseen[unseen.length - 1], resetCycle: false };
+    return { word: randomOf(unseen), resetCycle: false };
   }
 
   return { word: pickRandomQuestionWord(vocab, wrongMap, excludeSet), resetCycle: true };
@@ -8655,6 +8670,7 @@ const GUIDE_TEXT =
   "Отвечаешь кнопкой, бот показывает ✅ или ❌ с правильным ответом и сразу даёт следующий вопрос. Остановиться можно в любой момент, просто не отвечай.\n" +
   "• Лексика → «Мой словарь» — твои слова; «Общая библиотека» — готовые наборы по уровням; «150 американских фраз» — разговорные выражения.\n" +
   "• Слова, в которых ошибаешься, будут попадаться чаще, пока не ответишь верно 3 раза подряд — тогда бот напишет, что слово побеждено.\n" +
+  "• Порядок в «Моём словаре»: сначала слова с последних пяти уроков (по дням, когда их добавили), потом — все остальные вперемешку; когда круг пройден, начинается новый.\n" +
   "• /swap — поменять направление: бот показывает русское слово, а ты выбираешь английское. Ещё раз /swap — обратно.\n" +
   "• /blitz — 10 вопросов на время по всему словарю, с рекордом.\n" +
   "\n" +
@@ -11240,6 +11256,7 @@ async function appVocabPayload(chatId) {
     topic: w.topic || null,
     errors: (stats.wrong || {})[w.en] || 0,
     due: srsIsDue(stats.srs, w.en, today),
+    addedAt: w.addedAt || null,
   }));
   return { folders, words, total: vocab.length };
 }
