@@ -23,6 +23,20 @@
     --g-accent: linear-gradient(135deg, #1dfff8 0%, #11c8c4 100%);
     --g-splash: linear-gradient(160deg, #ffffff 0%, #c8fffd 55%, #37f1ec 100%);
     --radius: 16px; --radius-s: 10px; --shadow: 0 10px 30px rgba(61, 53, 66, 0.08); --tabbar-h: 72px;
+    --on-pastel: #2e2e2e; --chip-bg: rgba(255, 255, 255, 0.75); --soft: #eef9f8; --soft-fg: #0f8f8a; --callout: #f3f3f6; --ok-bg: #e9f6e5; --ok-fg: #2f6b22; --ok-line: #8fcf7f; --bad-bg: #ffe1ec; --bad-fg: #8f3d64; --bad-line: #ff9ec4;
+    --tag-started-bg: #e3fbfa; --tag-started-fg: #0f8f8a; --tag-done-bg: #e9f6e5; --tag-done-fg: #4e8a3f; --tag-locked-bg: #f0edf2; --tag-locked-fg: #8a8a92; --switch-off: rgba(61,53,66,.15); --tabbar-bg: rgba(255, 255, 255, 0.92); --sheet-dim: rgba(61,53,66,.25); --toast-bg: #3d3542; --toast-fg: #fff;
+  }
+  /* Тёмная тема — включается по настройке Telegram (colorScheme) */
+  :root[data-theme="dark"] {
+    --bg: #141318; --card: #1f1d25; --text: #ececf0; --text-2: #e9e5ee; --muted: #9a97a3; --line: #2d2b35;
+    --accent: #2fd8d0; --accent-soft: rgba(47, 216, 208, 0.18); --glow: rgba(47, 216, 208, 0.35); --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    --g-aqua: linear-gradient(120deg, #1d4f4e 0%, #2a2d4f 100%);
+    --g-lavender: linear-gradient(120deg, #2a2d4f 0%, #4a2a40 100%);
+    --g-pink: linear-gradient(120deg, #4a2a40 0%, #3f3a2d 100%);
+    --g-cream: linear-gradient(120deg, #3f3a2d 0%, #1d4f4e 100%);
+    --g-splash: linear-gradient(160deg, #141318 0%, #1d4f4e 55%, #11c8c4 100%);
+    --on-pastel: #ececf0; --chip-bg: rgba(255, 255, 255, 0.12); --soft: #163534; --soft-fg: #6fe3dc; --callout: #26242e; --ok-bg: #1f3a1a; --ok-fg: #a6e39a; --ok-line: #3e7a33; --bad-bg: #3f1f2c; --bad-fg: #ffb3cf; --bad-line: #8f3d64;
+    --tag-started-bg: #163534; --tag-started-fg: #6fe3dc; --tag-done-bg: #1f3a1a; --tag-done-fg: #a6e39a; --tag-locked-bg: #26242e; --tag-locked-fg: #8a8a92; --switch-off: rgba(255,255,255,.18); --tabbar-bg: rgba(31, 29, 37, 0.94); --sheet-dim: rgba(0,0,0,.55); --toast-bg: #ececf0; --toast-fg: #141318;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--bg); color: var(--text); font-family: "Avenir Next", "Nunito Sans", system-ui, -apple-system, sans-serif; font-weight: 400; -webkit-font-smoothing: antialiased; }
@@ -38,18 +52,19 @@
   .card { background: var(--card); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
   .card + .card { margin-top: 12px; }
   .card.aqua { background: var(--g-aqua); } .card.lavender { background: var(--g-lavender); } .card.pink { background: var(--g-pink); } .card.cream { background: var(--g-cream); }
-  .pill { display: inline-block; padding: 5px 10px; border-radius: 8px; background: rgba(255, 255, 255, 0.75); font-size: 13px; color: var(--text-2); }
-  .pill.ok { background: #a8d29f; color: #fff; } .pill.accent { background: var(--accent-soft); }
+  .pill { display: inline-block; padding: 5px 10px; border-radius: 8px; background: var(--chip-bg); font-size: 13px; color: var(--text-2); }
+  .pill.ok { background: var(--ok-fg); color: var(--ok-bg); } .pill.accent { background: var(--accent-soft); }
   .big { font-size: 40px; font-weight: 500; line-height: 1; color: var(--text-2); }
   .fab { width: 46px; height: 46px; border-radius: 50%; background: var(--g-accent); display: grid; place-items: center; box-shadow: 0 8px 22px var(--glow); border: none; color: #2e2e2e; flex: none; cursor: pointer; }
   .fab svg { width: 20px; height: 20px; }
-  .fab.ghost { background: rgba(255,255,255,.75); box-shadow: 0 6px 16px rgba(61,53,66,.08); }
+  .fab.ghost { background: var(--chip-bg); box-shadow: 0 6px 16px rgba(61,53,66,.08); }
   .bar { height: 8px; border-radius: 8px; background: rgba(61, 53, 66, 0.08); overflow: hidden; }
   .bar > i { display: block; height: 100%; border-radius: 8px; background: var(--g-accent); box-shadow: 0 0 12px var(--glow); transition: width .6s ease; }
   .quest { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
   .quest:last-child { border-bottom: none; }
   .check { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--accent-light); display: grid; place-items: center; flex: none; color: #fff; font-size: 14px; }
   .check.done { background: var(--g-accent); border-color: transparent; box-shadow: 0 0 10px var(--glow); color: #2e2e2e; }
+  .fab, .cb.on, .chip.on, .seg button.on, .lvl .ring .pct, .btn.primary { color: #2e2e2e; }
   .quest .t { flex: 1; font-size: 14px; } .quest .p { font-size: 13px; color: var(--muted); }
   .chart { display: flex; align-items: flex-end; gap: 6px; height: 92px; padding-top: 8px; }
   .chart .col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
@@ -61,21 +76,21 @@
   .ach.locked { opacity: .38; filter: grayscale(1); }
   .word { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
   .word:last-child { border-bottom: none; }
-  .word .en { flex: 1; } .word .ru { color: var(--muted); text-align: right; max-width: 48%; } .word .n { color: #8f3d64; font-size: 12px; margin-left: 8px; } .word .due { color: var(--accent); font-size: 11px; margin-left: 8px; }
+  .word .en { flex: 1; } .word .ru { color: var(--muted); text-align: right; max-width: 48%; } .word .n { color: var(--bad-fg); font-size: 12px; margin-left: 8px; } .word .due { color: var(--accent); font-size: 11px; margin-left: 8px; }
   .cb { width: 22px; height: 22px; border-radius: 7px; border: 2px solid var(--accent-light); flex: none; display: grid; place-items: center; font-size: 13px; color: #2e2e2e; }
   .cb.on { background: var(--g-accent); border-color: transparent; }
-  .tabbar { position: fixed; left: 0; right: 0; bottom: 0; height: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-radius: 20px 20px 0 0; box-shadow: 0 -8px 30px rgba(61, 53, 66, 0.08); display: flex; justify-content: space-around; align-items: center; z-index: 5; }
+  .tabbar { position: fixed; left: 0; right: 0; bottom: 0; height: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); background: var(--tabbar-bg); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-radius: 20px 20px 0 0; box-shadow: 0 -8px 30px rgba(61, 53, 66, 0.08); display: flex; justify-content: space-around; align-items: center; z-index: 5; }
   .tab { background: none; border: none; display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-2); font: inherit; font-size: 11px; padding: 6px 8px; cursor: pointer; }
   .tab svg { width: 24px; height: 24px; stroke: var(--accent-light); fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 6px var(--glow)); }
   .tab.active svg { stroke: var(--accent); } .tab.active { color: var(--accent); }
   .splash { position: fixed; inset: 0; background: var(--g-splash); display: grid; place-items: center; z-index: 10; transition: opacity .4s ease; }
-  .splash .logo { font-size: 44px; font-weight: 400; color: #3d3542; letter-spacing: 0.01em; }
+  .splash .logo { font-size: 44px; font-weight: 400; color: var(--text-2); letter-spacing: 0.01em; }
   .splash .dot { position: absolute; top: 36px; left: 28px; width: 20px; height: 20px; border-radius: 50%; background: var(--g-accent); box-shadow: 0 6px 16px var(--glow); }
   .splash.hide { opacity: 0; pointer-events: none; }
   .notice { background: var(--card); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); font-size: 14px; line-height: 1.5; }
   .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 14px; border-radius: var(--radius); border: none; font: inherit; font-size: 15px; color: var(--text-2); background: var(--accent-soft); cursor: pointer; }
   .btn.primary { background: var(--g-accent); box-shadow: 0 10px 24px var(--glow); }
-  .btn.danger { background: #ffd9e6; color: #8f3d64; } .btn.small { width: auto; padding: 10px 14px; font-size: 14px; border-radius: 12px; }
+  .btn.danger { background: var(--bad-bg); color: var(--bad-fg); } .btn.small { width: auto; padding: 10px 14px; font-size: 14px; border-radius: 12px; }
   .search { display: flex; align-items: center; gap: 10px; background: var(--card); border-radius: 30px; padding: 10px 14px; box-shadow: var(--shadow); }
   .search input { border: none; outline: none; font: inherit; font-size: 15px; flex: 1; background: transparent; color: var(--text); }
   .search svg { width: 20px; height: 20px; stroke: var(--accent); fill: none; stroke-width: 2; stroke-linecap: round; }
@@ -87,19 +102,19 @@
   .avatars { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
   .avatars button { font-size: 22px; padding: 6px 0; border-radius: 10px; border: 1.5px solid transparent; background: var(--card); cursor: pointer; box-shadow: var(--shadow); }
   .avatars button.on { border-color: var(--accent-light); box-shadow: 0 0 12px var(--glow); }
-  .switch { width: 46px; height: 26px; border-radius: 13px; background: rgba(61,53,66,.15); position: relative; border: none; cursor: pointer; flex: none; }
+  .switch { width: 46px; height: 26px; border-radius: 13px; background: var(--switch-off); position: relative; border: none; cursor: pointer; flex: none; }
   .switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: left .2s; box-shadow: 0 2px 6px rgba(0,0,0,.15); }
   .switch.on { background: var(--g-accent); } .switch.on::after { left: 23px; }
   .lrow { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; margin-top: 8px; background: var(--card); box-shadow: var(--shadow); }
   .lrow.me { background: var(--g-aqua); } .lrow .pl { width: 30px; text-align: center; font-size: 16px; } .lrow .nm { flex: 1; } .lrow .xp { color: var(--text-2); }
-  .sheet-bg { position: fixed; inset: 0; background: rgba(61,53,66,.25); display: none; z-index: 20; }
+  .sheet-bg { position: fixed; inset: 0; background: var(--sheet-dim); display: none; z-index: 20; }
   .sheet-bg.open { display: block; }
   .sheet { position: fixed; left: 0; right: 0; bottom: 0; background: var(--card); border-radius: 20px 20px 0 0; padding: 18px 16px calc(18px + env(safe-area-inset-bottom)); max-width: 560px; margin: 0 auto; max-height: 85vh; overflow: auto; }
   .sheet h3 { font-size: 17px; margin-bottom: 12px; }
   textarea, input.txt { width: 100%; font: inherit; font-size: 15px; padding: 12px; border-radius: 12px; border: 1.5px solid var(--line); background: #fff; color: var(--text); outline: none; resize: vertical; }
   textarea:focus, input.txt:focus { border-color: var(--accent-light); }
   .actions { position: fixed; left: 16px; right: 16px; bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 10px); display: flex; gap: 8px; z-index: 6; }
-  .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 70px); background: #3d3542; color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 13px; opacity: 0; transition: opacity .25s; z-index: 30; pointer-events: none; }
+  .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 70px); background: var(--toast-bg); color: var(--toast-fg); padding: 10px 16px; border-radius: 12px; font-size: 13px; opacity: 0; transition: opacity .25s; z-index: 30; pointer-events: none; }
   .toast.show { opacity: 1; }
   .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .tile { border-radius: var(--radius); padding: 14px 14px 12px; box-shadow: var(--shadow); background: var(--card); }
@@ -123,11 +138,12 @@
   .topic { display: flex; align-items: center; justify-content: space-between; padding: 16px; border-radius: var(--radius); box-shadow: var(--shadow); margin-top: 12px; cursor: pointer; min-height: 92px; }
   .topic .t { font-size: 17px; color: var(--text-2); line-height: 1.2; } .topic .st { margin-top: 10px; }
   .topic.locked { opacity: .55; }
-  .tag { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 12px; background: rgba(255,255,255,.75); color: var(--text-2); }
-  .tag.started { background: #e3fbfa; color: #0f8f8a; } .tag.done { background: #e9f6e5; color: #4e8a3f; } .tag.locked { background: #f0edf2; color: #8a8a92; } .tag.available { background: rgba(255,255,255,.85); }
+  .tag { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 12px; background: var(--chip-bg); color: var(--text-2); }
+  .tag.started { background: var(--tag-started-bg); color: var(--tag-started-fg); } .tag.done { background: var(--tag-done-bg); color: var(--tag-done-fg); } .tag.locked { background: var(--tag-locked-bg); color: var(--tag-locked-fg); } .tag.available { background: var(--chip-bg); }
   .head { border-radius: 0 0 22px 22px; padding: 18px 16px 16px; background: var(--g-aqua); margin: -16px -16px 14px; box-shadow: var(--shadow); }
   .head.lavender { background: var(--g-lavender); } .head.pink { background: var(--g-pink); } .head.cream { background: var(--g-cream); }
-  .head .ttl { font-size: 24px; color: var(--text-2); font-weight: 500; line-height: 1.15; } .head .sub { font-size: 13px; color: var(--text-2); opacity: .75; margin-top: 4px; }
+  .head .ttl { font-size: 24px; color: var(--text-2); font-weight: 500; line-height: 1.15; }
+  .card.aqua, .card.lavender, .card.pink, .card.cream, .head, .tile, .lrow.me { color: var(--text-2); } .head .sub { font-size: 13px; color: var(--text-2); opacity: .75; margin-top: 4px; }
   .head .row { align-items: flex-start; }
   .lesson { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: var(--radius); background: var(--card); box-shadow: var(--shadow); margin-top: 10px; cursor: pointer; position: relative; overflow: hidden; }
   .lesson .ic { width: 42px; height: 42px; border-radius: 50%; background: var(--g-aqua); display: grid; place-items: center; font-size: 18px; flex: none; box-shadow: 0 0 12px var(--glow); }
@@ -141,22 +157,22 @@
   .content p { margin: 0 0 10px; } .content ul, .content ol { margin: 0 0 10px; padding-left: 20px; } .content li { margin: 3px 0; }
   .content h3, .content h4, .content h5, .content h6 { font-family: inherit; font-weight: 600; margin: 16px 0 8px; color: var(--text-2); } .content h3 { font-size: 18px; } .content h4 { font-size: 16px; } .content h5, .content h6 { font-size: 15px; }
   .content blockquote { margin: 10px 0; padding: 10px 12px; border-left: 3px solid var(--accent-light); background: var(--accent-soft); border-radius: 8px; }
-  .content .callout { display: flex; gap: 8px; margin: 10px 0; padding: 10px 12px; border-radius: 10px; background: #f3f3f6; } .content .callout .ico { flex: none; }
-  .content code { background: #eef9f8; border-radius: 4px; padding: 0 5px; font-family: inherit; color: #0f8f8a; }
+  .content .callout { display: flex; gap: 8px; margin: 10px 0; padding: 10px 12px; border-radius: 10px; background: var(--callout); } .content .callout .ico { flex: none; }
+  .content code { background: var(--soft); border-radius: 4px; padding: 0 5px; font-family: inherit; color: var(--soft-fg); }
   .content .tbl { overflow-x: auto; margin: 10px 0; -webkit-overflow-scrolling: touch; }
-  .content table { border-collapse: collapse; font-size: 13px; min-width: 100%; } .content th, .content td { border: 1px solid var(--line); padding: 6px 8px; vertical-align: top; text-align: left; } .content th { background: #f3f3f6; font-weight: 600; }
+  .content table { border-collapse: collapse; font-size: 13px; min-width: 100%; } .content th, .content td { border: 1px solid var(--line); padding: 6px 8px; vertical-align: top; text-align: left; } .content th { background: var(--callout); font-weight: 600; }
   .content details.tg { margin: 8px 0; border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; } .content details.tg summary { cursor: pointer; color: var(--accent); font-weight: 500; } .content .tg-body { margin-top: 8px; }
   .content hr { border: none; border-top: 1px solid var(--line); margin: 14px 0; }
   .content a { color: var(--accent); }
   .content ul.check { list-style: none; padding-left: 0; } .content ul.check li::before { content: "☐ "; color: var(--accent); }
   .content img { max-width: 100%; }
   .ex { margin-top: 12px; } .ex .ans { margin-top: 10px; } .ex .ans summary { cursor: pointer; color: var(--accent); font-weight: 500; }
-  .ex .ans .content { margin-top: 8px; padding: 10px 12px; background: #eef9f8; border-radius: 10px; }
+  .ex .ans .content { margin-top: 8px; padding: 10px 12px; background: var(--soft); border-radius: 10px; }
   .chk { display: flex; gap: 12px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--line); cursor: pointer; font-size: 14px; }
   .chk:last-child { border-bottom: none; }
   .note { padding: 12px 0; border-bottom: 1px solid var(--line); } .note:last-child { border-bottom: none; }
   .note .d { font-size: 12px; color: var(--muted); margin-bottom: 4px; } .note .tx { white-space: pre-wrap; font-size: 14px; } .note .acts { margin-top: 6px; display: flex; gap: 12px; } .note .acts button { background: none; border: none; font: inherit; font-size: 13px; color: var(--accent); padding: 0; cursor: pointer; }
-  .note .acts button.del { color: #8f3d64; }
+  .note .acts button.del { color: var(--bad-fg); }
   .fold { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-radius: 12px; background: var(--card); box-shadow: var(--shadow); margin-top: 8px; cursor: pointer; }
   .fold .n { background: var(--accent-soft); border-radius: 8px; padding: 2px 10px; font-size: 13px; }
   .slang { padding: 10px 0; border-bottom: 1px solid var(--line); cursor: pointer; } .slang:last-child { border-bottom: none; }
@@ -166,10 +182,10 @@
   .outline { font-size: 16px; color: var(--text-2); line-height: 1.4; padding: 22px 20px; }
   .opt { display: block; width: 100%; text-align: left; font: inherit; font-size: 16px; padding: 14px 16px; margin-top: 10px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--card); color: var(--text); cursor: pointer; box-shadow: var(--shadow); }
   .opt:active { transform: scale(.99); }
-  .opt.ok { background: #e9f6e5; border-color: #8fcf7f; color: #2f6b22; } .opt.bad { background: #ffe1ec; border-color: #ff9ec4; color: #8f3d64; } .opt.dim { opacity: .5; }
+  .opt.ok { background: var(--ok-bg); border-color: var(--ok-line); color: var(--ok-fg); } .opt.bad { background: var(--bad-bg); border-color: var(--bad-line); color: var(--bad-fg); } .opt.dim { opacity: .5; }
   .chip { display: inline-block; padding: 8px 12px; border-radius: 20px; border: 1.5px solid var(--line); background: var(--card); font-size: 14px; margin: 0 6px 8px 0; cursor: pointer; color: var(--text-2); }
   .chip.on { background: var(--g-accent); border-color: transparent; box-shadow: 0 4px 12px var(--glow); }
-  .chip.pending { border-style: dashed; } .chip.err { border-color: #ff9ec4; }
+  .chip.pending { border-style: dashed; } .chip.err { border-color: var(--bad-line); }
   .sent { font-size: 18px; line-height: 1.4; color: var(--text-2); } .sent b { color: var(--accent); font-weight: 600; }
   .sent-ru { font-size: 14px; color: var(--muted); margin-top: 6px; }
   .voc { margin-top: 10px; font-size: 14px; } .voc div { padding: 3px 0; } .voc .e { color: var(--text-2); font-weight: 500; }
@@ -202,7 +218,15 @@
   const initData = tg && tg.initData ? tg.initData : "";
   const API = "/telegram-webhook";
   const DEMO = !initData; // вне Telegram — демо-данные, чтобы смотреть дизайн в браузере
-  if (tg) { try { tg.ready(); tg.expand(); tg.setHeaderColor("#fbfbfb"); tg.setBackgroundColor("#fbfbfb"); } catch (e) {} }
+  function applyTheme() {
+    let scheme = tg && tg.colorScheme ? tg.colorScheme : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    try { const q = new URLSearchParams(location.search).get("theme"); if (q === "dark" || q === "light") scheme = q; } catch (e) {}
+    document.documentElement.dataset.theme = scheme;
+    const bg = scheme === "dark" ? "#141318" : "#fbfbfb";
+    if (tg) { try { tg.setHeaderColor(bg); tg.setBackgroundColor(bg); if (tg.setBottomBarColor) tg.setBottomBarColor(scheme === "dark" ? "#1f1d25" : "#ffffff"); } catch (e) {} }
+  }
+  if (tg) { try { tg.ready(); tg.expand(); } catch (e) {} try { tg.onEvent("themeChanged", applyTheme); } catch (e) {} }
+  applyTheme();
 
   const $ = (s) => document.querySelector(s);
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -333,7 +357,7 @@
           <div><div style="font-size:15px">🎯 Цель на день</div><div class="muted" style="margin-top:2px">${d.goal ? (goalDone ? "выполнена" : `${d.todayCount} из ${d.goal} слов`) : "не задана — задай в «Аккаунт»"}</div></div>
           <div class="big" style="font-size:28px">${d.goal ? `${goalPct}%` : "—"}</div>
         </div>
-        ${d.goal ? `<div class="bar" style="margin-top:12px;background:rgba(255,255,255,.6)"><i style="width:${goalPct}%"></i></div>` : ""}
+        ${d.goal ? `<div class="bar" style="margin-top:12px;background:var(--chip-bg)"><i style="width:${goalPct}%"></i></div>` : ""}
       </div>
       <h2>Квесты дня <span class="muted" style="font-weight:400">${done}/${d.quests.length}</span></h2>
       <div class="card" style="padding:4px 16px">${quests}</div>
@@ -365,10 +389,10 @@
   }
 
   // ---------- Словарь ----------
-  async function loadVocab() { const v = await api("vocab"); if (v && v.ok) state.vocab = v; return state.vocab; }
+  async function loadVocab() { const v = await api("vocab"); if (v && v.ok) { state.vocab = v; state.vocabError = null; cacheSet("vocab", v); } else if (!state.vocab && cached("vocab")) { state.vocab = cached("vocab"); state.offline = true; } else if (!state.vocab) state.vocabError = true; return state.vocab; }
   function renderVocab() {
     const v = state.vocab; const root = $("#page-vocab");
-    if (!v) { root.innerHTML = `<div class="notice">Загружаю словарь…</div>`; return; }
+    if (!v) { root.innerHTML = state.vocabError ? `<div class="notice">Не удалось загрузить словарь — проверь интернет.<br><button class="btn" id="vocab-retry" style="margin-top:10px">Попробовать ещё раз</button></div>` : `<div class="notice">Загружаю словарь…</div>`; const b = $("#vocab-retry"); if (b) b.addEventListener("click", async () => { state.vocabError = null; renderVocab(); await loadVocab(); renderVocab(); }); return; }
     if (state.folder !== null) return renderWordList();
     const folders = v.folders.map((f, i) => {
       const due = v.words.filter((w) => (w.topic || "__general__") === f.key && w.due).length;
@@ -478,7 +502,7 @@
     if (!l) { root.innerHTML = `<div class="notice">Загружаю лигу…</div>`; return; }
     const medals = ["🥇", "🥈", "🥉"];
     const rows = l.rows.length ? l.rows.map((r) => `<div class="lrow ${r.me ? "me" : ""}"><div class="pl">${medals[r.place - 1] || r.place}</div><div class="nm">${esc(r.name)}${r.me ? ' <span class="muted">← ты</span>' : ""}</div><div class="xp">${r.xp} XP</div></div>`).join("") : `<div class="notice">В лиге пока никого — будь ${gend("первым", "первой")}!</div>`;
-    const goal = l.classGoal ? `<div class="card cream" style="margin-top:16px"><div class="row between"><div><div style="font-size:15px">🎯 Общая цель класса</div><div class="muted" style="margin-top:2px">${l.classGoal.progress} из ${l.classGoal.target} ответов за неделю</div></div><div class="big" style="font-size:26px">${Math.min(100, Math.round((l.classGoal.progress / l.classGoal.target) * 100))}%</div></div><div class="bar" style="margin-top:12px;background:rgba(255,255,255,.6)"><i style="width:${Math.min(100, Math.round((l.classGoal.progress / l.classGoal.target) * 100))}%"></i></div></div>` : "";
+    const goal = l.classGoal ? `<div class="card cream" style="margin-top:16px"><div class="row between"><div><div style="font-size:15px">🎯 Общая цель класса</div><div class="muted" style="margin-top:2px">${l.classGoal.progress} из ${l.classGoal.target} ответов за неделю</div></div><div class="big" style="font-size:26px">${Math.min(100, Math.round((l.classGoal.progress / l.classGoal.target) * 100))}%</div></div><div class="bar" style="margin-top:12px;background:var(--chip-bg)"><i style="width:${Math.min(100, Math.round((l.classGoal.progress / l.classGoal.target) * 100))}%"></i></div></div>` : "";
     const ws = l.weekStart;
     root.innerHTML = `
       <div class="muted" style="margin-bottom:6px">с ${ws.slice(8)}.${ws.slice(5, 7)} · по XP · итоги в воскресенье</div>
@@ -590,7 +614,27 @@
   const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } };
   const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
 
-  async function loadCourse() { const c = await api("course"); if (c && c.ok) { state.course = c; state.courseError = null; } else state.courseError = DEMO ? "Это просмотр в обычном браузере — курс открывается только внутри Telegram, из бота." : (c && c.error ? c.error : "unknown") + (c && c.detail ? ": " + c.detail : ""); return state.course; }
+  // ---------- Кэш на телефоне: мгновенный старт и офлайн-чтение теории ----------
+  const uid = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) || "demo";
+  const ck = (k) => `cache:${uid}:${k}`;
+  const cacheGet = (k) => lsGet(ck(k), null);
+  const cacheSet = (k, v) => { if (DEMO) return; try { lsSet(ck(k), { at: Date.now(), v }); } catch (e) {} };
+  const cached = (k) => { const c = cacheGet(k); return c && c.v ? c.v : null; };
+  const TOPIC_CACHE_MAX = 40;
+  function cacheTopic(id, payload) {
+    cacheSet(`topic:${id}`, payload);
+    const list = lsGet(ck("topics"), []).filter((x) => x !== id); list.push(id);
+    while (list.length > TOPIC_CACHE_MAX) { const old = list.shift(); try { localStorage.removeItem(ck(`topic:${old}`)); } catch (e) {} }
+    lsSet(ck("topics"), list);
+  }
+  state.offline = false;
+  async function loadCourse() {
+    const c = await api("course");
+    if (c && c.ok) { state.course = c; state.courseError = null; state.offline = false; cacheSet("course", c); }
+    else if (cached("course")) { state.course = cached("course"); state.courseError = null; state.offline = true; }
+    else state.courseError = DEMO ? "Это просмотр в обычном браузере — курс открывается только внутри Telegram, из бота." : (c && c.error ? c.error : "unknown") + (c && c.detail ? ": " + c.detail : "");
+    return state.course;
+  }
   function findTopicMeta(id) { for (const l of state.course.levels) for (const t of l.topics) if (t.id === id) return { level: l, meta: t }; return null; }
   function categoryOfTopic(id) { for (const c of state.course.categories) if (c.topics.some((t) => t.id === id)) return c.key; return null; }
   function findCategory(key) { return state.course.categories.find((c) => c.key === key) || null; }
@@ -619,6 +663,7 @@
   function renderStudyInner(root, v) {
     const fn = { home: renderStudyHome, topics: renderTopics, category: renderCategory, topic: renderTopic, lesson: renderLesson, exercises: renderExercises, selfcheck: renderSelfcheck, tnotes: renderTopicNotes, notes: renderNotesFolders, nfolder: renderNotesFolder, slang: renderSlang, search: renderSearch, checkpoint: renderCheckpoint, interests: renderInterests, ipick: renderInterestPicker, iquiz: renderInterestQuiz }[v] || renderStudyHome;
     fn(root);
+    if (state.offline && (v === "home" || v === "topic" || v === "lesson")) { const n = document.createElement("div"); n.className = "muted"; n.style.cssText = "font-size:12px;text-align:center;padding:6px 0 2px"; n.textContent = "📴 Нет связи — показана сохранённая копия"; n.style.padding = "10px 0 0"; const h = root.querySelector(".head"); if (h) h.after(n); else root.prepend(n); }
     const b = $("#study-back"); if (b) b.addEventListener("click", () => { haptic(); studyBack(); });
   }
 
@@ -701,12 +746,20 @@
 
   // --- тема: уроки (My Classroom--Details) ---
   async function openTopic(id) {
-    go("topic", { id, loading: true });
+    const c = cached(`topic:${id}`);
+    if (c) { state.topic = c.topic; state.topicProgress = c.progress; state.topicNotes = c.notes || []; go("topic", { id }); }
+    else go("topic", { id, loading: true });
     const r = await api("topic", { id });
-    if (!r || !r.ok) { toast("Не удалось открыть тему"); return go("category", { key: categoryOfTopic(id) }); }
+    if (!r || !r.ok) {
+      if (c) { state.offline = true; toast("Нет связи — показана сохранённая теория"); return; }
+      toast("Не удалось открыть тему"); return go("category", { key: categoryOfTopic(id) });
+    }
+    state.offline = false;
     state.topic = r.topic; state.topicProgress = r.progress; state.topicNotes = r.notes || [];
-    if (!r.progress) { const s = await api("courseSet", { id, status: "started" }); if (s && s.ok) { state.course = s; state.topicProgress = { status: "started" }; } }
-    go("topic", { id });
+    cacheTopic(id, { topic: r.topic, progress: r.progress, notes: r.notes || [] });
+    if (!r.progress) { const s = await api("courseSet", { id, status: "started" }); if (s && s.ok) { state.course = s; state.topicProgress = { status: "started" }; cacheSet("course", s); } }
+    // Перерисовываем, только если ученик всё ещё на этой теме
+    if (state.study.view === "topic" && state.study.id === id) go("topic", { id });
   }
   function lessonsOf(t) {
     const list = [];
@@ -869,7 +922,7 @@
     if (!bestBlock) return "";
     const lessons = lessonsOf(t); const li = best.kind === "theory" ? lessons.findIndex((l) => l.kind === "theory" && l.idx === best.idx) : lessons.findIndex((l) => l.kind === best.kind);
     // соседний блок после найденного (пример к правилу), если короткий
-    return `<div style="margin-top:10px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.7)"><div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:4px">📏 Правило · ${esc(best.title || "теория")}</div><div class="content" style="font-size:14px">${bestBlock.html.replace(/^<(li|tr)>/, "<div>").replace(/<\/(li|tr)>$/, "</div>")}</div>${li >= 0 ? `<a href="#" class="ex-theory" data-i="${li}" style="color:var(--accent);font-size:13px">Открыть теорию полностью →</a>` : ""}</div>`;
+    return `<div style="margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--chip-bg)"><div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:4px">📏 Правило · ${esc(best.title || "теория")}</div><div class="content" style="font-size:14px">${bestBlock.html.replace(/^<(li|tr)>/, "<div>").replace(/<\/(li|tr)>$/, "</div>")}</div>${li >= 0 ? `<a href="#" class="ex-theory" data-i="${li}" style="color:var(--accent);font-size:13px">Открыть теорию полностью →</a>` : ""}</div>`;
   }
   // --- варианты ответов (как в Duolingo) ---
   const cleanAns = (h) => { let t = strip(String(h || "")); if (t.includes("✅")) t = t.split("✅").pop(); return t.replace(/\s*\((?:[^()]*)\)\s*$/, "").replace(/\s+[—–-]\s+.*$/, "").replace(/\s+/g, " ").trim(); };
@@ -1064,8 +1117,8 @@
         root.innerHTML = `${hdr}${exBar}<h2 style="margin-top:0">${esc(title)}</h2>${p.intro && strip(p.intro).trim() ? `<div class="content muted" style="font-size:14px">${p.intro}</div>` : ""}
           <div class="bar" style="margin:6px 0 12px"><i style="width:${Math.round((st.item / n) * 100)}%"></i></div>
           <div class="card ex"><div class="muted" style="margin-bottom:6px">Задание ${st.item + 1} из ${n}</div><div class="content" style="font-size:18px">${it.q}</div></div>
-          ${opts ? optsHtml : (st.shown ? `<div class="card content" style="margin-top:12px;background:#eef9f8;font-size:16px">${it.a}</div>` : `<div style="margin-top:14px"><button class="btn primary" id="ex-show">Показать ответ</button></div>`)}
-          ${answered ? `<div class="card" style="margin-top:14px;background:${opts[picked].ok ? "#e9f6e5" : "#ffe1ec"}"><div style="font-size:15px;font-weight:500;color:${opts[picked].ok ? "#2f6b22" : "#8f3d64"}">${opts[picked].ok ? "Верно! ✓" : "Не совсем"}</div><div class="content" style="margin-top:6px;font-size:15px">${it.a}</div>${explainHtml(e, it)}</div><div style="margin-top:12px"><button class="btn primary" id="ex-go">${st.item + 1 >= n ? "Итог" : "Далее"}</button></div>` : ""}
+          ${opts ? optsHtml : (st.shown ? `<div class="card content" style="margin-top:12px;background:var(--soft);font-size:16px">${it.a}</div>` : `<div style="margin-top:14px"><button class="btn primary" id="ex-show">Показать ответ</button></div>`)}
+          ${answered ? `<div class="card" style="margin-top:14px;background:${opts[picked].ok ? "var(--ok-bg)" : "var(--bad-bg)"}"><div style="font-size:15px;font-weight:500;color:${opts[picked].ok ? "var(--ok-fg)" : "var(--bad-fg)"}">${opts[picked].ok ? "Верно! ✓" : "Не совсем"}</div><div class="content" style="margin-top:6px;font-size:15px">${it.a}</div>${explainHtml(e, it)}</div><div style="margin-top:12px"><button class="btn primary" id="ex-go">${st.item + 1 >= n ? "Итог" : "Далее"}</button></div>` : ""}
           ${!opts && st.shown ? `<div class="navbtns"><button class="btn danger" id="ex-no">Не знал${gend("", "а")} ✗</button><button class="btn primary" id="ex-yes">Знал${gend("", "а")} ✓</button></div>` : ""}
           <div class="navbtns" style="margin-top:10px"><button class="btn" id="ex-prev" ${st.item === 0 && st.ex === 0 ? "disabled" : ""}>Назад</button><button class="btn" id="ex-skip">Пропустить</button></div><div style="height:16px"></div>`;
         root.querySelectorAll(".opt").forEach((b) => b.addEventListener("click", () => { const k = Number(b.dataset.k); st.picked = k; if (opts[k].ok) { st.score++; haptic("medium"); } else { try { tg && tg.HapticFeedback && tg.HapticFeedback.notificationOccurred("error"); } catch (e) {} } renderStudy(); }));
@@ -1233,7 +1286,7 @@
       <div class="bar" style="margin:4px 0 12px"><i style="width:${Math.round((i / items.length) * 100)}%"></i></div>
       <div class="card"><div class="muted" style="margin-bottom:6px">Вставь слово</div><div class="sent">${qEn}</div><div class="sent-ru">${esc(it.ru)}</div></div>
       ${opts.map((o, k) => `<button class="opt ${answered ? (o.ok ? "ok" : k === st.picked ? "bad" : "dim") : ""}" data-k="${k}" ${answered ? "disabled" : ""}>${esc(o.text)}</button>`).join("")}
-      ${answered ? `<div class="card" style="margin-top:14px;background:${opts[st.picked].ok ? "#e9f6e5" : "#ffe1ec"}"><div style="font-size:15px;font-weight:500;color:${opts[st.picked].ok ? "#2f6b22" : "#8f3d64"}">${opts[st.picked].ok ? "Верно! ✓" : "Не совсем"}</div><div class="sent" style="font-size:16px;margin-top:6px">${esc(it.en).replace(new RegExp(esc(target.en).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), (m) => `<b>${m}</b>`)}</div><div class="muted" style="margin-top:4px">${esc(target.en)} — ${esc(target.ru)}</div></div><div style="margin-top:12px"><button class="btn primary" id="q-next">${i + 1 >= items.length ? "Итог" : "Далее"}</button></div>` : ""}`;
+      ${answered ? `<div class="card" style="margin-top:14px;background:${opts[st.picked].ok ? "var(--ok-bg)" : "var(--bad-bg)"}"><div style="font-size:15px;font-weight:500;color:${opts[st.picked].ok ? "var(--ok-fg)" : "var(--bad-fg)"}">${opts[st.picked].ok ? "Верно! ✓" : "Не совсем"}</div><div class="sent" style="font-size:16px;margin-top:6px">${esc(it.en).replace(new RegExp(esc(target.en).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), (m) => `<b>${m}</b>`)}</div><div class="muted" style="margin-top:4px">${esc(target.en)} — ${esc(target.ru)}</div></div><div style="margin-top:12px"><button class="btn primary" id="q-next">${i + 1 >= items.length ? "Итог" : "Далее"}</button></div>` : ""}`;
     root.querySelectorAll(".opt").forEach((b) => b.addEventListener("click", () => { st.picked = Number(b.dataset.k); if (opts[st.picked].ok) { st.score = (st.score || 0) + 1; haptic("medium"); } renderStudy(); }));
     const n = $("#q-next"); if (n) n.addEventListener("click", () => { st.i = i + 1; st.picked = null; renderStudy(); window.scrollTo(0, 0); });
   }
@@ -1252,7 +1305,7 @@
     bindStart(root);
   }
 
-  if (DEMO) window.__dbg = { buildOptions, exItems, parseItems, cleanAns, mutate, topicAnswerPool, explainHtml, setTopic: (t) => { state.topic = t; } };
+  if (DEMO) window.__dbg = { demo, buildOptions, exItems, parseItems, cleanAns, mutate, topicAnswerPool, explainHtml, setTopic: (t) => { state.topic = t; } };
   // ---------- Навигация ----------
   async function showPage(name) {
     document.querySelectorAll(".page").forEach((p) => p.classList.toggle("active", p.id === "page-" + name));
@@ -1271,16 +1324,36 @@
   if (tg && tg.BackButton) { try { tg.BackButton.onClick(() => studyBack()); } catch (e) {} }
 
   function fail(msg) { $("#page-progress").innerHTML = `<div class="notice">${msg}</div>`; }
-  api("me").then((d) => {
+  const firstPage = ["vocab", "blitz", "account", "progress", "study"].includes(startPage) ? startPage : "study";
+  let startedFromCache = false;
+  const cachedMe = DEMO ? null : cached("me");
+  if (cachedMe && cachedMe.ok) {
+    // Мгновенный старт: рисуем из кэша, свежие данные подтянутся в фоне
+    startedFromCache = true;
+    state.me = cachedMe; state.gender = cachedMe.user.gender; renderProgress(cachedMe);
+    if (cached("course")) { state.course = cached("course"); }
+    showPage(firstPage);
+    setTimeout(() => $("#splash").classList.add("hide"), 50);
+  }
+  api("me").then(async (d) => {
     if (!d || !d.ok) {
+      if (startedFromCache && (!d || d.error === "network" || String(d.error || "").startsWith("http_"))) { state.offline = true; toast("Нет связи — работаем из сохранённой копии"); return; }
       if (d && d.error === "no_access") fail("У тебя пока нет доступа к тренажёру. Напиши преподавателю — она откроет.");
       else if (d && d.error === "auth") fail("Не удалось подтвердить, что это ты. Закрой приложение и открой его снова из бота.");
       else fail("Что-то пошло не так. Попробуй открыть приложение ещё раз.");
+      if (startedFromCache) { try { localStorage.removeItem(ck("me")); } catch (e) {} showPage("progress"); }
       return;
     }
-    state.me = d; state.gender = d.user.gender; renderProgress(d);
-    showPage(["vocab", "blitz", "account", "progress", "study"].includes(startPage) ? startPage : "study");
-  }).catch(() => fail("Нет связи с ботом. Проверь интернет и попробуй снова.")).finally(() => {
+    state.me = d; state.gender = d.user.gender; if (!DEMO) cacheSet("me", d);
+    if (startedFromCache) {
+      renderProgress(d);
+      // Обновляем курс в фоне (прогресс мог измениться в чате)
+      const c = await api("course"); if (c && c.ok) { state.course = c; state.courseError = null; cacheSet("course", c); if (document.querySelector("#page-study.active")) renderStudy(); }
+      return;
+    }
+    renderProgress(d);
+    showPage(firstPage);
+  }).catch(() => { if (!startedFromCache) fail("Нет связи с ботом. Проверь интернет и попробуй снова."); }).finally(() => {
     setTimeout(() => $("#splash").classList.add("hide"), DEMO ? 400 : 150);
   });
 })();
