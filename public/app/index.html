@@ -175,6 +175,20 @@
   .note .acts button.del { color: var(--bad-fg); }
   .fold { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-radius: 12px; background: var(--card); box-shadow: var(--shadow); margin-top: 8px; cursor: pointer; }
   .fold .n { background: var(--accent-soft); border-radius: 8px; padding: 2px 10px; font-size: 13px; }
+  .hw { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; background: var(--card); box-shadow: var(--shadow); margin-top: 8px; cursor: pointer; }
+  .hw .ic { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; font-size: 17px; flex: none; background: var(--g-aqua); }
+  .hw.overdue .ic { background: var(--bad-bg); } .hw.done .ic { background: var(--ok-bg); }
+  .hw .t { font-size: 15px; color: var(--text-2); } .hw .k { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .hw .dl { font-size: 12px; padding: 4px 8px; border-radius: 6px; background: var(--accent-soft); white-space: nowrap; } .hw.overdue .dl { background: var(--bad-bg); color: var(--bad-fg); } .hw.done .dl { background: var(--ok-bg); color: var(--ok-fg); }
+  .stud { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; background: var(--card); box-shadow: var(--shadow); margin-top: 8px; cursor: pointer; }
+  .stud .av { width: 40px; height: 40px; border-radius: 50%; background: var(--accent-soft); display: grid; place-items: center; font-size: 20px; flex: none; }
+  .stud .nm { font-size: 15px; color: var(--text-2); } .stud .k { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .stud .r { text-align: right; font-size: 12px; color: var(--muted); white-space: nowrap; } .stud .r b { display: block; font-size: 15px; font-weight: 500; color: var(--text-2); }
+  .stud.silent .av { opacity: .5; }
+  .kpi { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+  .kpi div { background: var(--card); border-radius: 12px; padding: 10px 12px; box-shadow: var(--shadow); } .kpi b { display: block; font-size: 20px; font-weight: 500; color: var(--text-2); } .kpi span { font-size: 12px; color: var(--muted); }
+  .area { width: 100%; font: inherit; font-size: 15px; border: 1.5px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--card); color: var(--text); resize: vertical; min-height: 64px; }
+  .date { font: inherit; font-size: 14px; border: 1.5px solid var(--line); border-radius: 10px; padding: 8px 10px; background: var(--card); color: var(--text); }
   .slang { padding: 10px 0; border-bottom: 1px solid var(--line); cursor: pointer; } .slang:last-child { border-bottom: none; }
   .slang .en { font-size: 15px; color: var(--text-2); } .slang .ru { font-size: 13px; color: var(--muted); margin-top: 2px; }
   .slang .exm { margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: var(--accent-soft); font-size: 13px; line-height: 1.4; display: none; } .slang.open .exm { display: block; }
@@ -265,7 +279,23 @@
     const folders = Object.keys(counts).sort((a, b) => (a === "__general__" ? -1 : b === "__general__" ? 1 : a.localeCompare(b, "ru"))).map((k) => ({ key: k, label: k === "__general__" ? "Общие слова" : k, count: counts[k], isGeneral: k === "__general__" }));
     return { ok: true, folders, words: demoState.words, total: demoState.words.length };
   }
-  const demoCourse = { progress: {}, level: null, notes: [] };
+  const demoCourse = { progress: {}, level: null, notes: [], hw: null, teacher: null };
+  const demoDay = (n) => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
+  function demoHomework() {
+    if (!demoCourse.hw) demoCourse.hw = [{ id: "h1", topicId: null, title: "Present Simple", emoji: "🌍", level: "A1", deadline: demoDay(2), note: "Сделай все 3 упражнения и самопроверку", doneAt: null }, { id: "h2", topicId: null, title: "Артикли a / an", emoji: "📰", level: "A1", deadline: demoDay(-1), note: null, doneAt: null }, { id: "h0", topicId: null, title: "Глагол to be", emoji: "🔤", level: "A0", deadline: demoDay(-5), note: null, doneAt: new Date().toISOString() }];
+    const today = demoDay(0);
+    const items = demoCourse.hw.map((it) => ({ ...it, status: it.doneAt ? "done" : it.deadline && it.deadline < today ? "overdue" : "open", daysLeft: it.deadline ? Math.round((Date.parse(it.deadline) - Date.parse(today)) / 864e5) : null }));
+    return { items, open: items.filter((i) => i.status !== "done").length, today };
+  }
+  function demoStudents() {
+    if (!demoCourse.teacher) demoCourse.teacher = [
+      { chatId: "101", firstName: "Вера", username: "vera_k", avatar: "🦊", lastActive: demoDay(0), daysSilent: 0, streak: 14, xp: 2140, xpWeek: 320, answersWeek: 64, level: "Advanced", answered: 812, correct: 701, vocabCount: 238, topicsDone: 9, topicsStarted: 1, courseLevel: "A2", hwOpen: 1, hwOverdue: 0, hwDone: 4 },
+      { chatId: "102", firstName: "Борис", username: null, avatar: "🐼", lastActive: demoDay(-1), daysSilent: 1, streak: 0, xp: 640, xpWeek: 90, answersWeek: 18, level: "Confident", answered: 240, correct: 180, vocabCount: 96, topicsDone: 3, topicsStarted: 2, courseLevel: "A1", hwOpen: 1, hwOverdue: 1, hwDone: 1 },
+      { chatId: "103", firstName: "Катя", username: "kate_eng", avatar: null, lastActive: demoDay(-9), daysSilent: 9, streak: 0, xp: 310, xpWeek: 0, answersWeek: 0, level: "Starter", answered: 120, correct: 80, vocabCount: 40, topicsDone: 1, topicsStarted: 1, courseLevel: null, hwOpen: 0, hwOverdue: 2, hwDone: 0 },
+      { chatId: "104", firstName: "Олег", username: null, avatar: "🚀", lastActive: null, daysSilent: null, streak: 0, xp: 0, xpWeek: 0, answersWeek: 0, level: "Newbie", answered: 0, correct: 0, vocabCount: 12, topicsDone: 0, topicsStarted: 0, courseLevel: null, hwOpen: 0, hwOverdue: 0, hwDone: 0 },
+    ];
+    return { ok: true, students: demoCourse.teacher, today: demoDay(0) };
+  }
   async function demoFetchJson(path) { const r = await fetch(path); if (!r.ok) throw new Error("no " + path); return r.json(); }
   async function demoCoursePayload() {
     const idx = await demoFetchJson("__course/index.json");
@@ -275,14 +305,20 @@
     const levels = idx.levels.map((lv) => { const topics = lv.topics.map(ws); const main = topics.filter((t) => t.kind === "topic"); return { code: lv.code, title: lv.title, emoji: lv.emoji, intro: lv.intro, checkpoint: lv.checkpoint, topics, total: main.length, done: main.filter((t) => t.status === "done").length, started: main.filter((t) => t.status === "started").length }; });
     const categories = idx.categories.map((c) => { const topics = c.topics.map((id) => byId.get(id)).filter(Boolean).map(ws); const status = topics.every((t) => t.status === "done") ? "done" : topics.some((t) => t.status === "done" || t.status === "started") ? "started" : topics.some((t) => t.status === "available") ? "available" : "locked"; return { key: c.key, title: c.title, outline: c.outline, topics, total: topics.length, done: topics.filter((t) => t.status === "done").length, status }; });
     const all = levels.flatMap((l) => l.topics.filter((t) => t.kind === "topic"));
-    return { ok: true, levels, categories, level: demoCourse.level, total: all.length, done: all.filter((t) => t.status === "done").length };
+    demoHomework(); for (const h of demoCourse.hw) if (!h.topicId) { const t = all.find((x) => x.title === h.title) || all[0]; h.topicId = t.id; }
+    return { ok: true, levels, categories, level: demoCourse.level, total: all.length, done: all.filter((t) => t.status === "done").length, homework: demoHomework() };
   }
   async function demoAsync(action, extra) {
     switch (action) {
       case "course": return demoCoursePayload();
       case "topic": { const topic = await demoFetchJson("__course/topics/" + extra.id + ".json"); return { ok: true, topic, progress: demoCourse.progress[extra.id] || null, notes: demoCourse.notes.filter((n) => n.topicId === extra.id) }; }
-      case "courseSet": { const prev = demoCourse.progress[extra.id]; let awardedXp = 0; if (extra.status === "reset") delete demoCourse.progress[extra.id]; else if (!(extra.status === "started" && prev && prev.status === "done")) { if (extra.status === "done" && !(prev && prev.status === "done")) awardedXp = 50; demoCourse.progress[extra.id] = { status: extra.status, updatedAt: new Date().toISOString() }; } return { ok: true, awardedXp, ...(await demoCoursePayload()) }; }
+      case "courseSet": { if (extra.status === "done" && demoCourse.hw) for (const h of demoCourse.hw) if (h.topicId === extra.id && !h.doneAt) h.doneAt = new Date().toISOString(); const prev = demoCourse.progress[extra.id]; let awardedXp = 0; if (extra.status === "reset") delete demoCourse.progress[extra.id]; else if (!(extra.status === "started" && prev && prev.status === "done")) { if (extra.status === "done" && !(prev && prev.status === "done")) awardedXp = 50; demoCourse.progress[extra.id] = { status: extra.status, updatedAt: new Date().toISOString() }; } return { ok: true, awardedXp, ...(await demoCoursePayload()) }; }
       case "courseLevel": demoCourse.level = extra.level; return { ok: true, ...(await demoCoursePayload()) };
+      case "homework": return { ok: true, homework: demoHomework() };
+      case "teacherStudents": return demoStudents();
+      case "teacherStudent": { const st = demoStudents().students.find((x) => x.chatId === extra.chatId) || demoStudents().students[0]; const me = await demo("me", {}); const c = await demoCoursePayload(); const topics = c.levels.flatMap((l) => l.topics.filter((t) => t.kind === "topic").map((t) => ({ ...t, level: l.code }))).slice(2, 2 + st.topicsDone + st.topicsStarted).map((t, i) => ({ id: t.id, title: t.title, emoji: t.emoji, level: t.level, status: i < st.topicsDone ? "done" : "started", updatedAt: new Date(Date.now() - i * 2 * 864e5).toISOString() })); return { ok: true, profile: { ...me, user: { ...me.user, firstName: st.firstName, username: st.username, avatar: st.avatar, chatId: st.chatId }, xp: st.xp, streak: st.streak, xpWeek: st.xpWeek, vocabCount: st.vocabCount, answered: st.answered, correct: st.correct, level: { ...me.level, name: st.level } }, topics, courseLevel: st.courseLevel, courseDone: st.topicsDone, courseTotal: c.total, homework: demoHomework(), victories: ["reluctant", "endure", "stave off"] }; }
+      case "hwAssign": { demoCourse.hw = demoHomework().items; for (const id of extra.chatIds || [extra.chatId]) { const st = demoStudents().students.find((x) => x.chatId === id); if (st) st.hwOpen += 1; } const c = await demoCoursePayload(); const t = c.levels.flatMap((l) => l.topics).find((x) => x.id === extra.topicId); demoCourse.hw.push({ id: Math.random().toString(36).slice(2), topicId: extra.topicId, title: t ? t.title : "Тема", emoji: t ? t.emoji : null, level: t ? t.level : null, deadline: extra.deadline || null, note: extra.note || null, doneAt: null }); return { ok: true, assigned: extra.chatIds || [extra.chatId], topic: t }; }
+      case "hwRemove": { demoCourse.hw = demoHomework().items.filter((h) => h.id !== extra.hwId); return demoAsync("teacherStudent", { chatId: extra.chatId }); }
       case "notes": return { ok: true, notes: demoCourse.notes };
       case "noteAdd": { const note = { id: Math.random().toString(36).slice(2), topicId: extra.topicId || null, text: extra.text, createdAt: new Date().toISOString(), updatedAt: null }; demoCourse.notes.unshift(note); return { ok: true, note, notes: demoCourse.notes }; }
       case "noteEdit": demoCourse.notes = demoCourse.notes.map((n) => (n.id === extra.id ? { ...n, text: extra.text, updatedAt: new Date().toISOString() } : n)); return { ok: true, notes: demoCourse.notes };
@@ -296,7 +332,7 @@
     return null;
   }
   function demo(action, extra) {
-    if (["course", "topic", "courseSet", "courseLevel", "notes", "noteAdd", "noteEdit", "noteDelete", "slang", "interests", "interestsSet", "feed", "interestsAddWords"].includes(action)) return demoAsync(action, extra);
+    if (["course", "topic", "courseSet", "courseLevel", "notes", "noteAdd", "noteEdit", "noteDelete", "slang", "interests", "interestsSet", "feed", "interestsAddWords", "homework", "teacherStudents", "teacherStudent", "hwAssign", "hwRemove"].includes(action)) return demoAsync(action, extra);
     const today = new Date(); const days = [];
     for (let i = 13; i >= 0; i--) { const d = new Date(today.getTime() - i * 864e5); days.push({ date: d.toISOString().slice(0, 10), answers: [12, 20, 0, 15, 24, 18, 9, 30, 22, 0, 16, 25, 19, 7][13 - i] }); }
     const id = demoState.identity;
@@ -307,7 +343,7 @@
       reminders: { enabled: id.remindersEnabled, everyDays: id.everyDays, hours: id.hours }, league: { optIn: id.leagueOptIn, anon: id.leagueAnon } };
     const league = () => ({ ok: true, weekStart: "2026-11-02", optIn: id.leagueOptIn, anon: id.leagueAnon, rows: [{ place: 1, name: "🦊 Вера", xp: 870 }, { place: 2, name: (id.avatar ? id.avatar + " " : "") + (id.leagueAnon ? "Ученик №412" : "Аня"), xp: 410, me: true }, { place: 3, name: "🐼 Борис", xp: 390 }, { place: 4, name: "Ученик №118", xp: 120 }].filter((r) => id.leagueOptIn || !r.me), classGoal: { target: 5000, progress: 3240 } });
     switch (action) {
-      case "me": return Promise.resolve(me);
+      case "me": return Promise.resolve({ ...me, isAdmin: /[?&]teacher=1/.test(location.search) });
       case "vocab": return Promise.resolve(demoVocab());
       case "options": return Promise.resolve({ ok: true, avatars: ["🦊", "🐱", "🐼", "🦁", "🐸", "🦄", "🐧", "🐯", "🦋", "🐙", "🐺", "🦉", "🐨", "🦖", "🚀", "🎓"], hours: [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22], frequencies: [{ days: 1, label: "Каждый день" }, { days: 2, label: "Раз в 2 дня" }, { days: 3, label: "Раз в 3 дня" }, { days: 7, label: "Раз в неделю" }], goals: [10, 20, 30], maxHours: 3 });
       case "league": return Promise.resolve(league());
@@ -648,7 +684,7 @@
   function go(view, extra) { state.study = Object.assign({ view }, extra || {}); renderStudy(); window.scrollTo(0, 0); }
   function studyBack() {
     const v = state.study;
-    const map = { topics: () => go("home"), category: () => go("topics"), topic: () => go("category", { key: v.cat || categoryOfTopic(v.id) }), lesson: () => go("topic", { id: v.id }), exercises: () => go("topic", { id: v.id }), selfcheck: () => go("topic", { id: v.id }), tnotes: () => go("topic", { id: v.id }), notes: () => go("home"), nfolder: () => go("notes"), slang: () => go("home"), search: () => go("topics"), checkpoint: () => go("topics", { level: v.level }), interests: () => go("home"), ipick: () => go("interests"), iquiz: () => go("interests") };
+    const map = { topics: () => go("home"), category: () => go("topics"), topic: () => go("category", { key: v.cat || categoryOfTopic(v.id) }), lesson: () => go("topic", { id: v.id }), exercises: () => go("topic", { id: v.id }), selfcheck: () => go("topic", { id: v.id }), tnotes: () => go("topic", { id: v.id }), notes: () => go("home"), nfolder: () => go("notes"), slang: () => go("home"), search: () => go("topics"), checkpoint: () => go("topics", { level: v.level }), interests: () => go("home"), ipick: () => go("interests"), iquiz: () => go("interests"), homework: () => go("home"), teacher: () => go("home"), tstudent: () => go("teacher"), hwassign: () => (v.chatId ? go("tstudent", { chatId: v.chatId }) : go("teacher")) };
     if (map[v.view]) map[v.view](); else go("home");
   }
   function syncBackButton() { if (!tg || !tg.BackButton) return; try { if (state.study.view === "home") tg.BackButton.hide(); else tg.BackButton.show(); } catch (e) {} }
@@ -661,7 +697,7 @@
     try { renderStudyInner(root, v); } catch (e) { root.innerHTML = `<div class="notice">Ошибка на экране «${esc(v)}».<br><span class="muted">${esc(String(e && e.message || e))}</span><div style="margin-top:12px"><button class="btn" id="study-home">На главную</button></div></div>`; $("#study-home").addEventListener("click", () => go("home")); }
   }
   function renderStudyInner(root, v) {
-    const fn = { home: renderStudyHome, topics: renderTopics, category: renderCategory, topic: renderTopic, lesson: renderLesson, exercises: renderExercises, selfcheck: renderSelfcheck, tnotes: renderTopicNotes, notes: renderNotesFolders, nfolder: renderNotesFolder, slang: renderSlang, search: renderSearch, checkpoint: renderCheckpoint, interests: renderInterests, ipick: renderInterestPicker, iquiz: renderInterestQuiz }[v] || renderStudyHome;
+    const fn = { home: renderStudyHome, topics: renderTopics, category: renderCategory, topic: renderTopic, lesson: renderLesson, exercises: renderExercises, selfcheck: renderSelfcheck, tnotes: renderTopicNotes, notes: renderNotesFolders, nfolder: renderNotesFolder, slang: renderSlang, search: renderSearch, checkpoint: renderCheckpoint, interests: renderInterests, ipick: renderInterestPicker, iquiz: renderInterestQuiz, homework: renderHomework, teacher: renderTeacher, tstudent: renderTeacherStudent, hwassign: renderHwAssign }[v] || renderStudyHome;
     fn(root);
     if (state.offline && (v === "home" || v === "topic" || v === "lesson")) { const n = document.createElement("div"); n.className = "muted"; n.style.cssText = "font-size:12px;text-align:center;padding:6px 0 2px"; n.textContent = "📴 Нет связи — показана сохранённая копия"; n.style.padding = "10px 0 0"; const h = root.querySelector(".head"); if (h) h.after(n); else root.prepend(n); }
     const b = $("#study-back"); if (b) b.addEventListener("click", () => { haptic(); studyBack(); });
@@ -682,6 +718,8 @@
       <div class="quote"><i>${esc(qe)} — ${esc(qr)}</i><span class="au">©${esc(qa)}</span></div>
       <div style="text-align:center;margin-top:16px"><h1 style="font-weight:400;font-size:24px">Английский</h1><div class="muted" style="margin-top:6px;font-size:15px">Всего ${c.total} ${plural(c.total, ["тема", "темы", "тем"])}${c.done ? ` · пройдено ${c.done}` : ""}</div></div>
       <div class="bar" style="margin-top:14px"><i style="width:${Math.max(2, pct)}%"></i></div>
+      ${hwCardHtml(c.homework)}
+      ${state.me && state.me.isAdmin ? `<div class="card cream" style="margin-top:14px;cursor:pointer" id="go-teacher"><div class="row between"><div><div style="font-size:17px">👩‍🏫 Кабинет учителя</div><div class="muted" style="color:var(--text-2);opacity:.75;margin-top:2px">ученики, прогресс, домашка</div></div><button class="fab">${iconArrow()}</button></div></div>` : ""}
       <div class="card outline" style="margin-top:18px">${outline}</div>
       <div style="margin-top:18px"><button class="btn" id="go-topics" style="background:var(--g-aqua);font-size:15px">Далее</button></div>
       ${cont ? `<div class="card aqua" style="margin-top:14px;cursor:pointer" id="continue"><div class="row between"><div><div class="muted" style="color:var(--text-2);opacity:.7">Продолжить · ${esc(cont.t.level || "")}</div><div style="font-size:17px;margin-top:2px">${esc(cont.t.emoji || "")} ${esc(cont.t.title)}</div></div><button class="fab">${iconArrow()}</button></div></div>` : ""}
@@ -689,10 +727,131 @@
       <div class="row" style="margin-top:12px;gap:10px"><button class="btn" id="go-notes" style="flex:1">📝 Заметки</button><button class="btn" id="go-slang" style="flex:1">💬 Сленг</button></div>
       <div style="height:8px"></div>`;
     $("#go-interests").addEventListener("click", () => { haptic(); go("interests"); });
+    const gh = $("#go-hw"); if (gh) gh.addEventListener("click", () => { haptic(); go("homework"); });
+    const gt = $("#go-teacher"); if (gt) gt.addEventListener("click", () => { haptic(); go("teacher"); });
     $("#go-topics").addEventListener("click", () => { haptic(); go("topics"); });
     const cnt = $("#continue"); if (cnt) cnt.addEventListener("click", () => { haptic(); openTopic(cont.t.id); });
     $("#go-notes").addEventListener("click", () => go("notes"));
     $("#go-slang").addEventListener("click", () => go("slang"));
+  }
+
+  // --- Домашка ученика ---
+  function fmtDay(d) { return d ? `${d.slice(8)}.${d.slice(5, 7)}` : ""; }
+  function hwDeadlineLabel(it) {
+    if (it.status === "done") return "сдано";
+    if (!it.deadline) return "без срока";
+    if (it.status === "overdue") return `просрочено · ${fmtDay(it.deadline)}`;
+    if (it.daysLeft === 0) return "сегодня"; if (it.daysLeft === 1) return "завтра";
+    return `до ${fmtDay(it.deadline)}`;
+  }
+  function hwCardHtml(hw) {
+    if (!hw || !hw.open) return "";
+    const open = hw.items.filter((i) => i.status !== "done"); const over = open.filter((i) => i.status === "overdue").length;
+    const first = open[0];
+    return `<div class="card ${over ? "pink" : "aqua"}" style="margin-top:14px;cursor:pointer" id="go-hw"><div class="row between"><div><div class="muted" style="color:var(--text-2);opacity:.75">📚 Домашка · ${open.length} ${plural(open.length, ["задание", "задания", "заданий"])}${over ? ` · ${over} просрочено` : ""}</div><div style="font-size:17px;margin-top:2px">${esc(first.emoji || "")} ${esc(first.title)}</div><div class="muted" style="font-size:13px;margin-top:2px;color:var(--text-2);opacity:.8">${esc(hwDeadlineLabel(first))}</div></div><button class="fab">${iconArrow()}</button></div></div>`;
+  }
+  function hwRowHtml(it, extra) {
+    return `<div class="hw ${it.status}" data-hw="${it.id}" data-topic="${esc(it.topicId || "")}"><div class="ic">${it.status === "done" ? "✓" : esc(it.emoji || "📘")}</div><div style="flex:1;min-width:0"><div class="t">${esc(it.title)}</div><div class="k">${it.level ? esc(it.level) + " · " : ""}${it.note ? esc(it.note) : "пройди тему и нажми «Тема пройдена ✓»"}</div></div><div class="dl">${esc(hwDeadlineLabel(it))}</div>${extra || ""}</div>`;
+  }
+  function renderHomework(root) {
+    const hw = (state.course && state.course.homework) || { items: [], open: 0 };
+    const open = hw.items.filter((i) => i.status !== "done"), done = hw.items.filter((i) => i.status === "done");
+    root.innerHTML = `<div class="head aqua"><div>${backLink("Учёба")}<div class="ttl" style="margin-top:6px">📚 Домашка</div><div class="sub">${open.length ? `${open.length} ${plural(open.length, ["задание", "задания", "заданий"])} · открой тему, пройди её и нажми «Тема пройдена ✓»` : "всё сдано — так держать"}</div></div></div>
+      ${open.length ? `<h2 style="margin-top:16px">Сделать</h2>${open.map((i) => hwRowHtml(i)).join("")}` : ""}
+      ${done.length ? `<h2 style="margin-top:18px">Сдано</h2>${done.map((i) => hwRowHtml(i)).join("")}` : ""}
+      ${!hw.items.length ? `<div class="notice" style="margin-top:14px">Преподаватель пока ничего не задавала.</div>` : ""}<div style="height:16px"></div>`;
+    root.querySelectorAll(".hw[data-topic]").forEach((el) => el.addEventListener("click", () => { if (!el.dataset.topic) return; haptic(); openTopic(el.dataset.topic); }));
+  }
+
+  // --- Кабинет учителя ---
+  const tcache = { students: null, student: {} };
+  function studentName(s) { return s.firstName || (s.username ? "@" + s.username : "Ученик " + s.chatId); }
+  function silentLabel(s) { if (s.daysSilent == null) return "ещё не занимался"; if (s.daysSilent === 0) return "сегодня"; if (s.daysSilent === 1) return "вчера"; return `${s.daysSilent} ${plural(s.daysSilent, ["день", "дня", "дней"])} назад`; }
+  async function renderTeacher(root) {
+    const st = state.study; const q = (st.q || "").toLowerCase();
+    if (!tcache.students && !st.loading) { st.loading = true; renderStudy(); const r = await api("teacherStudents"); st.loading = false; if (!r || !r.ok) { toast(r && r.error === "forbidden" ? "Кабинет доступен только преподавателю" : "Не удалось загрузить учеников"); return go("home"); } tcache.students = r.students; return renderStudy(); }
+    const list = tcache.students || [];
+    const rows = list.filter((s) => !q || studentName(s).toLowerCase().includes(q) || (s.username || "").toLowerCase().includes(q));
+    const active = list.filter((s) => s.daysSilent != null && s.daysSilent <= 1).length, gone = list.filter((s) => s.daysSilent == null || s.daysSilent >= 7).length, hwOver = list.reduce((a, s) => a + s.hwOverdue, 0);
+    root.innerHTML = `<div class="head cream"><div>${backLink("Учёба")}<div class="ttl" style="margin-top:6px">👩‍🏫 Кабинет учителя</div><div class="sub">${list.length} ${plural(list.length, ["ученик", "ученика", "учеников"])} · по последней активности</div></div></div>
+      ${st.loading ? `<div class="notice" style="margin-top:14px">Загружаю учеников…</div>` : `
+      <div class="kpi"><div><b>${active}</b><span>занимались сегодня-вчера</span></div><div><b>${gone}</b><span>пропали 7+ дней</span></div><div><b>${hwOver}</b><span>просроченных домашек</span></div></div>
+      <div class="row" style="gap:10px;margin-top:12px;align-items:center"><button class="btn" id="t-assign-all" style="flex:1;white-space:nowrap">📚 Задать домашку</button><button class="fab ghost" id="t-refresh" title="Обновить" style="flex:none">↻</button></div>
+      <div class="search" style="margin-top:12px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="t-q" value="${esc(st.q || "")}" placeholder="Найти ученика" /></div>
+      ${rows.map((s) => `<div class="stud ${s.daysSilent == null || s.daysSilent >= 7 ? "silent" : ""}" data-sid="${s.chatId}"><div class="av">${esc(s.avatar || "🙂")}</div><div style="flex:1;min-width:0"><div class="nm">${esc(studentName(s))}${s.streak ? ` · 🔥${s.streak}` : ""}</div><div class="k">${esc(silentLabel(s))} · тем пройдено ${s.topicsDone} · слов ${s.vocabCount}${s.hwOverdue ? ` · <span style="color:var(--bad-fg)">домашка просрочена</span>` : s.hwOpen ? ` · домашка: ${s.hwOpen}` : ""}</div></div><div class="r"><b>${s.xpWeek} XP</b>за неделю</div></div>`).join("") || `<div class="notice" style="margin-top:12px">Никого не нашла.</div>`}
+      <div style="height:16px"></div>`}`;
+    if (st.loading) return;
+    $("#t-q").addEventListener("input", (e) => { st.q = e.target.value; renderStudy(); setTimeout(() => { const i = $("#t-q"); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }, 0); });
+    $("#t-refresh").addEventListener("click", () => { tcache.students = null; tcache.student = {}; renderStudy(); });
+    $("#t-assign-all").addEventListener("click", () => { haptic(); go("hwassign", { chatIds: [] }); });
+    root.querySelectorAll(".stud").forEach((el) => el.addEventListener("click", () => { haptic(); go("tstudent", { chatId: el.dataset.sid }); }));
+  }
+  async function renderTeacherStudent(root) {
+    const st = state.study; const id = st.chatId; let d = tcache.student[id];
+    if (!d) { root.innerHTML = `<div style="margin-top:4px">${backLink("Ученики")}</div><div class="notice" style="margin-top:14px">Загружаю…</div>`; $("#study-back").addEventListener("click", () => studyBack()); const r = await api("teacherStudent", { chatId: id }); if (!r || !r.ok) { toast("Не удалось открыть карточку"); return go("teacher"); } d = tcache.student[id] = r; if (state.study.view !== "tstudent" || state.study.chatId !== id) return; }
+    const p = d.profile; const u = p.user; const acc = p.answered ? Math.round((p.correct / p.answered) * 100) : 0;
+    const max = Math.max(1, ...p.days.map((x) => x.answers));
+    const chart = p.days.map((x) => `<div class="col"><div class="b ${x.answers ? "" : "empty"}" style="height:${Math.max(4, Math.round((x.answers / max) * 60))}px"></div><div class="d">${x.date.slice(8).replace(/^0/, "")}</div></div>`).join("");
+    const hw = d.homework || { items: [] }; const open = hw.items.filter((i) => i.status !== "done"), done = hw.items.filter((i) => i.status === "done");
+    const wrong = p.wrongTop.length ? p.wrongTop.map((w) => `<div class="word"><span class="en">${esc(w.en)}<span class="n">×${w.errors}</span></span><span class="ru">${esc(w.ru || "")}</span></div>`).join("") : `<div class="muted">ошибок нет</div>`;
+    root.innerHTML = `<div class="head lavender"><div>${backLink("Ученики")}<div class="ttl" style="margin-top:6px">${esc(u.avatar || "")} ${esc(u.firstName || "Ученик")}</div><div class="sub">${u.username ? `@${esc(u.username)} · ` : ""}уровень ${esc(p.level.name)} · ${p.xp} XP${d.courseLevel ? ` · курс ${esc(d.courseLevel)}` : ""}</div></div></div>
+      <div class="kpi"><div><b>🔥 ${p.streak}</b><span>${plural(p.streak, ["день", "дня", "дней"])} подряд</span></div><div><b>${p.xpWeek}</b><span>XP за неделю</span></div><div><b>${acc}%</b><span>точность · ${p.answered} отв.</span></div><div><b>${d.courseDone}</b><span>тем из ${d.courseTotal}</span></div><div><b>${p.vocabCount}</b><span>слов · ${p.dueCount || 0} к повтору</span></div><div><b>${p.victories}</b><span>побед над ошибками</span></div></div>
+      <div class="card" style="margin-top:12px;padding:12px 14px"><div class="muted" style="font-size:13px">Две недели · ответов в день</div><div class="chart" style="margin-top:8px">${chart}</div></div>
+      <div class="row between" style="margin-top:18px"><h2>📚 Домашка</h2><button class="btn small" id="t-assign">+ Задать</button></div>
+      ${open.length ? open.map((i) => hwRowHtml(i, `<button class="btn small" data-rm="${i.id}" style="flex:none;padding:6px 9px;font-size:12px">✕</button>`)).join("") : `<div class="muted" style="margin-top:8px">Открытых заданий нет.</div>`}
+      ${done.length ? `<div class="muted" style="margin-top:10px;font-size:13px">Сдано: ${done.map((i) => `${esc(i.title)} (${fmtDay((i.doneAt || "").slice(0, 10))})`).join(", ")}</div>` : ""}
+      <h2 style="margin-top:18px">Темы курса</h2>
+      ${d.topics.length ? d.topics.slice(0, 12).map((t) => `<div class="fold" style="padding:10px 14px"><span style="font-size:14px">${esc(t.emoji || "")} ${esc(t.title)} <span class="muted">· ${esc(t.level)}</span></span><span class="tag ${t.status}">${STATUS_LABEL[t.status]}</span></div>`).join("") : `<div class="muted" style="margin-top:8px">Ещё не открывал(а) темы в приложении.</div>`}
+      <h2 style="margin-top:18px">Частые ошибки в словаре</h2><div class="card" style="margin-top:8px;padding:4px 16px">${wrong}</div>
+      ${d.victories && d.victories.length ? `<div class="muted" style="margin-top:10px;font-size:13px">🏆 Победил(а): ${d.victories.map((v) => esc(typeof v === "string" ? v : v.en || "")).join(", ")}</div>` : ""}
+      <div style="margin-top:16px"><button class="btn" id="t-chat">Написать в Telegram</button></div><div style="height:16px"></div>`;
+    $("#t-assign").addEventListener("click", () => { haptic(); go("hwassign", { chatId: id, chatIds: [id] }); });
+    $("#t-chat").addEventListener("click", () => { const url = u.username ? `https://t.me/${u.username}` : `tg://user?id=${u.chatId || id}`; try { if (tg && tg.openTelegramLink) tg.openTelegramLink(url); else window.open(url); } catch (e) { window.open(url); } });
+    root.querySelectorAll("[data-rm]").forEach((b) => b.addEventListener("click", async (e) => { e.stopPropagation(); if (!(await confirmSheet("Снять это задание?", "Снять"))) return; const r = await api("hwRemove", { chatId: id, hwId: b.dataset.rm }); if (r && r.ok) { tcache.student[id] = r; tcache.students = null; toast("Задание снято"); renderStudy(); } else toast("Не получилось"); }));
+    root.querySelectorAll(".hw[data-topic]").forEach((el) => el.addEventListener("click", () => { if (el.dataset.topic) openTopic(el.dataset.topic); }));
+  }
+  function renderHwAssign(root) {
+    const st = state.study; st.sel = st.sel || new Set(st.chatIds || []); st.q = st.q || ""; st.days = st.days === undefined ? 7 : st.days;
+    const students = tcache.students || [];
+    const all = state.course.levels.flatMap((l) => l.topics.filter((t) => t.kind === "topic").map((t) => ({ ...t, level: l.code })));
+    const q = st.q.trim().toLowerCase();
+    const found = q ? all.filter((t) => (t.title + " " + (t.description || "")).toLowerCase().includes(q)).slice(0, 8) : [];
+    const picked = st.topicId ? all.find((t) => t.id === st.topicId) : null;
+    const dateFor = (n) => { const d = new Date(Date.now() + n * 864e5); return d.toISOString().slice(0, 10); };
+    const deadline = st.days === null ? null : st.days === "custom" ? (st.customDate || null) : dateFor(st.days);
+    const single = st.chatId ? (students.find((s) => s.chatId === st.chatId) || { chatId: st.chatId, firstName: (tcache.student[st.chatId] || { profile: { user: {} } }).profile.user.firstName }) : null;
+    root.innerHTML = `<div style="margin-top:4px">${backLink(single ? studentName(single) : "Ученики")}</div><h1 style="margin-top:8px;font-weight:500">Задать домашку</h1>
+      ${single ? "" : `<h2 style="margin-top:14px">Кому</h2><div style="margin-top:6px"><button class="chip ${st.sel.size === students.length && students.length ? "on" : ""}" id="hw-all">Всем (${students.length})</button>${students.map((s) => `<button class="chip ${st.sel.has(s.chatId) ? "on" : ""}" data-sid="${s.chatId}">${esc(s.avatar || "")} ${esc(studentName(s))}</button>`).join("")}</div>`}
+      <h2 style="margin-top:14px">Тема</h2>
+      ${picked ? `<div class="hw" style="cursor:default"><div class="ic">${esc(picked.emoji || "📘")}</div><div style="flex:1"><div class="t">${esc(picked.title)}</div><div class="k">${esc(picked.level)}</div></div><button class="btn small" id="hw-unpick">Изменить</button></div>` : `
+      <div class="search" style="margin-top:6px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="hw-q" value="${esc(st.q)}" placeholder="Название темы: present simple, артикли…" /></div>
+      ${found.map((t) => `<div class="hw" data-pick="${t.id}"><div class="ic">${esc(t.emoji || "📘")}</div><div style="flex:1;min-width:0"><div class="t">${esc(t.title)}</div><div class="k">${esc(t.level)}${t.description ? " · " + esc(t.description).slice(0, 70) : ""}</div></div></div>`).join("")}${q && !found.length ? `<div class="muted" style="margin-top:8px">Ничего не нашла.</div>` : ""}`}
+      <h2 style="margin-top:14px">Срок</h2>
+      <div class="seg" id="hw-days" style="margin-top:6px"><button data-d="3" class="${st.days === 3 ? "on" : ""}">3 дня</button><button data-d="7" class="${st.days === 7 ? "on" : ""}">Неделя</button><button data-d="14" class="${st.days === 14 ? "on" : ""}">2 недели</button><button data-d="custom" class="${st.days === "custom" ? "on" : ""}">Дата</button><button data-d="none" class="${st.days === null ? "on" : ""}">Без срока</button></div>
+      ${st.days === "custom" ? `<div style="margin-top:8px"><input type="date" class="date" id="hw-date" value="${esc(st.customDate || dateFor(7))}" min="${dateFor(0)}" /></div>` : ""}
+      ${deadline ? `<div class="muted" style="font-size:13px;margin-top:6px">до ${fmtDay(deadline)} · ученик получит напоминание за день и в день срока</div>` : ""}
+      <h2 style="margin-top:14px">Комментарий (необязательно)</h2>
+      <textarea class="area" id="hw-note" placeholder="Например: сделай все упражнения и самопроверку">${esc(st.note || "")}</textarea>
+      <div style="margin-top:16px"><button class="btn" id="hw-send" style="background:var(--g-aqua)" ${picked && (single || st.sel.size) ? "" : "disabled"}>Задать${single ? "" : st.sel.size ? ` · ${st.sel.size}` : ""}</button></div>
+      <div class="muted" style="font-size:13px;margin-top:8px">Ученику придёт сообщение в чат с кнопкой «Открыть домашку». Когда он нажмёт «Тема пройдена ✓» — тебе придёт ✅.</div><div style="height:16px"></div>`;
+    const hq = $("#hw-q"); if (hq) hq.addEventListener("input", (e) => { st.q = e.target.value; renderStudy(); setTimeout(() => { const i = $("#hw-q"); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }, 0); });
+    root.querySelectorAll("[data-pick]").forEach((el) => el.addEventListener("click", () => { haptic(); st.topicId = el.dataset.pick; renderStudy(); }));
+    const up = $("#hw-unpick"); if (up) up.addEventListener("click", () => { st.topicId = null; renderStudy(); });
+    root.querySelectorAll("#hw-days button").forEach((b) => b.addEventListener("click", () => { const d = b.dataset.d; st.days = d === "none" ? null : d === "custom" ? "custom" : Number(d); renderStudy(); }));
+    const hd = $("#hw-date"); if (hd) hd.addEventListener("change", (e) => { st.customDate = e.target.value; renderStudy(); });
+    $("#hw-note").addEventListener("input", (e) => { st.note = e.target.value; });
+    root.querySelectorAll("[data-sid]").forEach((b) => b.addEventListener("click", () => { const id = b.dataset.sid; if (st.sel.has(id)) st.sel.delete(id); else st.sel.add(id); renderStudy(); }));
+    const ha = $("#hw-all"); if (ha) ha.addEventListener("click", () => { if (st.sel.size === students.length) st.sel.clear(); else students.forEach((s) => st.sel.add(s.chatId)); renderStudy(); });
+    $("#hw-send").addEventListener("click", async () => {
+      if (!picked) return; const ids = single ? [st.chatId] : [...st.sel]; if (!ids.length) return;
+      if (st.days === "custom" && !deadline) return toast("Выбери дату");
+      $("#hw-send").disabled = true;
+      const r = await api("hwAssign", { chatIds: ids, topicId: picked.id, deadline, note: (st.note || "").trim() || null });
+      if (!r || !r.ok) { $("#hw-send").disabled = false; return toast("Не получилось задать: " + ((r && r.error) || "ошибка")); }
+      tcache.students = null; for (const id of ids) delete tcache.student[id];
+      toast(`Задано: ${ids.length} ${plural(ids.length, ["ученику", "ученикам", "ученикам"])}`); haptic("medium");
+      if (single) go("tstudent", { chatId: st.chatId }); else go("teacher");
+    });
   }
 
   // --- «Все темы»: карточки категорий (+ фильтр по уровню) ---
@@ -830,7 +989,7 @@
   const lessonKey = (l) => l.kind + (l.idx !== undefined ? ":" + l.idx : "") + (l.sidx !== undefined ? ":" + l.sidx : "");
   async function markDone(id) {
     const r = await api("courseSet", { id, status: "done" });
-    if (r && r.ok) { state.course = r; haptic("medium"); toast(r.awardedXp ? `Тема пройдена! +${r.awardedXp} XP 🎉` : "Тема пройдена ✓"); if (state.me) state.me.xp += r.awardedXp || 0; go("topic", { id }); }
+    if (r && r.ok) { state.course = r; cacheSet("course", r); haptic("medium"); const hwDone = (r.homeworkDone && r.homeworkDone.length) || (state.course.homework && state.course.homework.items.some((h) => h.topicId === id && h.status === "done" && h.doneAt && Date.now() - Date.parse(h.doneAt) < 60000)); toast(hwDone ? `Домашка сдана! ${r.awardedXp ? `+${r.awardedXp} XP ` : ""}🎉` : r.awardedXp ? `Тема пройдена! +${r.awardedXp} XP 🎉` : "Тема пройдена ✓"); if (state.me) state.me.xp += r.awardedXp || 0; go("topic", { id }); }
   }
   function openLesson(i) {
     const t = state.topic; const lessons = lessonsOf(t); const l = lessons[i]; if (!l) return;

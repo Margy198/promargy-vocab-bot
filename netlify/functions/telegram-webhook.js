@@ -11055,7 +11055,8 @@ async function handleMessage(message) {
       await tg("sendMessage", { chat_id: chatId, text: "Пока никто не писал боту." });
       return;
     }
-    await tg("sendMessage", { chat_id: chatId, text: `Ученики (${shownCount}):\n${lines.join("\n")}` });
+    const appUrl = miniAppUrl();
+    await tg("sendMessage", { chat_id: chatId, text: `Ученики (${shownCount}):\n${lines.join("\n")}\n\nПодробнее — прогресс, ошибки, домашка — в кабинете учителя в приложении (Учёба → Кабинет учителя).`, ...(appUrl ? { reply_markup: { inline_keyboard: [[{ text: "Открыть кабинет учителя", web_app: { url: appUrl } }]] } } : {}) });
     return;
   }
   if (text === "/play" || text === "/next") {
@@ -11415,7 +11416,8 @@ async function appCoursePayload(chatId) {
     return { key: c.key, title: c.title, outline: c.outline, topics, total: topics.length, done: topics.filter((t) => t.status === "done").length, status: categoryStatus(topics) };
   });
   const all = levels.flatMap((l) => l.topics.filter((t) => t.kind === "topic"));
-  return { ok: true, levels, categories, level: progress.level, total: all.length, done: all.filter((t) => t.status === "done").length, builtAt: index.builtAt || null };
+  const homework = await appHomeworkPayload(chatId);
+  return { ok: true, levels, categories, level: progress.level, total: all.length, done: all.filter((t) => t.status === "done").length, builtAt: index.builtAt || null, homework };
 }
 async function setCourseTopicStatus(chatId, topicId, status) {
   const index = await readCourseIndex();
@@ -11444,7 +11446,142 @@ async function setCourseTopicStatus(chatId, topicId, status) {
       return next;
     });
   }
-  return { ok: true, awardedXp };
+  let homeworkDone = [];
+  if (status === "done") homeworkDone = await completeHomeworkForTopic(chatId, topicId);
+  return { ok: true, awardedXp, homeworkDone: homeworkDone.map((h) => h.id) };
+}
+// ---------- Домашка и кабинет учителя ----------
+// hw:<chatId> = { items: [{ id, topicId, title, deadline (YYYY-MM-DD мск), note, assignedAt, doneAt|null, remindedAt|null }] }
+function emptyHomework() { return { items: [], updatedAt: null }; }
+async function readHomework(chatId) {
+  const v = await courseStore().get(`hw:${chatId}`, { type: "json" });
+  return v && Array.isArray(v.items) ? v : emptyHomework();
+}
+function hwStatus(it, today) {
+  if (it.doneAt) return "done";
+  if (it.deadline && it.deadline < today) return "overdue";
+  return "open";
+}
+async function appHomeworkPayload(chatId, nowMs = Date.now()) {
+  const today = mskNow(nowMs).date;
+  const hw = await readHomework(chatId);
+  const items = hw.items.map((it) => ({ ...it, status: hwStatus(it, today), daysLeft: it.deadline ? daysBetweenDates(today, it.deadline) : null }))
+    .sort((a, b) => (a.status === "done") - (b.status === "done") || String(a.deadline || "9").localeCompare(String(b.deadline || "9")));
+  return { items, open: items.filter((i) => i.status !== "done").length, today };
+}
+async function assignHomework(teacherId, studentIds, topicId, deadline, note) {
+  const index = await readCourseIndex();
+  if (!index) return { ok: false, error: "content_missing" };
+  let meta = null;
+  for (const l of index.levels) for (const t of l.topics) if (t.id === topicId) meta = { ...t, level: l.code };
+  if (!meta) return { ok: false, error: "unknown_topic" };
+  if (deadline && !/^\d{4}-\d{2}-\d{2}$/.test(deadline)) return { ok: false, error: "bad_deadline" };
+  const assigned = [];
+  for (const sid of studentIds) {
+    const id = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+    await withOptimisticUpdate(courseStore(), `hw:${sid}`, emptyHomework, (current) => {
+      const next = { ...emptyHomework(), ...current, items: [...(current.items || [])] };
+      // одну и ту же тему второй раз не вешаем, пока первая не сдана — обновляем срок
+      const same = next.items.find((it) => it.topicId === topicId && !it.doneAt);
+      if (same) { same.deadline = deadline || null; same.note = note || same.note || null; same.assignedAt = new Date().toISOString(); }
+      else next.items.push({ id, topicId, title: meta.title, emoji: meta.emoji || null, level: meta.level, deadline: deadline || null, note: note || null, assignedAt: new Date().toISOString(), by: String(teacherId), doneAt: null, remindedAt: null });
+      next.updatedAt = new Date().toISOString();
+      return next;
+    });
+    // ученику — сообщение в чат с кнопкой приложения
+    try {
+      const d = deadline ? ` до ${deadline.slice(8)}.${deadline.slice(5, 7)}` : "";
+      const text = `📚 Новая домашка от преподавателя: «${meta.title}»${d}.${note ? `\n💬 ${note}` : ""}\n\nПройди тему и упражнения в приложении и нажми «Тема пройдена ✓» — я отмечу домашку сделанной.`;
+      const appUrl = miniAppUrl();
+      await tg("sendMessage", { chat_id: sid, text, ...(appUrl ? { reply_markup: { inline_keyboard: [[{ text: "Открыть домашку", web_app: { url: appUrl + (appUrl.includes("?") ? "&" : "?") + "page=study" } }]] } } : {}) });
+    } catch (e) { /* не критично */ }
+    assigned.push(String(sid));
+  }
+  return { ok: true, assigned, topic: meta };
+}
+async function removeHomework(studentId, hwId) {
+  await withOptimisticUpdate(courseStore(), `hw:${studentId}`, emptyHomework, (current) => ({ ...emptyHomework(), ...current, items: (current.items || []).filter((it) => it.id !== hwId), updatedAt: new Date().toISOString() }));
+  return { ok: true };
+}
+// Тема завершена → все незакрытые домашки по ней считаются сданными; учителю — уведомление.
+async function completeHomeworkForTopic(chatId, topicId) {
+  const hw = await readHomework(chatId);
+  const open = hw.items.filter((it) => it.topicId === topicId && !it.doneAt);
+  if (!open.length) return [];
+  await withOptimisticUpdate(courseStore(), `hw:${chatId}`, emptyHomework, (current) => ({ ...emptyHomework(), ...current, items: (current.items || []).map((it) => (it.topicId === topicId && !it.doneAt ? { ...it, doneAt: new Date().toISOString() } : it)), updatedAt: new Date().toISOString() }));
+  try {
+    const identity = (await readIdentity(chatId)) || {};
+    const who = identity.firstName || (identity.username ? `@${identity.username}` : String(chatId));
+    const teachers = new Set(open.map((it) => it.by).filter(Boolean));
+    for (const t of teachers) await tg("sendMessage", { chat_id: t, text: `✅ ${who} сдал(а) домашку: «${open[0].title}»` });
+  } catch (e) { /* не критично */ }
+  return open;
+}
+// Напоминание о домашке: за день до срока и в день срока (раз в сутки, вместе с cron ?remind=).
+async function sendHomeworkReminders(nowMs = Date.now()) {
+  const { date: today, hour } = mskNow(nowMs);
+  if (hour < 10) return 0;
+  const list = await courseStore().list({ prefix: "hw:" });
+  let sent = 0;
+  for (const b of (list && list.blobs) || []) {
+    const chatId = b.key.slice(3);
+    const hw = await readHomework(chatId);
+    const due = hw.items.filter((it) => !it.doneAt && it.deadline && daysBetweenDates(today, it.deadline) <= 1 && daysBetweenDates(today, it.deadline) >= 0 && it.remindedAt !== today);
+    if (!due.length) continue;
+    const lines = due.map((it) => `• «${it.title}» — ${it.deadline === today ? "сегодня" : "завтра"}`);
+    try {
+      const appUrl = miniAppUrl();
+      await tg("sendMessage", { chat_id: chatId, text: `📚 Напоминаю про домашку:\n${lines.join("\n")}\n\nОткрой тему в приложении и нажми «Тема пройдена ✓».`, ...(appUrl ? { reply_markup: { inline_keyboard: [[{ text: "Открыть", web_app: { url: appUrl } }]] } } : {}) });
+      sent += 1;
+    } catch (e) { continue; }
+    await withOptimisticUpdate(courseStore(), `hw:${chatId}`, emptyHomework, (current) => ({ ...emptyHomework(), ...current, items: (current.items || []).map((it) => (due.some((d) => d.id === it.id) ? { ...it, remindedAt: today } : it)) }));
+  }
+  return sent;
+}
+// Список учеников для кабинета учителя: все, у кого есть доступ (кроме админов).
+async function teacherStudentsPayload(nowMs = Date.now()) {
+  const today = mskNow(nowMs).date;
+  const weekStart = weekStartOf(today);
+  const ids = await identityStore().list();
+  const entries = ((ids && ids.blobs) || []).map((b) => b.key);
+  const out = [];
+  const CHUNK = 8;
+  for (let i = 0; i < entries.length; i += CHUNK) {
+    const part = await Promise.all(entries.slice(i, i + CHUNK).map(async (key) => {
+      const info = await readIdentity(key);
+      if (!info || (info.approved === false && !info.phrasesAccess)) return null;
+      if (await isAdmin(key)) return null;
+      const [stats, progress, hw, vocab] = await Promise.all([getStats(key), readCourseProgress(key), readHomework(key), getVocab(key)]);
+      const daily = stats.daily || {}; const xpDaily = stats.xpDaily || {};
+      const activeDates = Object.keys(daily).filter((k) => daily[k] > 0).sort();
+      const lastActive = activeDates.length ? activeDates[activeDates.length - 1] : (info.lastSeen ? mskNow(new Date(info.lastSeen).getTime()).date : null);
+      let answersWeek = 0, xpWeek = 0;
+      for (const [d, n] of Object.entries(daily)) if (d >= weekStart) answersWeek += n;
+      for (const [d, n] of Object.entries(xpDaily)) if (d >= weekStart) xpWeek += n;
+      const topics = Object.values(progress.topics || {});
+      const hwItems = hw.items.map((it) => ({ ...it, status: hwStatus(it, today) }));
+      return {
+        chatId: String(key), firstName: info.firstName || null, username: info.username || null, avatar: avatarOf(info) || null,
+        lastActive, daysSilent: lastActive ? daysBetweenDates(lastActive, today) : null,
+        streak: currentDayStreak(stats, nowMs), xp: stats.xp || 0, xpWeek, answersWeek, level: levelOf(stats.xp || 0).name,
+        answered: stats.answered || 0, correct: stats.correct || 0, vocabCount: vocab.length,
+        topicsDone: topics.filter((t) => t.status === "done").length, topicsStarted: topics.filter((t) => t.status === "started").length, courseLevel: progress.level || null,
+        hwOpen: hwItems.filter((h) => h.status === "open").length, hwOverdue: hwItems.filter((h) => h.status === "overdue").length, hwDone: hwItems.filter((h) => h.status === "done").length,
+      };
+    }));
+    out.push(...part.filter(Boolean));
+  }
+  out.sort((a, b) => String(b.lastActive || "").localeCompare(String(a.lastActive || "")) || b.xp - a.xp);
+  return { students: out, today };
+}
+async function teacherStudentPayload(studentId, nowMs = Date.now()) {
+  const identity = (await readIdentity(studentId)) || {};
+  const [profile, course, hw] = await Promise.all([appProfilePayload(studentId, identity, nowMs), appCoursePayload(studentId), appHomeworkPayload(studentId, nowMs)]);
+  const topics = [];
+  if (course.ok) for (const l of course.levels) for (const t of l.topics) if (t.status === "done" || t.status === "started") topics.push({ id: t.id, title: t.title, emoji: t.emoji || null, level: l.code, status: t.status, updatedAt: t.updatedAt });
+  topics.sort((a, b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")));
+  const stats = await getStats(studentId);
+  return { profile, topics, courseLevel: course.ok ? course.level : null, courseDone: course.ok ? course.done : 0, courseTotal: course.ok ? course.total : 0, homework: hw, victories: (stats.victories || []).slice(-10) };
 }
 async function setCourseLevel(chatId, level) {
   const index = await readCourseIndex();
@@ -11581,7 +11718,7 @@ async function handleAppApi(body) {
     switch (body.action) {
       case "me": {
         const challenge = await getBotConfig("challenge");
-        return appJson({ ok: true, ...(await appProfilePayload(chatId, identity)), challenge: challenge || null });
+        return appJson({ ok: true, ...(await appProfilePayload(chatId, identity)), challenge: challenge || null, isAdmin: await isAdmin(chatId) });
       }
       case "vocab":
         return appJson({ ok: true, ...(await appVocabPayload(chatId)) });
@@ -11643,6 +11780,34 @@ async function handleAppApi(body) {
       // ----- курс -----
       case "course":
         return appJson(await appCoursePayload(chatId));
+      case "homework":
+        return appJson({ ok: true, homework: await appHomeworkPayload(chatId) });
+      // --- кабинет учителя (только админы) ---
+      case "teacherStudents": {
+        if (!(await isAdmin(chatId))) return appJson({ ok: false, error: "forbidden" }, 403);
+        return appJson({ ok: true, ...(await teacherStudentsPayload()) });
+      }
+      case "teacherStudent": {
+        if (!(await isAdmin(chatId))) return appJson({ ok: false, error: "forbidden" }, 403);
+        const sid = String(body.chatId || "");
+        if (!/^\d{1,20}$/.test(sid)) return appJson({ ok: false, error: "bad_id" }, 400);
+        return appJson({ ok: true, ...(await teacherStudentPayload(sid)) });
+      }
+      case "hwAssign": {
+        if (!(await isAdmin(chatId))) return appJson({ ok: false, error: "forbidden" }, 403);
+        const ids = (Array.isArray(body.chatIds) ? body.chatIds : [body.chatId]).map(String).filter((x) => /^\d{1,20}$/.test(x));
+        if (!ids.length) return appJson({ ok: false, error: "bad_id" }, 400);
+        const r = await assignHomework(chatId, ids, String(body.topicId || ""), body.deadline ? String(body.deadline) : null, body.note ? String(body.note).slice(0, 300) : null);
+        if (!r.ok) return appJson(r, 400);
+        return appJson(r);
+      }
+      case "hwRemove": {
+        if (!(await isAdmin(chatId))) return appJson({ ok: false, error: "forbidden" }, 403);
+        const sid = String(body.chatId || "");
+        if (!/^\d{1,20}$/.test(sid)) return appJson({ ok: false, error: "bad_id" }, 400);
+        await removeHomework(sid, String(body.hwId || ""));
+        return appJson({ ok: true, ...(await teacherStudentPayload(sid)) });
+      }
       case "topic": {
         const topic = await readCourseTopic(String(body.id || ""));
         if (!topic) return appJson({ ok: false, error: "unknown_topic" }, 404);
@@ -11791,7 +11956,9 @@ export default async (req) => {
         const warned = await sendStreakWarnings();
         const classGoalAnnounced = await checkClassGoal();
         const digest = await sendTeacherDigest();
-        return new Response(JSON.stringify({ ok: true, remindersSent: count, weeklySummariesSent: weekly, streakWarningsSent: warned, classGoalAnnounced, teacherDigestsSent: digest }), {
+        let homeworkReminders = 0;
+        try { homeworkReminders = await sendHomeworkReminders(); } catch (e) { /* не критично */ }
+        return new Response(JSON.stringify({ ok: true, remindersSent: count, weeklySummariesSent: weekly, streakWarningsSent: warned, classGoalAnnounced, teacherDigestsSent: digest, homeworkReminders }), {
           status: 200,
           headers: { "content-type": "application/json; charset=utf-8" },
         });
