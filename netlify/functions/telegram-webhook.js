@@ -7713,10 +7713,7 @@ function buildGrammarQuestion(forbiddenText, exerciseType) {
     else if (type === "gerundInfinitive") q = buildGerundInfinitiveQuestion(forbiddenText);
     else if (type === "collocations") q = buildCollocationQuestion(forbiddenText);
     else if (type === "someAnyNo") q = buildSomeAnyNoQuestion(forbiddenText);
-    else if (type === "prepA") q = buildChoiceItemQuestion(PREP_ITEMS_A, forbiddenText);
-    else if (type === "prepB") q = buildChoiceItemQuestion(PREP_ITEMS_B, forbiddenText);
-    else if (type === "condB1") q = buildChoiceItemQuestion(COND_ITEMS, forbiddenText);
-    else if (type === "gerundPrep") q = buildChoiceItemQuestion(GERUND_PREP_ITEMS, forbiddenText);
+    else if (type === "prepA" || type === "prepB" || type === "condB1" || type === "gerundPrep") q = buildChoiceItemQuestion(grammarItemsFor(type), forbiddenText);
     else if (type === "modalMeaning") q = buildModalMeaningQuestion(forbiddenText);
     else if (type === "modalTo") q = buildModalToQuestion(forbiddenText);
     else if (type === "futureInPast") q = buildFutureInPastQuestion(forbiddenText);
@@ -11348,8 +11345,20 @@ function courseDir() {
   for (const c of candidates) if (existsSync(join(c, "index.json"))) { courseDirCache = c; return c; }
   return null;
 }
+// Контент курса: сначала версия, пересобранная из Notion (Blobs course:index / course:topic:<id>,
+// см. course-rebuild-background), иначе — встроенный бандл data/course. Индекс из Blobs
+// кэшируется на CONTENT_TTL_MS, чтобы не ходить в Blobs на каждый запрос.
+const CONTENT_TTL_MS = 60 * 1000;
 let courseIndexCache = null;
-async function readCourseIndex() {
+let blobIndexCache = { at: 0, value: undefined };
+async function readBlobCourseIndex() {
+  if (Date.now() - blobIndexCache.at < CONTENT_TTL_MS) return blobIndexCache.value;
+  let v = null;
+  try { v = await courseStore().get("course:index", { type: "json" }); } catch (e) { v = null; }
+  blobIndexCache = { at: Date.now(), value: v && Array.isArray(v.levels) && v.levels.length ? v : null };
+  return blobIndexCache.value;
+}
+async function readBundledCourseIndex() {
   if (courseIndexCache) return courseIndexCache;
   if (COURSE_INDEX && Array.isArray(COURSE_INDEX.levels)) { courseIndexCache = COURSE_INDEX; return courseIndexCache; }
   const dir = courseDir();
@@ -11357,12 +11366,81 @@ async function readCourseIndex() {
   courseIndexCache = JSON.parse(await readFile(join(dir, "index.json"), "utf8"));
   return courseIndexCache;
 }
+async function readCourseIndex() {
+  const fromBlobs = await readBlobCourseIndex();
+  if (fromBlobs) return fromBlobs;
+  return readBundledCourseIndex();
+}
 async function readCourseTopic(id) {
+  if (!/^[0-9a-f]{32}$/.test(String(id))) return null;
+  if (await readBlobCourseIndex()) {
+    try { const t = await courseStore().get(`course:topic:${id}`, { type: "json" }); if (t && t.id) return t; } catch (e) { /* падаем на бандл */ }
+  }
   const dir = courseDir();
-  if (!dir || !/^[0-9a-f]{32}$/.test(String(id))) return null;
+  if (!dir) return null;
   const file = join(dir, "topics", `${id}.json`);
   if (!existsSync(file)) return null;
   return JSON.parse(await readFile(file, "utf8"));
+}
+// Задания грамматики: из Notion-базы (Blobs grammar:items), если там есть хотя бы 5 заданий типа, иначе встроенные.
+const BUNDLED_GRAMMAR = { prepA: PREP_ITEMS_A, prepB: PREP_ITEMS_B, condB1: COND_ITEMS, gerundPrep: GERUND_PREP_ITEMS };
+let grammarCache = { at: 0, value: null };
+async function readGrammarOverride() {
+  if (Date.now() - grammarCache.at < CONTENT_TTL_MS) return grammarCache.value;
+  let v = null;
+  try { v = await courseStore().get("grammar:items", { type: "json" }); } catch (e) { v = null; }
+  grammarCache = { at: Date.now(), value: v && typeof v === "object" ? v : null };
+  return grammarCache.value;
+}
+// Синхронно — по кэшу (прогревается в начале обработки запроса, см. warmContentCaches).
+function grammarItemsFor(type) {
+  const o = grammarCache.value;
+  if (o && Array.isArray(o[type]) && o[type].length >= 5) return o[type];
+  return BUNDLED_GRAMMAR[type] || [];
+}
+async function warmContentCaches() { try { await readGrammarOverride(); } catch (e) { /* не критично */ } }
+// Статус контента для кабинета учителя
+async function contentStatusPayload() {
+  const [idx, meta, gram, status, dbId] = await Promise.all([
+    readBlobCourseIndex(), courseStore().get("course:meta", { type: "json" }).catch(() => null), readGrammarOverride(),
+    courseStore().get("rebuild:status", { type: "json" }).catch(() => null), courseStore().get("grammar:dbId", { type: "json" }).catch(() => null),
+  ]);
+  const bundled = await readBundledCourseIndex();
+  const count = (i) => (i ? i.levels.reduce((a, l) => a + l.topics.length, 0) : 0);
+  const grammarDb = process.env.NOTION_GRAMMAR_DB || dbId || null;
+  return {
+    notion: !!process.env.NOTION_TOKEN,
+    rootUrl: `https://www.notion.so/${String(process.env.NOTION_COURSE_ROOT || "34c2f2f8690d814e82e8fb81e078333e").replace(/-/g, "")}`,
+    course: { source: idx ? "notion" : "bundle", builtAt: idx ? (meta && meta.builtAt) || idx.builtAt : (bundled && bundled.builtAt) || null, topics: count(idx || bundled), bundledTopics: count(bundled), sources: meta && meta.sources ? meta.sources : null },
+    grammar: { source: gram ? "notion" : "bundle", builtAt: gram ? gram.builtAt : null, counts: gram ? gram.counts : Object.fromEntries(Object.entries(BUNDLED_GRAMMAR).map(([k, v]) => [k, v.length])), bundledCounts: Object.fromEntries(Object.entries(BUNDLED_GRAMMAR).map(([k, v]) => [k, v.length])), skipped: gram ? gram.skipped || [] : [], dbId: grammarDb, dbUrl: grammarDb ? `https://www.notion.so/${String(grammarDb).replace(/-/g, "")}` : null },
+    rebuild: status || null,
+  };
+}
+async function startContentRebuild(mode, by) {
+  const base = (process.env.URL || "").replace(/\/+$/, "");
+  if (!base) return { ok: false, error: "no_url" };
+  if (!process.env.NOTION_TOKEN) return { ok: false, error: "no_notion_token" };
+  const cur = await courseStore().get("rebuild:status", { type: "json" }).catch(() => null);
+  if (cur && cur.status === "running" && Date.now() - Date.parse(cur.updatedAt || cur.startedAt || 0) < 20 * 60 * 1000) return { ok: false, error: "already_running" };
+  await courseStore().setJSON("rebuild:status", { mode, status: "running", startedAt: new Date().toISOString(), updatedAt: new Date().toISOString(), finishedAt: null, by: String(by), log: ["запускаю…"], error: null });
+  try {
+    const r = await fetch(`${base}/.netlify/functions/course-rebuild-background`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ mode, secret: WEBHOOK_SECRET, by: String(by) }) });
+    if (!r.ok && r.status !== 202) { await courseStore().setJSON("rebuild:status", { mode, status: "error", error: `функция не запустилась: ${r.status}`, finishedAt: new Date().toISOString(), updatedAt: new Date().toISOString() }); return { ok: false, error: `start_${r.status}` }; }
+  } catch (e) {
+    await courseStore().setJSON("rebuild:status", { mode, status: "error", error: String(e && e.message || e), finishedAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+    return { ok: false, error: "start_failed" };
+  }
+  return { ok: true };
+}
+async function resetContent(what) {
+  if (what === "course") {
+    const list = await courseStore().list({ prefix: "course:" });
+    for (const b of (list && list.blobs) || []) await courseStore().delete(b.key);
+    blobIndexCache = { at: 0, value: undefined };
+  } else if (what === "grammar") {
+    await courseStore().delete("grammar:items"); grammarCache = { at: 0, value: null };
+  }
+  return { ok: true };
 }
 function emptyCourseProgress() {
   return { topics: {}, level: null, updatedAt: null };
@@ -11801,6 +11879,25 @@ async function handleAppApi(body) {
         if (!r.ok) return appJson(r, 400);
         return appJson(r);
       }
+      case "contentStatus": {
+        if (!(await isAdmin(chatId))) return appJson({ ok: false, error: "forbidden" }, 403);
+        return appJson({ ok: true, ...(await contentStatusPayload()) });
+      }
+      case "contentRebuild": {
+        if (!(await isAdmin(chatId))) return appJson({ ok: false, error: "forbidden" }, 403);
+        const mode = String(body.what || "");
+        if (!["course", "grammar", "seedGrammar"].includes(mode)) return appJson({ ok: false, error: "bad_mode" }, 400);
+        const r = await startContentRebuild(mode, chatId);
+        if (!r.ok) return appJson(r, 400);
+        return appJson({ ok: true, ...(await contentStatusPayload()) });
+      }
+      case "contentReset": {
+        if (!(await isAdmin(chatId))) return appJson({ ok: false, error: "forbidden" }, 403);
+        const what = String(body.what || "");
+        if (!["course", "grammar"].includes(what)) return appJson({ ok: false, error: "bad_mode" }, 400);
+        await resetContent(what);
+        return appJson({ ok: true, ...(await contentStatusPayload()) });
+      }
       case "hwRemove": {
         if (!(await isAdmin(chatId))) return appJson({ ok: false, error: "forbidden" }, 403);
         const sid = String(body.chatId || "");
@@ -11934,6 +12031,7 @@ async function handleAdminApi(body) {
 
 export default async (req) => {
   resetRequestCache();
+  if (req.method === "POST") await warmContentCaches();
   if (req.method !== "POST") {
     // GET ?debug=<секрет> — отдаёт последние записи собственного журнала
     // отладки, независимо от того, работает ли сейчас просмотр логов в

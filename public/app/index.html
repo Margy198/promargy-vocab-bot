@@ -287,6 +287,12 @@
     const items = demoCourse.hw.map((it) => ({ ...it, status: it.doneAt ? "done" : it.deadline && it.deadline < today ? "overdue" : "open", daysLeft: it.deadline ? Math.round((Date.parse(it.deadline) - Date.parse(today)) / 864e5) : null }));
     return { items, open: items.filter((i) => i.status !== "done").length, today };
   }
+  async function demoContent() {
+    if (demoCourse.content) return { ok: true, ...demoCourse.content };
+    const c = await demoCoursePayload();
+    demoCourse.content = { ok: true, notion: !/[?&]nonotion=1/.test(location.search), rootUrl: "https://www.notion.so/34c2f2f8690d814e82e8fb81e078333e", course: { source: "bundle", builtAt: "2026-11-09", topics: c.total, bundledTopics: c.total, sources: null }, grammar: { source: "notion", builtAt: "2026-11-10T09:12:00Z", counts: { prepA: 37, prepB: 50, condB1: 44, gerundPrep: 48 }, bundledCounts: { prepA: 37, prepB: 49, condB1: 44, gerundPrep: 48 }, skipped: ["«No gap here.»: нет пропуска ___"], dbId: "db", dbUrl: "https://www.notion.so/db" }, rebuild: { mode: "grammar", status: "done", startedAt: "2026-11-10T09:11:40Z", finishedAt: "2026-11-10T09:12:00Z", log: ["09:11:40 читаю базу заданий…", "09:11:58 пропущено: «No gap here.»: нет пропуска ___", "09:12:00 готово: prepA 37, prepB 50, condB1 44, gerundPrep 48, пропущено 1"], error: null } };
+    return { ok: true, ...demoCourse.content };
+  }
   function demoStudents() {
     if (!demoCourse.teacher) demoCourse.teacher = [
       { chatId: "101", firstName: "Вера", username: "vera_k", avatar: "🦊", lastActive: demoDay(0), daysSilent: 0, streak: 14, xp: 2140, xpWeek: 320, answersWeek: 64, level: "Advanced", answered: 812, correct: 701, vocabCount: 238, topicsDone: 9, topicsStarted: 1, courseLevel: "A2", hwOpen: 1, hwOverdue: 0, hwDone: 4 },
@@ -318,6 +324,9 @@
       case "teacherStudents": return demoStudents();
       case "teacherStudent": { const st = demoStudents().students.find((x) => x.chatId === extra.chatId) || demoStudents().students[0]; const me = await demo("me", {}); const c = await demoCoursePayload(); const topics = c.levels.flatMap((l) => l.topics.filter((t) => t.kind === "topic").map((t) => ({ ...t, level: l.code }))).slice(2, 2 + st.topicsDone + st.topicsStarted).map((t, i) => ({ id: t.id, title: t.title, emoji: t.emoji, level: t.level, status: i < st.topicsDone ? "done" : "started", updatedAt: new Date(Date.now() - i * 2 * 864e5).toISOString() })); return { ok: true, profile: { ...me, user: { ...me.user, firstName: st.firstName, username: st.username, avatar: st.avatar, chatId: st.chatId }, xp: st.xp, streak: st.streak, xpWeek: st.xpWeek, vocabCount: st.vocabCount, answered: st.answered, correct: st.correct, level: { ...me.level, name: st.level } }, topics, courseLevel: st.courseLevel, courseDone: st.topicsDone, courseTotal: c.total, homework: demoHomework(), victories: ["reluctant", "endure", "stave off"] }; }
       case "hwAssign": { demoCourse.hw = demoHomework().items; for (const id of extra.chatIds || [extra.chatId]) { const st = demoStudents().students.find((x) => x.chatId === id); if (st) st.hwOpen += 1; } const c = await demoCoursePayload(); const t = c.levels.flatMap((l) => l.topics).find((x) => x.id === extra.topicId); demoCourse.hw.push({ id: Math.random().toString(36).slice(2), topicId: extra.topicId, title: t ? t.title : "Тема", emoji: t ? t.emoji : null, level: t ? t.level : null, deadline: extra.deadline || null, note: extra.note || null, doneAt: null }); return { ok: true, assigned: extra.chatIds || [extra.chatId], topic: t }; }
+      case "contentStatus": return demoContent();
+      case "contentRebuild": { demoCourse.content = demoCourse.content || (await demoContent()); demoCourse.content.rebuild = { mode: extra.what, status: "running", startedAt: new Date().toISOString(), total: 6, done: ["A0", "A1"], log: ["19:40:01 ищу страницы уровней в Notion…", "19:40:02 уровни: A0, A1, A2, B1, B2, C1", "19:40:02 уровень A0: читаю страницы…", "19:40:31 уровень A0: 5 тем записано", "19:40:31 уровень A1: читаю страницы…", "19:41:40 уровень A1: 14 тем записано", "19:41:40 уровень A2: читаю страницы…"] }; setTimeout(() => { demoCourse.content.rebuild.status = "done"; demoCourse.content.rebuild.done = ["A0", "A1", "A2", "B1", "B2", "C1"]; demoCourse.content.course.source = "notion"; demoCourse.content.course.builtAt = new Date().toISOString(); }, 9000); return { ok: true, ...demoCourse.content }; }
+      case "contentReset": { demoCourse.content = demoCourse.content || (await demoContent()); if (extra.what === "course") demoCourse.content.course.source = "bundle"; else demoCourse.content.grammar.source = "bundle"; return { ok: true, ...demoCourse.content }; }
       case "hwRemove": { demoCourse.hw = demoHomework().items.filter((h) => h.id !== extra.hwId); return demoAsync("teacherStudent", { chatId: extra.chatId }); }
       case "notes": return { ok: true, notes: demoCourse.notes };
       case "noteAdd": { const note = { id: Math.random().toString(36).slice(2), topicId: extra.topicId || null, text: extra.text, createdAt: new Date().toISOString(), updatedAt: null }; demoCourse.notes.unshift(note); return { ok: true, note, notes: demoCourse.notes }; }
@@ -332,7 +341,7 @@
     return null;
   }
   function demo(action, extra) {
-    if (["course", "topic", "courseSet", "courseLevel", "notes", "noteAdd", "noteEdit", "noteDelete", "slang", "interests", "interestsSet", "feed", "interestsAddWords", "homework", "teacherStudents", "teacherStudent", "hwAssign", "hwRemove"].includes(action)) return demoAsync(action, extra);
+    if (["course", "topic", "courseSet", "courseLevel", "notes", "noteAdd", "noteEdit", "noteDelete", "slang", "interests", "interestsSet", "feed", "interestsAddWords", "homework", "teacherStudents", "teacherStudent", "hwAssign", "hwRemove", "contentStatus", "contentRebuild", "contentReset"].includes(action)) return demoAsync(action, extra);
     const today = new Date(); const days = [];
     for (let i = 13; i >= 0; i--) { const d = new Date(today.getTime() - i * 864e5); days.push({ date: d.toISOString().slice(0, 10), answers: [12, 20, 0, 15, 24, 18, 9, 30, 22, 0, 16, 25, 19, 7][13 - i] }); }
     const id = demoState.identity;
@@ -684,7 +693,7 @@
   function go(view, extra) { state.study = Object.assign({ view }, extra || {}); renderStudy(); window.scrollTo(0, 0); }
   function studyBack() {
     const v = state.study;
-    const map = { topics: () => go("home"), category: () => go("topics"), topic: () => go("category", { key: v.cat || categoryOfTopic(v.id) }), lesson: () => go("topic", { id: v.id }), exercises: () => go("topic", { id: v.id }), selfcheck: () => go("topic", { id: v.id }), tnotes: () => go("topic", { id: v.id }), notes: () => go("home"), nfolder: () => go("notes"), slang: () => go("home"), search: () => go("topics"), checkpoint: () => go("topics", { level: v.level }), interests: () => go("home"), ipick: () => go("interests"), iquiz: () => go("interests"), homework: () => go("home"), teacher: () => go("home"), tstudent: () => go("teacher"), hwassign: () => (v.chatId ? go("tstudent", { chatId: v.chatId }) : go("teacher")) };
+    const map = { topics: () => go("home"), category: () => go("topics"), topic: () => go("category", { key: v.cat || categoryOfTopic(v.id) }), lesson: () => go("topic", { id: v.id }), exercises: () => go("topic", { id: v.id }), selfcheck: () => go("topic", { id: v.id }), tnotes: () => go("topic", { id: v.id }), notes: () => go("home"), nfolder: () => go("notes"), slang: () => go("home"), search: () => go("topics"), checkpoint: () => go("topics", { level: v.level }), interests: () => go("home"), ipick: () => go("interests"), iquiz: () => go("interests"), homework: () => go("home"), teacher: () => go("home"), tstudent: () => go("teacher"), hwassign: () => (v.chatId ? go("tstudent", { chatId: v.chatId }) : go("teacher")), content: () => go("teacher") };
     if (map[v.view]) map[v.view](); else go("home");
   }
   function syncBackButton() { if (!tg || !tg.BackButton) return; try { if (state.study.view === "home") tg.BackButton.hide(); else tg.BackButton.show(); } catch (e) {} }
@@ -697,7 +706,7 @@
     try { renderStudyInner(root, v); } catch (e) { root.innerHTML = `<div class="notice">Ошибка на экране «${esc(v)}».<br><span class="muted">${esc(String(e && e.message || e))}</span><div style="margin-top:12px"><button class="btn" id="study-home">На главную</button></div></div>`; $("#study-home").addEventListener("click", () => go("home")); }
   }
   function renderStudyInner(root, v) {
-    const fn = { home: renderStudyHome, topics: renderTopics, category: renderCategory, topic: renderTopic, lesson: renderLesson, exercises: renderExercises, selfcheck: renderSelfcheck, tnotes: renderTopicNotes, notes: renderNotesFolders, nfolder: renderNotesFolder, slang: renderSlang, search: renderSearch, checkpoint: renderCheckpoint, interests: renderInterests, ipick: renderInterestPicker, iquiz: renderInterestQuiz, homework: renderHomework, teacher: renderTeacher, tstudent: renderTeacherStudent, hwassign: renderHwAssign }[v] || renderStudyHome;
+    const fn = { home: renderStudyHome, topics: renderTopics, category: renderCategory, topic: renderTopic, lesson: renderLesson, exercises: renderExercises, selfcheck: renderSelfcheck, tnotes: renderTopicNotes, notes: renderNotesFolders, nfolder: renderNotesFolder, slang: renderSlang, search: renderSearch, checkpoint: renderCheckpoint, interests: renderInterests, ipick: renderInterestPicker, iquiz: renderInterestQuiz, homework: renderHomework, teacher: renderTeacher, tstudent: renderTeacherStudent, hwassign: renderHwAssign, content: renderContent }[v] || renderStudyHome;
     fn(root);
     if (state.offline && (v === "home" || v === "topic" || v === "lesson")) { const n = document.createElement("div"); n.className = "muted"; n.style.cssText = "font-size:12px;text-align:center;padding:6px 0 2px"; n.textContent = "📴 Нет связи — показана сохранённая копия"; n.style.padding = "10px 0 0"; const h = root.querySelector(".head"); if (h) h.after(n); else root.prepend(n); }
     const b = $("#study-back"); if (b) b.addEventListener("click", () => { haptic(); studyBack(); });
@@ -776,7 +785,7 @@
     root.innerHTML = `<div class="head cream"><div>${backLink("Учёба")}<div class="ttl" style="margin-top:6px">👩‍🏫 Кабинет учителя</div><div class="sub">${list.length} ${plural(list.length, ["ученик", "ученика", "учеников"])} · по последней активности</div></div></div>
       ${st.loading ? `<div class="notice" style="margin-top:14px">Загружаю учеников…</div>` : `
       <div class="kpi"><div><b>${active}</b><span>занимались сегодня-вчера</span></div><div><b>${gone}</b><span>пропали 7+ дней</span></div><div><b>${hwOver}</b><span>просроченных домашек</span></div></div>
-      <div class="row" style="gap:10px;margin-top:12px;align-items:center"><button class="btn" id="t-assign-all" style="flex:1;white-space:nowrap">📚 Задать домашку</button><button class="fab ghost" id="t-refresh" title="Обновить" style="flex:none">↻</button></div>
+      <div class="row" style="gap:10px;margin-top:12px;align-items:center"><button class="btn" id="t-assign-all" style="flex:1;white-space:nowrap">📚 Задать домашку</button><button class="btn" id="t-content" style="flex:1;white-space:nowrap">🛠 Контент</button><button class="fab ghost" id="t-refresh" title="Обновить" style="flex:none">↻</button></div>
       <div class="search" style="margin-top:12px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="t-q" value="${esc(st.q || "")}" placeholder="Найти ученика" /></div>
       ${rows.map((s) => `<div class="stud ${s.daysSilent == null || s.daysSilent >= 7 ? "silent" : ""}" data-sid="${s.chatId}"><div class="av">${esc(s.avatar || "🙂")}</div><div style="flex:1;min-width:0"><div class="nm">${esc(studentName(s))}${s.streak ? ` · 🔥${s.streak}` : ""}</div><div class="k">${esc(silentLabel(s))} · тем пройдено ${s.topicsDone} · слов ${s.vocabCount}${s.hwOverdue ? ` · <span style="color:var(--bad-fg)">домашка просрочена</span>` : s.hwOpen ? ` · домашка: ${s.hwOpen}` : ""}</div></div><div class="r"><b>${s.xpWeek} XP</b>за неделю</div></div>`).join("") || `<div class="notice" style="margin-top:12px">Никого не нашла.</div>`}
       <div style="height:16px"></div>`}`;
@@ -784,6 +793,7 @@
     $("#t-q").addEventListener("input", (e) => { st.q = e.target.value; renderStudy(); setTimeout(() => { const i = $("#t-q"); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }, 0); });
     $("#t-refresh").addEventListener("click", () => { tcache.students = null; tcache.student = {}; renderStudy(); });
     $("#t-assign-all").addEventListener("click", () => { haptic(); go("hwassign", { chatIds: [] }); });
+    $("#t-content").addEventListener("click", () => { haptic(); go("content"); });
     root.querySelectorAll(".stud").forEach((el) => el.addEventListener("click", () => { haptic(); go("tstudent", { chatId: el.dataset.sid }); }));
   }
   async function renderTeacherStudent(root) {
@@ -809,6 +819,60 @@
     $("#t-chat").addEventListener("click", () => { const url = u.username ? `https://t.me/${u.username}` : `tg://user?id=${u.chatId || id}`; try { if (tg && tg.openTelegramLink) tg.openTelegramLink(url); else window.open(url); } catch (e) { window.open(url); } });
     root.querySelectorAll("[data-rm]").forEach((b) => b.addEventListener("click", async (e) => { e.stopPropagation(); if (!(await confirmSheet("Снять это задание?", "Снять"))) return; const r = await api("hwRemove", { chatId: id, hwId: b.dataset.rm }); if (r && r.ok) { tcache.student[id] = r; tcache.students = null; toast("Задание снято"); renderStudy(); } else toast("Не получилось"); }));
     root.querySelectorAll(".hw[data-topic]").forEach((el) => el.addEventListener("click", () => { if (el.dataset.topic) openTopic(el.dataset.topic); }));
+  }
+  // --- Контент: пересборка курса и заданий из Notion ---
+  const GRAMMAR_LABELS = { prepA: "at/in/on до B1", prepB: "at/in/on B1+", condB1: "Условные B1+", gerundPrep: "Герундий и предлоги" };
+  let contentPoll = null;
+  async function renderContent(root) {
+    const st = state.study;
+    if (!st.data && !st.loading) { st.loading = true; renderStudy(); const r = await api("contentStatus"); st.loading = false; if (!r || !r.ok) { toast("Не удалось загрузить статус контента"); return go("teacher"); } st.data = r; return renderStudy(); }
+    const d = st.data;
+    const fmtAt = (iso) => (iso ? (iso.length > 10 ? `${iso.slice(8, 10)}.${iso.slice(5, 7)} ${iso.slice(11, 16)}` : fmtDay(iso)) : "—");
+    const rb = d && d.rebuild; const running = rb && rb.status === "running";
+    const modeName = { course: "курс", grammar: "задания", seedGrammar: "база заданий" };
+    root.innerHTML = `<div class="head cream"><div>${backLink("Кабинет")}<div class="ttl" style="margin-top:6px">🛠 Контент</div><div class="sub">курс и задания бота — правишь в Notion, здесь нажимаешь «Пересобрать»</div></div></div>
+      ${st.loading || !d ? `<div class="notice" style="margin-top:14px">Загружаю…</div>` : `
+      ${!d.notion ? `<div class="card" style="margin-top:12px;padding:14px 16px;border-left:3px solid var(--bad-line)"><b>Notion не подключён.</b><div class="muted" style="margin-top:6px;font-size:14px;line-height:1.4">Чтобы пересобирать без кода, один раз: 1) на notion.so/my-integrations создай внутреннюю интеграцию и скопируй её токен; 2) на странице плана «Твой путь в английский» → ⋯ → «Подключения» (Connections) → добавь эту интеграцию; 3) в Netlify → Site configuration → Environment variables добавь <code>NOTION_TOKEN</code> = токен и нажми Redeploy. Пока этого нет — работает встроенная версия контента.</div></div>` : ""}
+      <h2 style="margin-top:16px">📘 Курс</h2>
+      <div class="card" style="margin-top:8px;padding:14px 16px">
+        <div class="row between"><div><div style="font-size:15px">${d.course.source === "notion" ? "Версия из Notion" : "Встроенная версия"}</div><div class="muted" style="font-size:13px;margin-top:2px">${d.course.topics} тем · собрано ${fmtAt(d.course.builtAt)}${d.course.sources ? ` · уровни из Notion: ${Object.entries(d.course.sources).filter(([, v]) => v === "notion").map(([k]) => k).join(", ") || "нет"}` : ""}</div></div><span class="tag ${d.course.source === "notion" ? "started" : "available"}">${d.course.source === "notion" ? "Notion" : "бандл"}</span></div>
+        <div class="row" style="gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn small" data-rebuild="course" ${!d.notion || running ? "disabled" : ""}>↻ Пересобрать курс из Notion</button><a class="btn small" href="${esc(d.rootUrl)}" target="_blank" rel="noopener" style="text-decoration:none;text-align:center">Открыть план в Notion</a>${d.course.source === "notion" ? `<button class="btn small" data-reset="course" ${running ? "disabled" : ""}>Вернуть встроенную</button>` : ""}</div>
+        <div class="muted" style="font-size:12px;margin-top:10px;line-height:1.4">Пересборка идёт по уровням, 5–15 минут. Берутся страницы A0–C1 под планом: заголовки «## Зачем эта тема», «## Теория» (подразделы ###), «## Подводные камни», «## Упражнения» (### Упражнение N + toggle «Ответы»), «## Самопроверка» (чекбоксы). Прогресс учеников не трогается.</div>
+      </div>
+      <h2 style="margin-top:18px">🎯 Задания бота</h2>
+      <div class="card" style="margin-top:8px;padding:14px 16px">
+        <div class="row between"><div><div style="font-size:15px">${d.grammar.source === "notion" ? "Версия из Notion" : "Встроенная версия"}</div><div class="muted" style="font-size:13px;margin-top:2px">${Object.entries(d.grammar.counts).map(([k, n]) => `${GRAMMAR_LABELS[k] || k}: ${n}`).join(" · ")}${d.grammar.builtAt ? ` · собрано ${fmtAt(d.grammar.builtAt)}` : ""}</div></div><span class="tag ${d.grammar.source === "notion" ? "started" : "available"}">${d.grammar.source === "notion" ? "Notion" : "бандл"}</span></div>
+        ${d.grammar.skipped && d.grammar.skipped.length ? `<div class="muted" style="font-size:12px;margin-top:8px;color:var(--bad-fg)">Пропущено при сборке (${d.grammar.skipped.length}): ${d.grammar.skipped.slice(0, 3).map(esc).join("; ")}${d.grammar.skipped.length > 3 ? "…" : ""}</div>` : ""}
+        <div class="row" style="gap:8px;margin-top:12px;flex-wrap:wrap">
+          ${d.grammar.dbId ? `<a class="btn small" href="${esc(d.grammar.dbUrl)}" target="_blank" rel="noopener" style="text-decoration:none;text-align:center">Открыть базу в Notion</a><button class="btn small" data-rebuild="grammar" ${!d.notion || running ? "disabled" : ""}>↻ Пересобрать задания</button>` : `<button class="btn small" data-rebuild="seedGrammar" ${!d.notion || running ? "disabled" : ""}>Создать базу заданий в Notion</button>`}
+          ${d.grammar.source === "notion" ? `<button class="btn small" data-reset="grammar" ${running ? "disabled" : ""}>Вернуть встроенные</button>` : ""}
+        </div>
+        <div class="muted" style="font-size:12px;margin-top:10px;line-height:1.4">${d.grammar.dbId ? "В базе каждая строка — задание: «Предложение» с пропуском ___, три варианта, «Верный» (1–3), «Объяснение», галочка «Активно». Правишь или добавляешь строки — и нажимаешь «Пересобрать задания»." : "Кнопка создаст под планом базу Notion и перенесёт туда все встроенные задания (≈3 минуты). Дальше редактируешь их там."}</div>
+      </div>
+      ${rb ? `<h2 style="margin-top:18px">Последняя пересборка</h2>
+      <div class="card" style="margin-top:8px;padding:14px 16px">
+        <div class="row between"><div style="font-size:15px">${running ? "⏳ Идёт" : rb.status === "done" ? "✅ Готово" : rb.status === "warning" ? "⚠️ Готово с замечаниями" : "❌ Ошибка"} · ${modeName[rb.mode] || rb.mode}</div><div class="muted" style="font-size:12px">${fmtAt(rb.startedAt)}</div></div>
+        ${rb.mode === "course" && rb.total ? `<div class="bar" style="margin-top:10px"><i style="width:${Math.max(3, Math.round(((rb.done || []).length / rb.total) * 100))}%"></i></div><div class="muted" style="font-size:12px;margin-top:4px">уровней: ${(rb.done || []).length} из ${rb.total}${rb.done && rb.done.length ? ` (${rb.done.join(", ")})` : ""}</div>` : ""}
+        ${rb.error ? `<div style="margin-top:8px;font-size:13px;color:var(--bad-fg)">${esc(rb.error)}</div>` : ""}
+        ${rb.log && rb.log.length ? `<details style="margin-top:8px"><summary class="muted" style="font-size:13px;cursor:pointer">Журнал (${rb.log.length})</summary><div class="muted" style="font-size:12px;line-height:1.5;margin-top:6px;white-space:pre-wrap">${rb.log.slice(-25).map(esc).join("\n")}</div></details>` : ""}
+      </div>` : ""}
+      <div style="height:16px"></div>`}`;
+    if (st.loading || !d) return;
+    root.querySelectorAll("[data-rebuild]").forEach((b) => b.addEventListener("click", async () => {
+      const what = b.dataset.rebuild;
+      const q = { course: "Пересобрать курс из Notion? Займёт 5–15 минут, прогресс учеников сохранится.", grammar: "Пересобрать задания бота из базы Notion?", seedGrammar: "Создать базу заданий в Notion и перенести туда встроенные задания?" }[what];
+      if (!(await confirmSheetOk(q, "Запустить"))) return;
+      b.disabled = true; const r = await api("contentRebuild", { what });
+      if (!r || !r.ok) { b.disabled = false; return toast({ no_notion_token: "Сначала добавь NOTION_TOKEN в Netlify", already_running: "Пересборка уже идёт", no_url: "Нет адреса сайта (URL) в Netlify" }[r && r.error] || "Не удалось запустить"); }
+      st.data = r; toast("Запустила — слежу за ходом"); renderStudy();
+    }));
+    root.querySelectorAll("[data-reset]").forEach((b) => b.addEventListener("click", async () => {
+      const what = b.dataset.reset;
+      if (!(await confirmSheet(what === "course" ? "Вернуть встроенную версию курса? Версия из Notion будет удалена (пересобрать можно снова)." : "Вернуть встроенные задания?", "Вернуть"))) return;
+      const r = await api("contentReset", { what }); if (r && r.ok) { st.data = r; toast("Готово"); renderStudy(); } else toast("Не получилось");
+    }));
+    clearTimeout(contentPoll);
+    if (running) contentPoll = setTimeout(async () => { if (state.study.view !== "content") return; const r = await api("contentStatus"); if (r && r.ok) { const was = state.study.data && state.study.data.rebuild && state.study.data.rebuild.status; state.study.data = r; if (was === "running" && r.rebuild && r.rebuild.status !== "running") { toast(r.rebuild.status === "error" ? "Пересборка упала — смотри журнал" : "Пересборка завершена"); haptic("medium"); } renderStudy(); } }, 4000);
   }
   function renderHwAssign(root) {
     const st = state.study; st.sel = st.sel || new Set(st.chatIds || []); st.q = st.q || ""; st.days = st.days === undefined ? 7 : st.days;
