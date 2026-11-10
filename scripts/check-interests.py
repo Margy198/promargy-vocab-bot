@@ -31,5 +31,6 @@ for f in sorted(glob.glob(os.path.join(D, "*.json"))):
     else: print("OK", key, len(ss), lv)
     index.append({"key": key, "title": d.get("title"), "emoji": d.get("emoji"), "group": d.get("group"), "count": len(ss)})
 json.dump(index, open(os.path.join(D, "index.json"), "w"), ensure_ascii=False, indent=0)
+open(os.path.join(D, "index.mjs"), "w").write("// Сгенерировано автоматически из index.json — не редактировать руками.\nexport default " + json.dumps(index, ensure_ascii=False) + ";\n")
 print("topics:", len(index), "status:", "OK" if ok else "ERRORS")
 sys.exit(0 if ok else 1)

@@ -328,7 +328,10 @@ for lv in idx["levels"]:
         total += 1
     out_levels.append({"code": lv["code"], "title": lv["title"], "emoji": lv.get("emoji", ""), "intro": inline(lv.get("intro", "")), "checkpoint": [inline(x) for x in lv.get("checkpoint", [])], "topics": topics})
 categories = [{"key": k, "title": title, "outline": outline, "topics": cat_topics[k]} for k, title, outline, _ in CATEGORIES if cat_topics[k]]
-json.dump({"levels": out_levels, "categories": categories, "builtAt": __import__("datetime").date.today().isoformat()}, open(os.path.join(DST, "index.json"), "w"), ensure_ascii=False)
+index_obj = {"levels": out_levels, "categories": categories, "builtAt": __import__("datetime").date.today().isoformat()}
+json.dump(index_obj, open(os.path.join(DST, "index.json"), "w"), ensure_ascii=False)
+# index.mjs — тот же индекс как ES-модуль: импортируется функцией статически и всегда попадает в бандл
+open(os.path.join(DST, "index.mjs"), "w").write("// Сгенерировано автоматически из index.json — не редактировать руками.\nexport default " + json.dumps(index_obj, ensure_ascii=False) + ";\n")
 for c in categories: print("CAT %-14s %2d" % (c["key"], len(c["topics"])))
 for s in stats: print("%s %2d %-40s sec=%d ex=%2d chk=%2d html=%d" % s)
 print("topics:", total, "->", DST)

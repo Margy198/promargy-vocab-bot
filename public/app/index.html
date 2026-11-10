@@ -221,10 +221,14 @@
   function closeApp(hint) { if (tg) { try { tg.close(); } catch (e) {} } else toast(hint || "В Telegram это закроет приложение и вернёт в чат"); }
 
   // ---------- API ----------
+  // Любая ошибка сети/сервера превращается в {ok:false, error, detail}, чтобы экран показал причину, а не висел
   async function api(action, extra) {
-    if (DEMO) return demo(action, extra || {});
-    const r = await fetch(API, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(Object.assign({ initData, action }, extra || {})) });
-    return r.json();
+    if (DEMO) { try { return await demo(action, extra || {}); } catch (e) { return { ok: false, error: "demo", detail: String(e && e.message || e) }; } }
+    let r;
+    try { r = await fetch(API, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(Object.assign({ initData, action }, extra || {})) }); }
+    catch (e) { return { ok: false, error: "network", detail: String(e && e.message || e) }; }
+    const text = await r.text();
+    try { return JSON.parse(text); } catch (e) { return { ok: false, error: "http_" + r.status, detail: text.slice(0, 200) }; }
   }
 
   // ---------- Демо-данные (только вне Telegram) ----------
@@ -586,7 +590,7 @@
   const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } };
   const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
 
-  async function loadCourse() { const c = await api("course"); if (c && c.ok) state.course = c; else state.courseError = c && c.error; return state.course; }
+  async function loadCourse() { const c = await api("course"); if (c && c.ok) { state.course = c; state.courseError = null; } else state.courseError = DEMO ? "Это просмотр в обычном браузере — курс открывается только внутри Telegram, из бота." : (c && c.error ? c.error : "unknown") + (c && c.detail ? ": " + c.detail : ""); return state.course; }
   function findTopicMeta(id) { for (const l of state.course.levels) for (const t of l.topics) if (t.id === id) return { level: l, meta: t }; return null; }
   function categoryOfTopic(id) { for (const c of state.course.categories) if (c.topics.some((t) => t.id === id)) return c.key; return null; }
   function findCategory(key) { return state.course.categories.find((c) => c.key === key) || null; }
@@ -608,8 +612,11 @@
 
   function renderStudy() {
     const root = $("#page-study"); syncBackButton();
-    if (!state.course) { root.innerHTML = state.courseError ? `<div class="notice">Курс пока не загружен на сервер (${esc(state.courseError)}). Напиши преподавателю.</div>` : `<div class="notice">Загружаю курс…</div>`; return; }
+    if (!state.course) { root.innerHTML = state.courseError ? `<div class="notice">Не удалось загрузить курс.<br><span class="muted">${esc(state.courseError)}</span><div style="margin-top:12px"><button class="btn" id="course-retry">Попробовать ещё раз</button></div></div>` : `<div class="notice">Загружаю курс…</div>`; const rb = $("#course-retry"); if (rb) rb.addEventListener("click", async () => { state.courseError = null; renderStudy(); await loadCourse(); renderStudy(); }); return; }
     const v = state.study.view;
+    try { renderStudyInner(root, v); } catch (e) { root.innerHTML = `<div class="notice">Ошибка на экране «${esc(v)}».<br><span class="muted">${esc(String(e && e.message || e))}</span><div style="margin-top:12px"><button class="btn" id="study-home">На главную</button></div></div>`; $("#study-home").addEventListener("click", () => go("home")); }
+  }
+  function renderStudyInner(root, v) {
     const fn = { home: renderStudyHome, topics: renderTopics, category: renderCategory, topic: renderTopic, lesson: renderLesson, exercises: renderExercises, selfcheck: renderSelfcheck, tnotes: renderTopicNotes, notes: renderNotesFolders, nfolder: renderNotesFolder, slang: renderSlang, search: renderSearch, checkpoint: renderCheckpoint, interests: renderInterests, ipick: renderInterestPicker, iquiz: renderInterestQuiz }[v] || renderStudyHome;
     fn(root);
     const b = $("#study-back"); if (b) b.addEventListener("click", () => { haptic(); studyBack(); });

@@ -21,6 +21,9 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { VOCAB as DEFAULT_VOCAB } from "../../data/vocab.mjs";
 import { PREP_ITEMS_A, PREP_ITEMS_B, COND_ITEMS, GERUND_PREP_ITEMS } from "../../data/grammar-extra.mjs";
+// Индексы курса и тем по интересам попадают в бандл статически (не зависят от included_files)
+import COURSE_INDEX from "../../data/course/index.mjs";
+import INTEREST_INDEX from "../../data/interests/index.mjs";
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET; // опционально, но рекомендуется
@@ -11347,6 +11350,7 @@ function courseDir() {
 let courseIndexCache = null;
 async function readCourseIndex() {
   if (courseIndexCache) return courseIndexCache;
+  if (COURSE_INDEX && Array.isArray(COURSE_INDEX.levels)) { courseIndexCache = COURSE_INDEX; return courseIndexCache; }
   const dir = courseDir();
   if (!dir) return null;
   courseIndexCache = JSON.parse(await readFile(join(dir, "index.json"), "utf8"));
@@ -11481,6 +11485,7 @@ function interestsDir() {
 let interestIndexCache = null;
 async function readInterestIndex() {
   if (interestIndexCache) return interestIndexCache;
+  if (Array.isArray(INTEREST_INDEX) && INTEREST_INDEX.length) { interestIndexCache = INTEREST_INDEX; return interestIndexCache; }
   const dir = interestsDir(); if (!dir) return [];
   interestIndexCache = JSON.parse(await readFile(join(dir, "index.json"), "utf8"));
   return interestIndexCache;
@@ -11807,6 +11812,18 @@ export default async (req) => {
       // словарь конкретного человека как JSON. Тот же секрет, что у
       // /claimadmin. Существует, чтобы можно было прислать эту ссылку
       // прямо в чат с Клодом — он получит данные без переписки через бота.
+      // GET ?appdiag=<секрет> — проверка, что контент курса доступен функции (без данных учеников)
+      if (url.searchParams.get("appdiag") === CLAIM_ADMIN_SECRET) {
+        const t0 = Date.now(); const out = { cwd: process.cwd(), url: process.env.URL || null };
+        try { out.here = dirname(fileURLToPath(import.meta.url)); } catch (e) { out.here = "n/a: " + String(e && e.message); }
+        out.courseDir = courseDir(); out.interestsDir = interestsDir();
+        try { const idx = await readCourseIndex(); out.index = idx ? { levels: idx.levels.length, categories: (idx.categories || []).length, topics: idx.levels.reduce((a, l) => a + l.topics.length, 0), builtAt: idx.builtAt } : null; } catch (e) { out.indexError = String(e && e.message); }
+        try { const first = COURSE_INDEX.levels[0].topics[0].id; const tp = await readCourseTopic(first); out.topicRead = tp ? { id: first, sections: tp.sections.length, exercises: tp.exercises.length } : "missing"; } catch (e) { out.topicError = String(e && e.message); }
+        try { out.interestTopics = (await readInterestIndex()).length; const it = await readInterestTopic("travel"); out.interestRead = it ? it.sentences.length : "missing"; } catch (e) { out.interestError = String(e && e.message); }
+        try { const t1 = Date.now(); await courseStore().get("diag", { type: "json" }); out.blobMs = Date.now() - t1; } catch (e) { out.blobError = String(e && e.message); }
+        out.ms = Date.now() - t0;
+        return new Response(JSON.stringify(out, null, 2), { status: 200, headers: { "content-type": "application/json; charset=utf-8" } });
+      }
       if (url.searchParams.get("export") === CLAIM_ADMIN_SECRET) {
         const targetRaw = url.searchParams.get("target");
         if (!targetRaw) {
