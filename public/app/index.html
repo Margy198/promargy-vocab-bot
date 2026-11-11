@@ -7,6 +7,19 @@
 <meta name="description" content="Мини-приложение тренажёра Promargy: прогресс, словарь, лига, блиц, настройки." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&family=Nunito+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script>
+// Параметры запуска Telegram приходят в адресе (#tgWebAppData=…), но официальный скрипт
+// стирает их сразу после чтения. Поэтому забираем их ДО его загрузки.
+(function () {
+  var p = {};
+  try {
+    (location.hash || "").replace(/^#/, "").split("&").forEach(function (kv) { var i = kv.indexOf("="); if (i > 0) { try { p[decodeURIComponent(kv.slice(0, i))] = decodeURIComponent(kv.slice(i + 1)); } catch (e) {} } });
+    if (!p.tgWebAppData) { var q = new URLSearchParams(location.search); if (q.get("tgWebAppData")) q.forEach(function (v, k) { p[k] = v; }); }
+    if (p.tgWebAppData) sessionStorage.setItem("__tgInitData", p.tgWebAppData);
+  } catch (e) {}
+  window.__tgLaunch = p;
+})();
+</script>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>
 // Запасной мост с Telegram на случай, если telegram.org недоступен (например, заблокирован у провайдера)
@@ -14,17 +27,25 @@
 // а команды принимает через TelegramWebviewProxy (десктоп/мобильные) или postMessage (web.telegram.org).
 (function () {
   var sdk = !!(window.Telegram && window.Telegram.WebApp);
-  var hash = (location.hash || "").replace(/^#/, "");
-  var params = {};
-  hash.split("&").forEach(function (kv) { var i = kv.indexOf("="); if (i > 0) { try { params[decodeURIComponent(kv.slice(0, i))] = decodeURIComponent(kv.slice(i + 1)); } catch (e) {} } });
+  var params = window.__tgLaunch || {};
+  var source = params.tgWebAppData ? "адрес" : "";
+  // Официальный скрипт кладёт разобранные параметры к себе — берём и оттуда
+  if (!params.tgWebAppData) {
+    try { var ip = window.Telegram && window.Telegram.WebView && window.Telegram.WebView.initParams; if (ip && ip.tgWebAppData) { params = ip; source = "sdk"; } } catch (e) {}
+  }
+  if (!params.tgWebAppData) {
+    try { var st = JSON.parse(sessionStorage.getItem("__telegram__initParams") || "{}"); if (st && st.tgWebAppData) { params = st; source = "хранилище"; } } catch (e) {}
+  }
   var initData = params.tgWebAppData || "";
-  if (!initData) { try { initData = sessionStorage.getItem("__tgInitData") || ""; } catch (e) {} } else { try { sessionStorage.setItem("__tgInitData", initData); } catch (e) {} }
-  window.__tgBridge = { sdk: sdk, hash: !!params.tgWebAppData, stored: !initData ? false : !params.tgWebAppData, platform: params.tgWebAppPlatform || (sdk ? window.Telegram.WebApp.platform : "") || "?", patched: false, used: false };
+  if (!initData) { try { initData = sessionStorage.getItem("__tgInitData") || ""; if (initData) source = "память"; } catch (e) {} } else { try { sessionStorage.setItem("__tgInitData", initData); } catch (e) {} }
+  var keys = []; try { keys = Object.keys(window.__tgLaunch || {}); if (!keys.length && window.Telegram && window.Telegram.WebView && window.Telegram.WebView.initParams) keys = Object.keys(window.Telegram.WebView.initParams); } catch (e) {}
+  window.__tgBridge = { sdk: sdk, source: source || "нет", keys: keys.map(function (k) { return k.replace(/^tgWebApp/, ""); }).join(",") || "нет", platform: params.tgWebAppPlatform || (sdk ? window.Telegram.WebApp.platform : "") || "?", patched: false, used: false };
   // Официальный SDK загрузился: если он почему-то не отдал данные запуска
   // (так бывает, когда скрипт пришёл из кеша раньше, чем Telegram передал параметры),
   // подставляем их из адреса — иначе приложение считает, что открыто в обычном браузере.
   if (sdk) {
     var W = window.Telegram.WebApp;
+    window.__tgBridge.sdkInit = !!W.initData;
     if (!W.initData && initData) {
       try { Object.defineProperty(W, "initData", { value: initData, writable: true, configurable: true }); } catch (e) { try { W.initData = initData; } catch (e2) {} }
       try {
@@ -299,7 +320,7 @@
   // Короткая строка-диагностика: по ней видно, почему приложение решило, что оно вне Telegram
   function tgDiag() {
     const b = window.__tgBridge || {};
-    return `sdk:${b.sdk ? "да" : "нет"} данные:${b.hash ? "адрес" : b.stored ? "память" : "нет"} мост:${b.used ? "да" : b.patched ? "починил" : "нет"} ${b.platform || "?"}`;
+    return `sdk:${b.sdk ? (b.sdkInit ? "с данными" : "пустой") : "нет"} источник:${b.source || "?"} параметры:${b.keys || "?"} мост:${b.used ? "да" : b.patched ? "починил" : "нет"} ${b.platform || "?"}`;
   }
   function applyTheme() {
     let scheme = tg && tg.colorScheme ? tg.colorScheme : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
