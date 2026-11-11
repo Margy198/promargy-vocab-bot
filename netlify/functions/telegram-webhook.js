@@ -6319,7 +6319,10 @@ const GRAMMAR_EXERCISE_TYPES = {
   gerundPrep: "🧩 V-ing после предлогов (до B1): good at, look forward to…",
   trapWords: "🪤 Слова-ловушки (mean/present/fine...)",
   collocations: "🤝 give / get / take / have",
-  modalMeaning: "🧭 Модальные — по смыслу",
+  modalPresent: "🧭 Модальные — настоящее (must / have to / should / need to / can)",
+  modalPast: "🧭 Модальные — прошедшее (had to / could / was able to / needed to)",
+  modalPerfect: "🧭 Модальные + have V3 (должен был / мог бы / не стоило…)",
+  modalMix: "🧭 Модальные — микс (настоящее + прошедшее + перфектные)",
   modalTo: "🔧 Модальные — нужна ли to",
   futureInPast: "⏳ Future in the Past vs Future Simple",
   someAnyNo: "🔸 Some / any / no (something, someone, somewhere…)",
@@ -6338,7 +6341,9 @@ const GRAMMAR_REAL_EXERCISE_TYPES = [
   "gerundInfinitive",
   "trapWords",
   "collocations",
-  "modalMeaning",
+  "modalPresent",
+  "modalPast",
+  "modalPerfect",
   "modalTo",
   "futureInPast",
   "someAnyNo",
@@ -7178,7 +7183,6 @@ const GERUND_INFINITIVE_VERBS = [
   { phrase: "hurry", ru: "торопиться", pattern: "infinitive" },
   { phrase: "intend", ru: "намереваться", pattern: "infinitive" },
   { phrase: "offer", ru: "предлагать", pattern: "infinitive" },
-  { phrase: "ought", ru: "следует, должен", pattern: "infinitive" },
   { phrase: "plan", ru: "планировать", pattern: "infinitive" },
   { phrase: "prepare", ru: "готовиться", pattern: "infinitive" },
   { phrase: "proceed", ru: "приступать, продолжать (далее)", pattern: "infinitive" },
@@ -7455,14 +7459,33 @@ const COLLOCATION_VERBS = ["give", "get", "take", "have"];
 // своей "простой" формы прошедшего времени в этом же значении не имеют,
 // поэтому прошедшее даём только для have to → had to, need to → needed
 // to, can → could).
+// ought to убран по просьбе Margy (11.11.2026) — в живой речи почти не используется.
 const MODAL_VERBS = [
-  { key: "must", base: "must", thirdSg: "must", past: null, needsTo: false },
-  { key: "haveTo", base: "have to", thirdSg: "has to", past: "had to", needsTo: true },
-  { key: "should", base: "should", thirdSg: "should", past: null, needsTo: false },
-  { key: "oughtTo", base: "ought to", thirdSg: "ought to", past: null, needsTo: true },
-  { key: "needTo", base: "need to", thirdSg: "needs to", past: "needed to", needsTo: true },
-  { key: "can", base: "can", thirdSg: "can", past: "could", needsTo: false },
+  { key: "must", base: "must", thirdSg: "must", past: null, needsTo: false, explain: "must — «должен»: уверенность или внутренний долг самого говорящего" },
+  { key: "haveTo", base: "have to", thirdSg: "has to", past: "had to", needsTo: true, explain: "have to — «вынужден»: так требуют правила или обстоятельства" },
+  { key: "should", base: "should", thirdSg: "should", past: null, needsTo: false, explain: "should — «следует»: совет, рекомендация" },
+  { key: "needTo", base: "need to", thirdSg: "needs to", past: "needed to", needsTo: true, explain: "need to — «нужно»: практическая необходимость" },
+  { key: "can", base: "can", thirdSg: "can", past: "could", needsTo: false, explain: "can — «может»: умение или возможность" },
 ];
+// Прошедшее: у must/should своей формы прошедшего нет — там работают had to / could / was able to / needed to.
+const MODAL_PAST = [
+  { key: "hadTo", form: () => "had to", ru: (subj) => `${subj.ru} ${haveToFormRu(subj, "past")}`, explain: "had to — «вынужден был»: прошедшее от have to (и от must — у must своего прошедшего нет)" },
+  { key: "could", form: () => "could", ru: (subj) => `${subj.ru} ${canFormRu(subj, "past")} (вообще, умел)`, explain: "could — «мог» вообще, умел: общая способность в прошлом" },
+  { key: "wasAbleTo", form: (subj) => (subj.isPlural ? "were able to" : "was able to"), ru: (subj) => `${subj.ru} ${subj.isPlural ? "смогли" : subj.gender === "f" ? "смогла" : "смог"} (удалось в тот раз)`, explain: "was / were able to — «смог, удалось»: конкретный случай, когда получилось (could так не говорят)" },
+  { key: "neededTo", form: () => "needed to", ru: (subj) => needToRuPrefix(subj, "past"), explain: "needed to — «нужно было»: практическая необходимость в прошлом" },
+];
+// Перфектные: модальный + have + V3 — оценка или вывод о прошлом.
+const MODAL_PERFECT = [
+  { key: "mustHave", form: "must have", ru: (subj, v) => `${subj.ru} наверняка ${ruPastOf(subj, v)} ${v.contextRu} (уверенный вывод)`, explain: "must have + V3 — «наверняка, должно быть»: уверенный вывод о прошлом" },
+  { key: "mightHave", form: "might have", ru: (subj, v) => `Возможно, ${subj.ru} ${ruPastOf(subj, v)} ${v.contextRu} (не уверены)`, explain: "might have + V3 — «возможно, может быть»: неуверенное предположение о прошлом" },
+  { key: "shouldHave", form: "should have", ru: (subj, v) => `${subj.ruDative} стоило ${v.ruInf} ${v.contextRu}, но ${subj.isPlural ? "они этого не сделали" : subj.gender === "f" ? "она этого не сделала" : "он этого не сделал"}`, explain: "should have + V3 — «стоило, надо было»: правильное действие, которое не сделали (упрёк / сожаление)" },
+  { key: "shouldntHave", form: "shouldn't have", ru: (subj, v) => `${subj.ruDative} не стоило ${v.ruInf} ${v.contextRu}, а ${subj.isPlural ? "они сделали" : subj.gender === "f" ? "она сделала" : "он сделал"}`, explain: "shouldn't have + V3 — «не стоило»: сделали то, чего делать не надо было" },
+  { key: "couldHave", form: "could have", ru: (subj, v) => `${subj.ru} ${subj.isPlural ? "могли" : subj.gender === "f" ? "могла" : "мог"} бы ${v.ruInf} ${v.contextRu}, но не ${subj.isPlural ? "стали" : subj.gender === "f" ? "стала" : "стал"}`, explain: "could have + V3 — «мог бы»: была возможность, но ею не воспользовались" },
+  { key: "needntHave", form: "needn't have", ru: (subj, v) => `${subj.ruDative} не нужно было ${v.ruInf} ${v.contextRu} — зря ${subj.isPlural ? "старались" : subj.gender === "f" ? "старалась" : "старался"}`, explain: "needn't have + V3 — «зря, не нужно было»: сделали, а оказалось — без надобности" },
+];
+function ruPastOf(subj, v) { return subj.isPlural ? v.ruPastPl : subj.gender === "f" ? v.ruPastF : v.ruPastM; }
+// Состояния (знать, нравиться, нуждаться) с «смог / мог бы / зря» не сочетаются — в прошедших и перфектных форматах их не берём.
+const MODAL_STATIVE = new Set(["know", "like", "need", "have", "see"]);
 
 // Примечание (02.10.2026): раньше тут были словари RU_DATIVE/RU_NOM,
 // жёстко привязанные к 6 исходным местоимениям (I/You/He/She/We/They) —
@@ -7512,8 +7535,6 @@ function ruModalSentence(subject, modal, verb, tense) {
     prefix = `${subject.ru} ${canFormRu(subject, tense)}`;
   } else if (modal.key === "should") {
     prefix = `${subject.ruDative} следует`;
-  } else if (modal.key === "oughtTo") {
-    prefix = `${subject.ruDative} полагается`;
   } else {
     prefix = needToRuPrefix(subject, tense);
   }
@@ -7521,45 +7542,68 @@ function ruModalSentence(subject, modal, verb, tense) {
   return sentence.charAt(0).toUpperCase() + sentence.slice(1);
 }
 
-// Формат "по смыслу": даётся ситуация по-русски (с явной подсказкой,
-// какой оттенок смысла нужен — иначе "должен" из русского одинаково
-// подходит и под must, и под have to), и все 6 модальных глаголов с тем
-// же подлежащим и глаголом — как варианты ответа.
-function buildModalMeaningQuestion(forbiddenText) {
+// Формат "настоящее": ситуация по-русски (слово-подсказка снимает путаницу
+// «должен / вынужден / следует / нужно / может»), варианты — все 5 модальных
+// с тем же подлежащим и глаголом.
+function buildModalPresentQuestion(forbiddenText) {
   for (let attempt = 0; attempt < 25; attempt++) {
     const subject = RU_SENTENCE_SUBJECTS[Math.floor(Math.random() * RU_SENTENCE_SUBJECTS.length)];
     const verb = GRAMMAR_VERBS[Math.floor(Math.random() * GRAMMAR_VERBS.length)];
     const targetModal = MODAL_VERBS[Math.floor(Math.random() * MODAL_VERBS.length)];
-    const usePast = !!targetModal.past && Math.random() < 0.5;
     const context = contextFor(subject, verb);
-
-    const phraseFor = (modal) => {
-      let form;
-      if (usePast && modal.past) form = modal.past;
-      else form = subject.is3rd && !subject.isPlural ? modal.thirdSg : modal.base;
-      return `${subject.pron} ${form} ${verb.base} ${context}`;
-    };
-
+    const phraseFor = (modal) => `${subject.pron} ${subject.is3rd && !subject.isPlural ? modal.thirdSg : modal.base} ${verb.base} ${context}`;
     const correctText = phraseFor(targetModal);
     if (forbiddenText && correctText.toLowerCase() === forbiddenText.toLowerCase()) continue;
-
     const candidates = MODAL_VERBS.map(phraseFor);
-    const uniqueOptions = new Set(candidates.map((c) => c.toLowerCase()));
-    if (uniqueOptions.size !== candidates.length) continue;
-
+    if (new Set(candidates.map((c) => c.toLowerCase())).size !== candidates.length) continue;
     const targetIdx = MODAL_VERBS.indexOf(targetModal);
     const order = shuffle(candidates.map((_, i) => i));
-    const correctPos = order.indexOf(targetIdx);
-    const options = order.map((i) => candidates[i]);
-
-    return {
-      correctText,
-      questionLabel: ruModalSentence(subject, targetModal, verb, usePast ? "past" : "present"),
-      options,
-      correctPos,
-    };
+    return { correctText, questionLabel: ruModalSentence(subject, targetModal, verb, "present"), options: order.map((i) => candidates[i]), correctPos: order.indexOf(targetIdx), explain: targetModal.explain };
   }
   return null;
+}
+// Формат "прошедшее": had to / could / was able to / needed to.
+function buildModalPastQuestion(forbiddenText) {
+  for (let attempt = 0; attempt < 25; attempt++) {
+    const subject = RU_SENTENCE_SUBJECTS[Math.floor(Math.random() * RU_SENTENCE_SUBJECTS.length)];
+    const verb = GRAMMAR_VERBS[Math.floor(Math.random() * GRAMMAR_VERBS.length)];
+    if (MODAL_STATIVE.has(verb.base)) continue;
+    const target = MODAL_PAST[Math.floor(Math.random() * MODAL_PAST.length)];
+    const context = contextFor(subject, verb);
+    const phraseFor = (m) => `${subject.pron} ${m.form(subject)} ${verb.base} ${context}`;
+    const correctText = phraseFor(target);
+    if (forbiddenText && correctText.toLowerCase() === forbiddenText.toLowerCase()) continue;
+    const candidates = MODAL_PAST.map(phraseFor);
+    if (new Set(candidates.map((c) => c.toLowerCase())).size !== candidates.length) continue;
+    const order = shuffle(candidates.map((_, i) => i));
+    const label = `${target.ru(subject)} ${verb.ruInf} ${verb.contextRu}`;
+    return { correctText, questionLabel: label.charAt(0).toUpperCase() + label.slice(1), options: order.map((i) => candidates[i]), correctPos: order.indexOf(MODAL_PAST.indexOf(target)), explain: target.explain };
+  }
+  return null;
+}
+// Формат "перфектные": modal + have + V3. Четыре варианта: верный и три других перфектных формы.
+function buildModalPerfectQuestion(forbiddenText) {
+  for (let attempt = 0; attempt < 25; attempt++) {
+    const subject = RU_SENTENCE_SUBJECTS[Math.floor(Math.random() * RU_SENTENCE_SUBJECTS.length)];
+    const verb = GRAMMAR_VERBS[Math.floor(Math.random() * GRAMMAR_VERBS.length)];
+    if (!verb.participle || !verb.ruPastM || MODAL_STATIVE.has(verb.base)) continue;
+    const target = MODAL_PERFECT[Math.floor(Math.random() * MODAL_PERFECT.length)];
+    const context = contextFor(subject, verb);
+    const phraseFor = (m) => `${subject.pron} ${m.form} ${verb.participle} ${context}`;
+    const correctText = phraseFor(target);
+    if (forbiddenText && correctText.toLowerCase() === forbiddenText.toLowerCase()) continue;
+    const others = shuffle(MODAL_PERFECT.filter((m) => m !== target)).slice(0, 3);
+    const candidates = [correctText, ...others.map(phraseFor)];
+    if (new Set(candidates.map((c) => c.toLowerCase())).size !== candidates.length) continue;
+    const order = shuffle(candidates.map((_, i) => i));
+    const label = target.ru(subject, verb);
+    return { correctText, questionLabel: label.charAt(0).toUpperCase() + label.slice(1), options: order.map((i) => candidates[i]), correctPos: order.indexOf(0), explain: target.explain };
+  }
+  return null;
+}
+function buildModalMixQuestion(forbiddenText) {
+  const r = Math.random();
+  return r < 0.34 ? buildModalPresentQuestion(forbiddenText) : r < 0.67 ? buildModalPastQuestion(forbiddenText) : buildModalPerfectQuestion(forbiddenText);
 }
 
 // Формат "нужна ли to": фиксируем модальный глагол и глагол действия,
@@ -7582,7 +7626,7 @@ function buildModalToQuestion(forbiddenText) {
     const toggledForm = modal.needsTo ? modalForm.replace(/\s*to$/, "").trim() : `${modalForm} to`;
     const toggledText = `${subject.pron} ${toggledForm} ${verb.base} ${context}`;
 
-    const otherModals = shuffle(MODAL_VERBS.filter((m) => m.key !== modal.key)).slice(0, 4);
+    const otherModals = shuffle(MODAL_VERBS.filter((m) => m.key !== modal.key)).slice(0, 3);
     const otherTexts = otherModals.map((m) => {
       const f = subject.is3rd ? m.thirdSg : m.base;
       return `${subject.pron} ${f} ${verb.base} ${context}`;
@@ -7590,7 +7634,7 @@ function buildModalToQuestion(forbiddenText) {
 
     const candidates = [correctText, toggledText, ...otherTexts];
     const uniqueOptions = new Set(candidates.map((c) => c.toLowerCase()));
-    if (uniqueOptions.size !== 6) continue;
+    if (uniqueOptions.size !== candidates.length) continue;
 
     const order = shuffle(candidates.map((_, i) => i));
     const correctPos = order.indexOf(0);
@@ -7714,7 +7758,10 @@ function buildGrammarQuestion(forbiddenText, exerciseType) {
     else if (type === "collocations") q = buildCollocationQuestion(forbiddenText);
     else if (type === "someAnyNo") q = buildSomeAnyNoQuestion(forbiddenText);
     else if (type === "prepA" || type === "prepB" || type === "condB1" || type === "gerundPrep") q = buildChoiceItemQuestion(grammarItemsFor(type), forbiddenText);
-    else if (type === "modalMeaning") q = buildModalMeaningQuestion(forbiddenText);
+    else if (type === "modalPresent") q = buildModalPresentQuestion(forbiddenText);
+    else if (type === "modalPast") q = buildModalPastQuestion(forbiddenText);
+    else if (type === "modalPerfect") q = buildModalPerfectQuestion(forbiddenText);
+    else if (type === "modalMix" || type === "modalMeaning") q = buildModalMixQuestion(forbiddenText);
     else if (type === "modalTo") q = buildModalToQuestion(forbiddenText);
     else if (type === "futureInPast") q = buildFutureInPastQuestion(forbiddenText);
     else q = buildTensesQuestion(forbiddenText);
