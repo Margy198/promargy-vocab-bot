@@ -8349,10 +8349,39 @@ const BTN_APP = "📱 Приложение";
 
 // Адрес мини-приложения: страница public/app/ того же сайта Netlify.
 // MINI_APP_URL в настройках Netlify переопределяет (например, свой домен).
-function miniAppUrl() {
+// Запасной вход в приложение. Telegram не всегда передаёт данные пользователя
+// (на iOS встречается запуск, где приходят только версия, платформа и тема).
+// Тогда приложение не может доказать, кто его открыл. Поэтому бот кладёт в адрес
+// кнопки короткую подпись: chatId + срок + HMAC на секрете вебхука. Ссылка живёт
+// только в личном чате с этим учеником и действует 30 дней.
+const APP_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+function signAppToken(chatId, exp) {
+  return createHmac("sha256", WEBHOOK_SECRET || TOKEN || "promargy").update(`${chatId}.${exp}`).digest("base64url").slice(0, 27);
+}
+function appToken(chatId) {
+  if (!chatId) return "";
+  const exp = Date.now() + APP_TOKEN_TTL_MS;
+  return `${chatId}.${exp}.${signAppToken(chatId, exp)}`;
+}
+function verifyAppToken(token) {
+  if (!token || typeof token !== "string") return null;
+  const parts = token.split(".");
+  if (parts.length !== 3) return null;
+  const [chatId, expRaw, sig] = parts;
+  if (!/^\d{1,20}$/.test(chatId) || !/^\d{10,16}$/.test(expRaw)) return null;
+  const exp = Number(expRaw);
+  if (!exp || exp < Date.now()) return null;
+  const expected = signAppToken(chatId, exp);
+  const a = Buffer.from(expected); const b = Buffer.from(sig);
+  if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
+  return { id: Number(chatId) };
+}
+function miniAppUrl(chatId) {
   const base = process.env.MINI_APP_URL || process.env.URL || "";
   if (!base || !/^https:/i.test(base)) return "";
-  return base.replace(/\/+$/, "") + (process.env.MINI_APP_URL ? "" : "/app/");
+  const url = base.replace(/\/+$/, "") + (process.env.MINI_APP_URL ? "" : "/app/");
+  const t = appToken(chatId);
+  return t ? url + (url.includes("?") ? "&" : "?") + "t=" + encodeURIComponent(t) : url;
 }
 
 async function mainReplyKeyboard(chatId) {
@@ -8365,7 +8394,7 @@ async function mainReplyKeyboard(chatId) {
   const keyboard = rows.map((row) => row.map((text) => ({ text })));
   // Кнопка мини-приложения (Telegram Web App). Telegram принимает только
   // https-адрес, поэтому кнопка появляется, когда известен адрес сайта.
-  const appUrl = miniAppUrl();
+  const appUrl = miniAppUrl(chatId);
   if (appUrl) keyboard.splice(1, 0, [{ text: BTN_APP, web_app: { url: appUrl } }]);
   return {
     keyboard,
@@ -9429,7 +9458,7 @@ async function handleAppButton(chatId) {
     await tg("sendMessage", { chat_id: chatId, text: "Эта команда недоступна." });
     return;
   }
-  const url = miniAppUrl();
+  const url = miniAppUrl(chatId);
   if (!url) {
     await tg("sendMessage", { chat_id: chatId, text: "Не знаю адрес сайта (нет переменной URL/MINI_APP_URL в Netlify) — кнопку поставить не могу." });
     return;
@@ -11099,7 +11128,7 @@ async function handleMessage(message) {
       await tg("sendMessage", { chat_id: chatId, text: "Пока никто не писал боту." });
       return;
     }
-    const appUrl = miniAppUrl();
+    const appUrl = miniAppUrl(chatId);
     await tg("sendMessage", { chat_id: chatId, text: `Ученики (${shownCount}):\n${lines.join("\n")}\n\nПодробнее — прогресс, ошибки, домашка — в кабинете учителя в приложении (Учёба → Кабинет учителя).`, ...(appUrl ? { reply_markup: { inline_keyboard: [[{ text: "Открыть кабинет учителя", web_app: { url: appUrl } }]] } } : {}) });
     return;
   }
@@ -11617,7 +11646,7 @@ async function assignHomework(teacherId, studentIds, topicId, deadline, note) {
     try {
       const d = deadline ? ` до ${deadline.slice(8)}.${deadline.slice(5, 7)}` : "";
       const text = `📚 Новая домашка от преподавателя: «${meta.title}»${d}.${note ? `\n💬 ${note}` : ""}\n\nПройди тему и упражнения в приложении и нажми «Тема пройдена ✓» — я отмечу домашку сделанной.`;
-      const appUrl = miniAppUrl();
+      const appUrl = miniAppUrl(sid);
       await tg("sendMessage", { chat_id: sid, text, ...(appUrl ? { reply_markup: { inline_keyboard: [[{ text: "Открыть домашку", web_app: { url: appUrl + (appUrl.includes("?") ? "&" : "?") + "page=study" } }]] } } : {}) });
     } catch (e) { /* не критично */ }
     assigned.push(String(sid));
@@ -11655,7 +11684,7 @@ async function sendHomeworkReminders(nowMs = Date.now()) {
     if (!due.length) continue;
     const lines = due.map((it) => `• «${it.title}» — ${it.deadline === today ? "сегодня" : "завтра"}`);
     try {
-      const appUrl = miniAppUrl();
+      const appUrl = miniAppUrl(chatId);
       await tg("sendMessage", { chat_id: chatId, text: `📚 Напоминаю про домашку:\n${lines.join("\n")}\n\nОткрой тему в приложении и нажми «Тема пройдена ✓».`, ...(appUrl ? { reply_markup: { inline_keyboard: [[{ text: "Открыть", web_app: { url: appUrl } }]] } } : {}) });
       sent += 1;
     } catch (e) { continue; }
@@ -11833,7 +11862,7 @@ async function addInterestWords(chatId, items) {
 }
 
 async function handleAppApi(body) {
-  const user = verifyInitData(body.initData);
+  const user = verifyInitData(body.initData) || verifyAppToken(body.appToken);
   if (!user || !user.id) return appJson({ ok: false, error: "auth" }, 401);
   const chatId = user.id;
   const identity = (await readIdentity(chatId)) || {};
@@ -12176,7 +12205,7 @@ export default async (req) => {
     return handleAdminApi(body);
   }
   // Запросы мини-приложения (см. handleAppApi): у них есть initData.
-  if (body && body.initData !== undefined && body.action !== undefined) {
+  if (body && (body.initData !== undefined || body.appToken !== undefined) && body.action !== undefined) {
     return handleAppApi(body);
   }
 
