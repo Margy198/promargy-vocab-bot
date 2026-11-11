@@ -8,6 +8,52 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&family=Nunito+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
+// Запасной мост с Telegram на случай, если telegram.org недоступен (например, заблокирован у провайдера)
+// и официальный SDK не загрузился. Telegram передаёт данные запуска в hash адреса (#tgWebAppData=…),
+// а команды принимает через TelegramWebviewProxy (десктоп/мобильные) или postMessage (web.telegram.org).
+(function () {
+  if (window.Telegram && window.Telegram.WebApp) return;
+  var hash = (location.hash || "").replace(/^#/, "");
+  var params = {};
+  hash.split("&").forEach(function (kv) { var i = kv.indexOf("="); if (i > 0) { try { params[decodeURIComponent(kv.slice(0, i))] = decodeURIComponent(kv.slice(i + 1)); } catch (e) {} } });
+  var initData = params.tgWebAppData || "";
+  if (!initData) { try { initData = sessionStorage.getItem("__tgInitData") || ""; } catch (e) {} } else { try { sessionStorage.setItem("__tgInitData", initData); } catch (e) {} }
+  var unsafe = {};
+  initData.split("&").forEach(function (kv) { var i = kv.indexOf("="); if (i > 0) { var k = decodeURIComponent(kv.slice(0, i)), v = decodeURIComponent(kv.slice(i + 1)); if (k === "user" || k === "receiver" || k === "chat") { try { v = JSON.parse(v); } catch (e) {} } unsafe[k] = v; } });
+  var theme = {}; try { theme = JSON.parse(params.tgWebAppThemeParams || "{}"); } catch (e) {}
+  var bg = String(theme.bg_color || "#ffffff").replace("#", "");
+  var lum = bg.length === 6 ? (parseInt(bg.slice(0, 2), 16) * 299 + parseInt(bg.slice(2, 4), 16) * 587 + parseInt(bg.slice(4, 6), 16) * 114) / 1000 : 255;
+  var handlers = {};
+  function post(type, data) {
+    data = data || {};
+    try { if (window.TelegramWebviewProxy && window.TelegramWebviewProxy.postEvent) return window.TelegramWebviewProxy.postEvent(type, JSON.stringify(data)); } catch (e) {}
+    try { if (window.external && typeof window.external.notify === "function") return window.external.notify(JSON.stringify({ eventType: type, eventData: data })); } catch (e) {}
+    try { if (window.parent && window.parent !== window) window.parent.postMessage(JSON.stringify({ eventType: type, eventData: data }), "https://web.telegram.org"); } catch (e) {}
+  }
+  function fire(type, data) { (handlers[type] || []).forEach(function (h) { try { h(data); } catch (e) {} }); }
+  var backVisible = false, backHandlers = [];
+  var app = {
+    initData: initData, initDataUnsafe: unsafe, version: params.tgWebAppVersion || "6.0", platform: params.tgWebAppPlatform || "unknown",
+    themeParams: theme, colorScheme: lum < 128 ? "dark" : "light", isExpanded: true, __fallback: true,
+    ready: function () { post("web_app_ready"); }, expand: function () { post("web_app_expand"); }, close: function () { post("web_app_close"); },
+    setHeaderColor: function (c) { post("web_app_set_header_color", /^#/.test(c) ? { color: c } : { color_key: c }); },
+    setBackgroundColor: function (c) { post("web_app_set_background_color", { color: c }); },
+    setBottomBarColor: function (c) { post("web_app_set_bottom_bar_color", { color: c }); },
+    onEvent: function (t, h) { (handlers[t] = handlers[t] || []).push(h); }, offEvent: function (t, h) { handlers[t] = (handlers[t] || []).filter(function (x) { return x !== h; }); },
+    openLink: function (u) { post("web_app_open_link", { url: u }); }, openTelegramLink: function (u) { post("web_app_open_tg_link", { path_full: String(u).replace(/^https?:\/\/t\.me/, "") }); },
+    BackButton: { isVisible: false, show: function () { backVisible = true; post("web_app_setup_back_button", { is_visible: true }); }, hide: function () { backVisible = false; post("web_app_setup_back_button", { is_visible: false }); }, onClick: function (h) { backHandlers.push(h); }, offClick: function (h) { backHandlers = backHandlers.filter(function (x) { return x !== h; }); } },
+    HapticFeedback: { impactOccurred: function (s) { post("web_app_trigger_haptic_feedback", { type: "impact", impact_style: s || "light" }); }, notificationOccurred: function (t) { post("web_app_trigger_haptic_feedback", { type: "notification", notification_type: t || "success" }); }, selectionChanged: function () { post("web_app_trigger_haptic_feedback", { type: "selection_change" }); } },
+  };
+  function receive(type, data) {
+    if (type === "back_button_pressed") backHandlers.forEach(function (h) { try { h(); } catch (e) {} });
+    if (type === "theme_changed") { var tp = (data && data.theme_params) || {}; app.themeParams = tp; var b = String(tp.bg_color || "").replace("#", ""); if (b.length === 6) app.colorScheme = (parseInt(b.slice(0, 2), 16) * 299 + parseInt(b.slice(2, 4), 16) * 587 + parseInt(b.slice(4, 6), 16) * 114) / 1000 < 128 ? "dark" : "light"; fire("themeChanged", data); }
+    if (type === "viewport_changed") fire("viewportChanged", data);
+  }
+  window.Telegram = { WebApp: app, WebView: { receiveEvent: receive, postEvent: post, initParams: params } };
+  window.addEventListener("message", function (ev) { var d = ev.data; if (typeof d === "string") { try { d = JSON.parse(d); } catch (e) { return; } } if (d && d.eventType) receive(d.eventType, d.eventData); });
+})();
+</script>
 <style>
   /* Дизайн-система из макетов Маргариты (Sketch «Приложение 1»):
      фон #fbfbfb, текст #2e2e2e / #3d3542, акцент #1dfff8→#11c8c4,
