@@ -13,12 +13,30 @@
 // и официальный SDK не загрузился. Telegram передаёт данные запуска в hash адреса (#tgWebAppData=…),
 // а команды принимает через TelegramWebviewProxy (десктоп/мобильные) или postMessage (web.telegram.org).
 (function () {
-  if (window.Telegram && window.Telegram.WebApp) return;
+  var sdk = !!(window.Telegram && window.Telegram.WebApp);
   var hash = (location.hash || "").replace(/^#/, "");
   var params = {};
   hash.split("&").forEach(function (kv) { var i = kv.indexOf("="); if (i > 0) { try { params[decodeURIComponent(kv.slice(0, i))] = decodeURIComponent(kv.slice(i + 1)); } catch (e) {} } });
   var initData = params.tgWebAppData || "";
   if (!initData) { try { initData = sessionStorage.getItem("__tgInitData") || ""; } catch (e) {} } else { try { sessionStorage.setItem("__tgInitData", initData); } catch (e) {} }
+  window.__tgBridge = { sdk: sdk, hash: !!params.tgWebAppData, stored: !initData ? false : !params.tgWebAppData, platform: params.tgWebAppPlatform || (sdk ? window.Telegram.WebApp.platform : "") || "?", patched: false, used: false };
+  // Официальный SDK загрузился: если он почему-то не отдал данные запуска
+  // (так бывает, когда скрипт пришёл из кеша раньше, чем Telegram передал параметры),
+  // подставляем их из адреса — иначе приложение считает, что открыто в обычном браузере.
+  if (sdk) {
+    var W = window.Telegram.WebApp;
+    if (!W.initData && initData) {
+      try { Object.defineProperty(W, "initData", { value: initData, writable: true, configurable: true }); } catch (e) { try { W.initData = initData; } catch (e2) {} }
+      try {
+        var u = {};
+        initData.split("&").forEach(function (kv) { var i = kv.indexOf("="); if (i > 0) { var k = decodeURIComponent(kv.slice(0, i)), v = decodeURIComponent(kv.slice(i + 1)); if (k === "user" || k === "receiver" || k === "chat") { try { v = JSON.parse(v); } catch (e) {} } u[k] = v; } });
+        if (!W.initDataUnsafe || !W.initDataUnsafe.user) Object.defineProperty(W, "initDataUnsafe", { value: u, writable: true, configurable: true });
+      } catch (e) {}
+      window.__tgBridge.patched = !!W.initData;
+    }
+    return;
+  }
+  window.__tgBridge.used = true;
   var unsafe = {};
   initData.split("&").forEach(function (kv) { var i = kv.indexOf("="); if (i > 0) { var k = decodeURIComponent(kv.slice(0, i)), v = decodeURIComponent(kv.slice(i + 1)); if (k === "user" || k === "receiver" || k === "chat") { try { v = JSON.parse(v); } catch (e) {} } unsafe[k] = v; } });
   var theme = {}; try { theme = JSON.parse(params.tgWebAppThemeParams || "{}"); } catch (e) {}
@@ -278,6 +296,11 @@
   const initData = tg && tg.initData ? tg.initData : "";
   const API = "/telegram-webhook";
   const DEMO = !initData; // вне Telegram — демо-данные, чтобы смотреть дизайн в браузере
+  // Короткая строка-диагностика: по ней видно, почему приложение решило, что оно вне Telegram
+  function tgDiag() {
+    const b = window.__tgBridge || {};
+    return `sdk:${b.sdk ? "да" : "нет"} данные:${b.hash ? "адрес" : b.stored ? "память" : "нет"} мост:${b.used ? "да" : b.patched ? "починил" : "нет"} ${b.platform || "?"}`;
+  }
   function applyTheme() {
     let scheme = tg && tg.colorScheme ? tg.colorScheme : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
     try { const q = new URLSearchParams(location.search).get("theme"); if (q === "dark" || q === "light") scheme = q; } catch (e) {}
@@ -723,7 +746,7 @@
     const c = await api("course");
     if (c && c.ok) { state.course = c; state.courseError = null; state.offline = false; cacheSet("course", c); }
     else if (cached("course")) { state.course = cached("course"); state.courseError = null; state.offline = true; }
-    else state.courseError = DEMO ? "Это просмотр в обычном браузере — курс открывается только внутри Telegram, из бота." : (c && c.error ? c.error : "unknown") + (c && c.detail ? ": " + c.detail : "");
+    else state.courseError = DEMO ? `Это просмотр в обычном браузере — курс открывается только внутри Telegram, из бота. (${tgDiag()})` : (c && c.error ? c.error : "unknown") + (c && c.detail ? ": " + c.detail : "");
     return state.course;
   }
   function findTopicMeta(id) { for (const l of state.course.levels) for (const t of l.topics) if (t.id === id) return { level: l, meta: t }; return null; }
