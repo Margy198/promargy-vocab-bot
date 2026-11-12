@@ -8376,6 +8376,21 @@ function verifyAppToken(token) {
   if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
   return { id: Number(chatId) };
 }
+// Telegram передаёт данные пользователя (initData) мини-приложению, открытому
+// inline-кнопкой, кнопкой меню, по прямой ссылке или из меню вложений — но НЕ для
+// кнопки обычной клавиатуры. Поэтому приложение открываем inline-кнопкой.
+async function handleOpenApp(chatId) {
+  const url = miniAppUrl(chatId);
+  if (!url) {
+    await tg("sendMessage", { chat_id: chatId, text: "Не знаю адрес сайта (нет переменной URL/MINI_APP_URL в Netlify) — не могу открыть приложение." });
+    return;
+  }
+  await tg("sendMessage", {
+    chat_id: chatId,
+    text: "📱 Тренажёр: курс, словарь, блиц и прогресс — в одном приложении.",
+    reply_markup: { inline_keyboard: [[{ text: "Открыть тренажёр", web_app: { url } }]] },
+  });
+}
 function miniAppUrl(chatId) {
   const base = process.env.MINI_APP_URL || process.env.URL || "";
   if (!base || !/^https:/i.test(base)) return "";
@@ -8394,8 +8409,10 @@ async function mainReplyKeyboard(chatId) {
   const keyboard = rows.map((row) => row.map((text) => ({ text })));
   // Кнопка мини-приложения (Telegram Web App). Telegram принимает только
   // https-адрес, поэтому кнопка появляется, когда известен адрес сайта.
-  const appUrl = miniAppUrl(chatId);
-  if (appUrl) keyboard.splice(1, 0, [{ text: BTN_APP, web_app: { url: appUrl } }]);
+  // Кнопку приложения не вешаем на обычную клавиатуру как web_app: при таком запуске
+  // Telegram не передаёт данные пользователя. Это обычная кнопка — по ней бот
+  // присылает inline-кнопку, которая открывает приложение уже с данными.
+  if (miniAppUrl(chatId)) keyboard.splice(1, 0, [{ text: BTN_APP }]);
   return {
     keyboard,
     resize_keyboard: true,
@@ -11181,6 +11198,7 @@ async function handleMessage(message) {
   if (/^\/viewvocab(@\w+)?\s*/i.test(text)) {
     return handleViewVocab(chatId, text.replace(/^\/viewvocab(@\w+)?\s*/i, ""));
   }
+  if (text === BTN_APP || /^\/app(@\w+)?$/i.test(text)) return handleOpenApp(chatId);
   if (text === "/help") return handleHelp(chatId);
   if (/^\/(guide|instruction|instrauction)(@\w+)?$/i.test(text)) return handleGuide(chatId);
   if (/^\/delete(@\w+)?\s*/i.test(text)) {
