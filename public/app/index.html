@@ -447,12 +447,12 @@
       reminders: { enabled: id.remindersEnabled, everyDays: id.everyDays, hours: id.hours }, league: { optIn: id.leagueOptIn, anon: id.leagueAnon } };
     const league = () => ({ ok: true, weekStart: "2026-11-02", optIn: id.leagueOptIn, anon: id.leagueAnon, rows: [{ place: 1, name: "🦊 Вера", xp: 870 }, { place: 2, name: (id.avatar ? id.avatar + " " : "") + (id.leagueAnon ? "Ученик №412" : "Аня"), xp: 410, me: true }, { place: 3, name: "🐼 Борис", xp: 390 }, { place: 4, name: "Ученик №118", xp: 120 }].filter((r) => id.leagueOptIn || !r.me), classGoal: { target: 5000, progress: 3240 } });
     switch (action) {
-      case "me": return Promise.resolve({ ...me, isAdmin: /[?&]teacher=1/.test(location.search) });
+      case "me": return Promise.resolve({ ...me, isAdmin: /[?&]teacher=1/.test(location.search), recallMode: !!demoCourse.recallMode });
       case "vocab": return Promise.resolve(demoVocab());
       case "options": return Promise.resolve({ ok: true, avatars: ["🦊", "🐱", "🐼", "🦁", "🐸", "🦄", "🐧", "🐯", "🦋", "🐙", "🐺", "🦉", "🐨", "🦖", "🚀", "🎓"], hours: [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22], frequencies: [{ days: 1, label: "Каждый день" }, { days: 2, label: "Раз в 2 дня" }, { days: 3, label: "Раз в 3 дня" }, { days: 7, label: "Раз в неделю" }], goals: [10, 20, 30], maxHours: 3 });
       case "league": return Promise.resolve(league());
       case "leagueSet": if (extra.optIn !== undefined) id.leagueOptIn = !!extra.optIn; if (extra.anon !== undefined) id.leagueAnon = !!extra.anon; return Promise.resolve(league());
-      case "settings": Object.assign(id, { remindersEnabled: extra.remindersEnabled ?? id.remindersEnabled, everyDays: extra.everyDays ?? id.everyDays, hours: extra.hours ?? id.hours, goal: extra.goal ?? id.goal, gender: extra.gender === undefined ? id.gender : extra.gender, avatar: extra.avatar === undefined ? id.avatar : extra.avatar }); return Promise.resolve({ ok: true, reminders: { enabled: id.remindersEnabled, everyDays: id.everyDays, hours: id.hours }, goal: id.goal, gender: id.gender, avatar: id.avatar });
+      case "settings": Object.assign(id, { remindersEnabled: extra.remindersEnabled ?? id.remindersEnabled, everyDays: extra.everyDays ?? id.everyDays, hours: extra.hours ?? id.hours, goal: extra.goal ?? id.goal, gender: extra.gender === undefined ? id.gender : extra.gender, avatar: extra.avatar === undefined ? id.avatar : extra.avatar }); if (extra.recallMode !== undefined) demoCourse.recallMode = !!extra.recallMode; return Promise.resolve({ ok: true, reminders: { enabled: id.remindersEnabled, everyDays: id.everyDays, hours: id.hours }, goal: id.goal, gender: id.gender, avatar: id.avatar, recallMode: !!demoCourse.recallMode });
       case "addWords": { const lines = String(extra.text || "").split("\n").map((l) => l.trim()).filter(Boolean); let topic = extra.topic || null; if (lines[0] && lines[0].startsWith("#")) { const n = lines.shift().slice(1).trim(); if (!topic) topic = n; } let added = 0, moved = 0; for (const l of lines) { const m = l.split(/\s+[.\-–—]\s+/); if (m.length < 2) continue; const ex = demoState.words.find((w) => w.en.toLowerCase() === m[0].toLowerCase()); if (ex) { if (topic && ex.topic !== topic) { ex.topic = topic; moved++; } } else { demoState.words.push({ en: m[0], ru: m.slice(1).join(" "), topic, errors: 0, due: true }); added++; } } return Promise.resolve({ ok: true, added, moved, topic, ...demoVocab() }); }
       case "deleteWords": { const set = new Set(extra.ens.map((e) => e.toLowerCase())); const before = demoState.words.length; demoState.words = demoState.words.filter((w) => !set.has(w.en.toLowerCase())); return Promise.resolve({ ok: true, removedCount: before - demoState.words.length, ...demoVocab() }); }
       case "moveWords": { const set = new Set(extra.ens.map((e) => e.toLowerCase())); let moved = 0; for (const w of demoState.words) if (set.has(w.en.toLowerCase())) { w.topic = extra.topic || null; moved++; } return Promise.resolve({ ok: true, moved, ...demoVocab() }); }
@@ -711,6 +711,8 @@
         <div class="muted" style="margin:14px 0 8px">Во сколько (по мск, до ${o.maxHours} раз в день)</div>
         <div class="seg" id="hours">${hours}</div>
       </div>
+      <h2>Как отвечать</h2>
+      <div class="card"><div class="row between"><div style="flex:1;padding-right:12px"><div style="font-size:15px">Вспоминать самой</div><div class="muted" style="margin-top:2px;font-size:13px">В боте вместо вариантов — кнопка «Показать ответ»: сначала вспоминаешь, потом проверяешь себя и отмечаешь «Знал(а)» или «Не знал(а)».</div></div><button class="switch ${state.me && state.me.recallMode ? "on" : ""}" id="acc-recall"></button></div></div>
       <h2>Лига</h2>
       <div class="card"><div class="row between"><div style="font-size:15px">Участвовать в лиге недели</div><button class="switch ${d.league.optIn ? "on" : ""}" id="acc-league"></button></div></div>
       <div class="muted" style="margin-top:16px;line-height:1.5">Все команды бота — /help, подробная инструкция — /guide.</div>
@@ -728,6 +730,7 @@
       else { if (hours.length >= o.maxHours) return toast(`Не больше ${o.maxHours} часов — сними галочку с одного`); hours.push(h); }
       haptic(); save({ remindersEnabled: true, hours });
     }));
+    $("#acc-recall").addEventListener("click", async () => { haptic(); const on = !(state.me && state.me.recallMode); const res = await api("settings", { recallMode: on }); if (res && res.ok) { if (state.me) state.me.recallMode = res.recallMode; toast(res.recallMode ? "Теперь вспоминаешь сама" : "Вернула варианты ответа"); renderAccount(); } else toast("Не сохранилось"); });
     $("#acc-league").addEventListener("click", async () => { haptic(); const res = await api("leagueSet", { optIn: !d.league.optIn }); if (res && res.ok) { d.league.optIn = res.optIn; state.league = res; renderAccount(); } });
   }
 

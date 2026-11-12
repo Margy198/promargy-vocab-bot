@@ -8193,12 +8193,24 @@ function buildQuestion(vocab, wrongMap, prefix, forbiddenEn, seenEnList, recentT
 // sendQuestion (одиночный вызов), и из handleCallback (после совмещённого
 // обновления счёта+истории). История (newSeenEn/newTail) уходит в саму
 // запись pending — см. комментарий у buildQuestion.
+// Режим «вспоминаю сама»: вместо вариантов — одна кнопка «Показать ответ».
+// Нажатие (callback "reveal") открывает верный ответ и две кнопки:
+// «Знал» уходит как ответ на верную позицию, «Не знал» — как a:-1
+// (такой позиции нет, поэтому засчитывается как ошибка). Дальше всё считается
+// обычным путём: статистика, серия, повторения.
+const RECALL_BUTTON = "🔎 Показать ответ";
+function recallKeyboard() { return [[{ text: RECALL_BUTTON, callback_data: "reveal" }]]; }
+function recallAfterKeyboard(correctPos) {
+  return [[{ text: "✅ Знал(а)", callback_data: `a:${correctPos}` }, { text: "❌ Не знал(а)", callback_data: "a:-1" }]];
+}
 async function deliverQuestion(chatId, picked) {
+  const identity = await readIdentity(chatId);
+  const recall = !!(identity && identity.recallMode) && picked.correctPos != null && picked.correctPos >= 0;
   const result = await tg("sendMessage", {
     chat_id: chatId,
     text: picked.text,
     parse_mode: "Markdown",
-    reply_markup: { inline_keyboard: picked.keyboard },
+    reply_markup: { inline_keyboard: recall ? recallKeyboard() : picked.keyboard },
   });
 
   // Запоминаем, к какому конкретно сообщению относится вопрос — если позже
@@ -8379,6 +8391,16 @@ function verifyAppToken(token) {
 // Telegram передаёт данные пользователя (initData) мини-приложению, открытому
 // inline-кнопкой, кнопкой меню, по прямой ссылке или из меню вложений — но НЕ для
 // кнопки обычной клавиатуры. Поэтому приложение открываем inline-кнопкой.
+// /recall — переключает режим «вспоминаю сама» (без вариантов ответа)
+async function handleRecallToggle(chatId) {
+  const updated = await updateIdentity(chatId, (current) => ({ ...current, recallMode: !current.recallMode }));
+  await tg("sendMessage", {
+    chat_id: chatId,
+    text: updated.recallMode
+      ? "🔎 Режим «вспоминаю сама» включён.\n\nТеперь вместо вариантов будет одна кнопка «Показать ответ»: сначала вспоминаешь сама, потом открываешь ответ и отмечаешь «Знал(а)» или «Не знал(а)». Статистика и повторения считаются как обычно.\n\nВернуть варианты — /recall."
+      : "✅ Вернула четыре варианта ответа.\n\nСнова включить режим «вспоминаю сама» — /recall.",
+  });
+}
 async function handleOpenApp(chatId) {
   const url = miniAppUrl(chatId);
   if (!url) {
@@ -8772,6 +8794,7 @@ const GUIDE_TEXT =
   "• Слова, в которых ошибаешься, будут попадаться чаще, пока не ответишь верно 3 раза подряд — тогда бот напишет, что слово побеждено.\n" +
   "• Порядок в «Моём словаре»: сначала слова с последних пяти уроков (по дням, когда их добавили), потом — все остальные вперемешку; когда круг пройден, начинается новый.\n" +
   "• /swap — поменять направление: бот показывает русское слово, а ты выбираешь английское. Ещё раз /swap — обратно.\n" +
+  "• /recall — режим «вспоминаю сама»: вместо вариантов одна кнопка «Показать ответ», сначала вспоминаешь, потом проверяешь себя. Ещё раз /recall — вернуть варианты.\n" +
   "• /blitz — 10 вопросов на время по всему словарю, с рекордом.\n" +
   "\n" +
   "2️⃣ Свои слова\n" +
@@ -8827,6 +8850,7 @@ async function handleHelp(chatId) {
       "/profile — аватар и как к тебе обращаться (девушка / мужчина)\n" +
       "📱 Кнопка «Приложение» внизу — мини-приложение: курс A0–C1 с теорией и упражнениями, «Мои темы» (предложения по твоим интересам), заметки, словарь по папкам, блиц, прогресс и лига\n" +
       "/swap — поменять направление в лексике: бот показывает русское слово, а ты выбираешь английское (и обратно)\n" +
+      "/recall — режим «вспоминаю сама»: вместо вариантов кнопка «Показать ответ» (и обратно)\n" +
       "/delete <English> — удалить слово (можно сразу список, по одному на строку)\n" +
       "/reset — сбросить прогресс\n" +
       "/reminders (или кнопка «🔔 Напоминания») — как часто и во сколько напоминать о практике (каждый день, раз в 2–3 дня, раз в неделю или никогда; до 3 раз в день, время по мск), и цель на день — 10/20/30 слов\n" +
@@ -10109,6 +10133,24 @@ async function handleCallback(callbackQuery) {
     return;
   }
 
+  if (data === "reveal") {
+    // Показываем верный ответ, не засчитывая его: вопрос останется открытым,
+    // пока человек не нажмёт «Знал(а)» или «Не знал(а)».
+    const open = await pendingStore().get(String(chatId), { type: "json" });
+    if (!open || open.consumed || (open.messageId != null && open.messageId !== messageId)) {
+      await log("[callback] reveal: нет открытого вопроса");
+      return;
+    }
+    const answer = open.mode === "vocab" ? `${open.correctEn} — ${open.correctRu}` : open.correctEn;
+    await tg("editMessageText", {
+      chat_id: chatId,
+      message_id: messageId,
+      text: `${(callbackQuery.message && callbackQuery.message.text) || ""}\n\n✅ *${mdEscape(answer)}*${open.explain ? `\n💡 ${mdEscape(open.explain)}` : ""}\n\nВспомнил(а)?`,
+      parse_mode: "Markdown",
+      reply_markup: { inline_keyboard: recallAfterKeyboard(open.correctPos) },
+    });
+    return;
+  }
   if (!data || !data.startsWith("a:")) {
     await log("[callback] unrecognized data, stopping:", data);
     return;
@@ -11207,6 +11249,7 @@ async function handleMessage(message) {
   if (/^\/viewvocab(@\w+)?\s*/i.test(text)) {
     return handleViewVocab(chatId, text.replace(/^\/viewvocab(@\w+)?\s*/i, ""));
   }
+  if (/^\/recall(@\w+)?$/i.test(text)) return handleRecallToggle(chatId);
   if (text === BTN_APP || /^\/app(@\w+)?$/i.test(text)) return handleOpenApp(chatId);
   if (text === "/help") return handleHelp(chatId);
   if (/^\/(guide|instruction|instrauction)(@\w+)?$/i.test(text)) return handleGuide(chatId);
@@ -11899,7 +11942,7 @@ async function handleAppApi(body) {
     switch (body.action) {
       case "me": {
         const challenge = await getBotConfig("challenge");
-        return appJson({ ok: true, ...(await appProfilePayload(chatId, identity)), challenge: challenge || null, isAdmin: await isAdmin(chatId) });
+        return appJson({ ok: true, ...(await appProfilePayload(chatId, identity)), challenge: challenge || null, isAdmin: await isAdmin(chatId), recallMode: !!identity.recallMode });
       }
       case "vocab":
         return appJson({ ok: true, ...(await appVocabPayload(chatId)) });
@@ -11946,6 +11989,7 @@ async function handleAppApi(body) {
           }
           if (body.goal !== undefined && (Number(body.goal) === 0 || DAILY_GOAL_CHOICES.includes(Number(body.goal)))) next.dailyGoal = Number(body.goal);
           if (body.gender !== undefined) next.gender = body.gender === "f" || body.gender === "m" ? body.gender : null;
+          if (body.recallMode !== undefined) next.recallMode = !!body.recallMode;
           if (body.avatar === null) next.avatar = null;
           else if (typeof body.avatar === "string" && AVATARS.includes(body.avatar)) next.avatar = body.avatar;
           return next;
@@ -11956,6 +12000,7 @@ async function handleAppApi(body) {
           goal: dailyGoalOf(updated),
           gender: updated.gender || null,
           avatar: avatarOf(updated) || null,
+          recallMode: !!updated.recallMode,
         });
       }
       // ----- курс -----
