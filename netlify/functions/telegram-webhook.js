@@ -8409,10 +8409,11 @@ async function mainReplyKeyboard(chatId) {
   const keyboard = rows.map((row) => row.map((text) => ({ text })));
   // Кнопка мини-приложения (Telegram Web App). Telegram принимает только
   // https-адрес, поэтому кнопка появляется, когда известен адрес сайта.
-  // Кнопку приложения не вешаем на обычную клавиатуру как web_app: при таком запуске
-  // Telegram не передаёт данные пользователя. Это обычная кнопка — по ней бот
-  // присылает inline-кнопку, которая открывает приложение уже с данными.
-  if (miniAppUrl(chatId)) keyboard.splice(1, 0, [{ text: BTN_APP }]);
+  // Кнопка открывает приложение в одно нажатие. При запуске с обычной клавиатуры
+  // Telegram не передаёт данные пользователя — вместо них работает подпись в адресе
+  // (см. appToken). Команда /app присылает inline-кнопку: там данные передаются.
+  const appUrl = miniAppUrl(chatId);
+  if (appUrl) keyboard.splice(1, 0, [{ text: BTN_APP, web_app: { url: appUrl } }]);
   return {
     keyboard,
     resize_keyboard: true,
@@ -8432,6 +8433,12 @@ async function handleStart(chatId) {
       "Подробная инструкция — /guide, список команд — /help.",
     reply_markup: await mainReplyKeyboard(chatId),
   });
+  // Личная кнопка меню у поля ввода: такой запуск передаёт данные пользователя,
+  // плюс в адресе своя подпись. Обновляется при каждом /start, поэтому не устаревает.
+  try {
+    const personalUrl = miniAppUrl(chatId);
+    if (personalUrl) await tg("setChatMenuButton", { chat_id: chatId, menu_button: { type: "web_app", text: "Приложение", web_app: { url: personalUrl } } });
+  } catch (e) { /* не критично */ }
   await handleMode(chatId);
 }
 
@@ -9475,7 +9482,9 @@ async function handleAppButton(chatId) {
     await tg("sendMessage", { chat_id: chatId, text: "Эта команда недоступна." });
     return;
   }
-  const url = miniAppUrl(chatId);
+  // ВАЖНО: это общая кнопка меню для всех чатов, поэтому ссылка без персональной
+  // подписи — иначе любой ученик вошёл бы под тем, кому подпись выдана.
+  const url = miniAppUrl();
   if (!url) {
     await tg("sendMessage", { chat_id: chatId, text: "Не знаю адрес сайта (нет переменной URL/MINI_APP_URL в Netlify) — кнопку поставить не могу." });
     return;
@@ -11239,7 +11248,7 @@ async function claimUpdateOnce(updateId) {
 // ... }. initData — строка от Telegram с подписью (hash) на токене бота:
 // проверяем подпись и свежесть, из неё берём user.id. Отдельной авторизации
 // нет: доступ тот же, что и в чате (approved / phrasesAccess).
-const MINI_APP_INITDATA_MAX_AGE_S = 24 * 60 * 60;
+const MINI_APP_INITDATA_MAX_AGE_S = 30 * 24 * 60 * 60; // Telegram отдаёт auth_date начала сессии: на десктопе он бывает многодневной давности
 
 function verifyInitData(initData) {
   if (!initData || typeof initData !== "string" || !TOKEN) return null;

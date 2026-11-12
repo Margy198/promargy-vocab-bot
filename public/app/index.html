@@ -640,6 +640,7 @@
     const l = state.league; const root = $("#league-box");
     if (!root) return;
     if (!l) { root.innerHTML = `<div class="notice">Загружаю лигу…</div>`; return; }
+    if (!Array.isArray(l.rows) || !l.weekStart) { root.innerHTML = `<div class="notice">Лига пока недоступна.</div>`; return; }
     const medals = ["🥇", "🥈", "🥉"];
     const rows = l.rows.length ? l.rows.map((r) => `<div class="lrow ${r.me ? "me" : ""}"><div class="pl">${medals[r.place - 1] || r.place}</div><div class="nm">${esc(r.name)}${r.me ? ' <span class="muted">← ты</span>' : ""}</div><div class="xp">${r.xp} XP</div></div>`).join("") : `<div class="notice">В лиге пока никого — будь ${gend("первым", "первой")}!</div>`;
     const goal = l.classGoal ? `<div class="card cream" style="margin-top:16px"><div class="row between"><div><div style="font-size:15px">🎯 Общая цель класса</div><div class="muted" style="margin-top:2px">${l.classGoal.progress} из ${l.classGoal.target} ответов за неделю</div></div><div class="big" style="font-size:26px">${Math.min(100, Math.round((l.classGoal.progress / l.classGoal.target) * 100))}%</div></div><div class="bar" style="margin-top:12px;background:var(--chip-bg)"><i style="width:${Math.min(100, Math.round((l.classGoal.progress / l.classGoal.target) * 100))}%"></i></div></div>` : "";
@@ -1657,8 +1658,8 @@
     if (!d || !d.ok) {
       if (startedFromCache && (!d || d.error === "network" || String(d.error || "").startsWith("http_"))) { state.offline = true; toast("Нет связи — работаем из сохранённой копии"); return; }
       if (d && d.error === "no_access") fail("У тебя пока нет доступа к тренажёру. Напиши преподавателю — она откроет.");
-      else if (d && d.error === "auth") { try { localStorage.removeItem("__appToken"); } catch (e) {} fail("Не удалось подтвердить, что это ты. Закрой приложение и открой его снова из бота — кнопкой «Тренажёр» или через меню."); }
-      else fail("Что-то пошло не так. Попробуй открыть приложение ещё раз.");
+      else if (d && d.error === "auth") { try { localStorage.removeItem("__appToken"); } catch (e) {} fail(`Не удалось подтвердить, что это ты. Напиши боту /app и открой приложение кнопкой из его ответа. (${tgDiag()})`); }
+      else fail(`Что-то пошло не так: ${(d && d.error) || "нет ответа"}${d && d.detail ? " — " + String(d.detail).slice(0, 80) : ""}. (${tgDiag()})`);
       if (startedFromCache) { try { localStorage.removeItem(ck("me")); } catch (e) {} showPage("progress"); }
       return;
     }
