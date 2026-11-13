@@ -114,7 +114,10 @@
     --on-pastel: #2e2e2e; --chip-bg: rgba(255, 255, 255, 0.75); --soft: #eef9f8; --soft-fg: #0f8f8a; --callout: #f3f3f6; --ok-bg: #e9f6e5; --ok-fg: #2f6b22; --ok-line: #8fcf7f; --bad-bg: #ffe1ec; --bad-fg: #8f3d64; --bad-line: #ff9ec4;
     --tag-started-bg: #e3fbfa; --tag-started-fg: #0f8f8a; --tag-done-bg: #e9f6e5; --tag-done-fg: #4e8a3f; --tag-locked-bg: #f0edf2; --tag-locked-fg: #8a8a92; --switch-off: rgba(61,53,66,.15); --tabbar-bg: rgba(255, 255, 255, 0.92); --sheet-dim: rgba(61,53,66,.25); --toast-bg: #3d3542; --toast-fg: #fff;
   }
-  /* Тёмная тема — включается по настройке Telegram (colorScheme) */
+  /* Акцентный цвет по выбору ученика: розовый или синий (по умолчанию — бирюзовый) */
+  :root[data-accent="pink"] { --accent: #c43c80; --accent-strong: #e0569c; --accent-light: #ff8cc6; --accent-soft: rgba(255, 160, 205, 0.35); --glow: rgba(255, 120, 190, 0.35); --g-accent: linear-gradient(135deg, #ffb3d9 0%, #ff7ab8 100%); --g-aqua: linear-gradient(120deg, #ffd9ec 0%, #efe3ff 100%); --soft: #fdf0f6; --soft-fg: #a8336c; }
+  :root[data-accent="blue"] { --accent: #2f6fd6; --accent-strong: #3f86f0; --accent-light: #7fb2ff; --accent-soft: rgba(140, 185, 255, 0.35); --glow: rgba(90, 150, 255, 0.35); --g-accent: linear-gradient(135deg, #a9cbff 0%, #5c9bff 100%); --g-aqua: linear-gradient(120deg, #d6e6ff 0%, #e3e1fb 100%); --soft: #eef4ff; --soft-fg: #2a5fb8; }
+  /* Темная тема — включается по настройке Telegram (colorScheme) или вручную в «Аккаунте» */
   :root[data-theme="dark"] {
     --bg: #141318; --card: #1f1d25; --text: #ececf0; --text-2: #e9e5ee; --muted: #9a97a3; --line: #2d2b35;
     --accent: #2fd8d0; --accent-soft: rgba(47, 216, 208, 0.18); --glow: rgba(47, 216, 208, 0.35); --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
@@ -191,6 +194,11 @@
   .plink { display: block; width: 100%; text-align: left; margin-top: 8px; padding: 8px 10px; border-radius: 10px; border: none; background: var(--soft); color: var(--text); font: inherit; font-size: 14px; cursor: pointer; }
   .pchip { font: inherit; font-size: 13px; padding: 7px 12px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--card); color: var(--text-2); cursor: pointer; }
   .pchip.on { background: var(--ok-bg); border-color: var(--ok-line); color: var(--ok-fg); }
+  :root[data-theme="dark"][data-accent="pink"] { --accent: #ff8cc6; --accent-soft: rgba(255, 140, 198, 0.18); --glow: rgba(255, 140, 198, 0.3); --g-aqua: linear-gradient(120deg, #4a2a40 0%, #2a2d4f 100%); --soft: #2b1f27; --soft-fg: #ff9fcf; }
+  :root[data-theme="dark"][data-accent="blue"] { --accent: #7fb2ff; --accent-soft: rgba(127, 178, 255, 0.18); --glow: rgba(127, 178, 255, 0.3); --g-aqua: linear-gradient(120deg, #1f3256 0%, #2a2d4f 100%); --soft: #1d2433; --soft-fg: #9cc2ff; }
+  .wod { margin-bottom: 14px; } .wod .w { font-size: 20px; font-weight: 600; } .wod .tr { color: var(--muted); margin-top: 2px; } .wod .ex { margin-top: 8px; font-size: 14px; color: var(--text-2); }
+  .wod .say { border: none; background: var(--accent-soft); border-radius: 50%; width: 38px; height: 38px; font-size: 18px; cursor: pointer; }
+  .cheer { text-align: center; margin-top: 14px; } .cheer .pic { font-size: 54px; line-height: 1.1; } .cheer .ph { margin-top: 8px; font-size: 16px; }
   .seg button { font: inherit; font-size: 13px; padding: 8px 12px; border-radius: 10px; border: 1.5px solid var(--accent-soft); background: var(--card); color: var(--text-2); cursor: pointer; }
   .seg button.on { background: var(--g-accent); border-color: transparent; box-shadow: 0 4px 14px var(--glow); }
   .avatars { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
@@ -347,7 +355,12 @@
   function applyTheme() {
     let scheme = tg && tg.colorScheme ? tg.colorScheme : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
     try { const q = new URLSearchParams(location.search).get("theme"); if (q === "dark" || q === "light") scheme = q; } catch (e) {}
+    // выбор в «Аккаунте» хранится на этом устройстве: auto / light / dark и акцент pink / blue
+    let accent = "";
+    try { const m = JSON.parse(localStorage.getItem("app:theme") || "null"); if (m === "dark" || m === "light") scheme = m; accent = JSON.parse(localStorage.getItem("app:accent") || "null") || ""; } catch (e) {}
+    try { const qa = new URLSearchParams(location.search).get("accent"); if (qa === "pink" || qa === "blue") accent = qa; } catch (e) {}
     document.documentElement.dataset.theme = scheme;
+    if (accent === "pink" || accent === "blue") document.documentElement.dataset.accent = accent; else delete document.documentElement.dataset.accent;
     const bg = scheme === "dark" ? "#141318" : "#fbfbfb";
     if (tg) { try { tg.setHeaderColor(bg); tg.setBackgroundColor(bg); if (tg.setBottomBarColor) tg.setBottomBarColor(scheme === "dark" ? "#1f1d25" : "#ffffff"); } catch (e) {} }
   }
@@ -362,6 +375,10 @@
   const GRADS = ["aqua", "lavender", "pink", "cream"];
   const state = { me: null, vocab: null, league: null, options: null, folder: null, selected: new Set(), query: "", gender: null, course: null, slang: null, notes: null, study: { view: "home" }, topic: null, topicProgress: null, topicNotes: [] };
   const gend = (m, f) => state.gender === "f" ? f : state.gender === "m" ? m : m + "(" + f.slice(m.length) + ")";
+  // Настройки из идей Маргариты: на «ты» или на «вы», имя для обращения, подбадривания, слово дня
+  const pref = (k, def) => { const u = state.me && state.me.user; return u && u[k] !== undefined ? u[k] : def; };
+  const tv = (ty, vy) => (pref("formal", false) ? vy : ty);
+  const callNameOf = (u) => (!u ? "" : u.callName === null || u.callName === undefined ? u.firstName || "" : u.callName);
 
   function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 1800); }
   function haptic(kind) { try { tg && tg.HapticFeedback && tg.HapticFeedback.impactOccurred(kind || "light"); } catch (e) {} }
@@ -384,7 +401,7 @@
   // ---------- Демо-данные (только вне Telegram) ----------
   const demoState = {
     words: [["reliable", "надёжный", "школа"], ["consistent", "последовательный", "школа"], ["reluctant", "неохотный", null], ["stave off", "предотвращать", null], ["endure", "терпеть; выдерживать", null], ["keep up", "не отставать", "работа"], ["take over", "захватывать", "работа"], ["vanish", "исчезать", null], ["precaution", "мера предосторожности", "школа"], ["threaten", "угрожать", null], ["ciao", "привет", "итальянский"], ["grazie", "спасибо", "итальянский"]].map(([en, ru, topic]) => ({ en, ru, topic, errors: en === "reluctant" ? 4 : en === "stave off" ? 3 : 0, due: ["reliable", "endure", "ciao"].includes(en) })),
-    identity: { leagueOptIn: true, leagueAnon: false, remindersEnabled: true, everyDays: 1, hours: [10, 20], goal: 20, gender: "f", avatar: "🦄" },
+    identity: { leagueOptIn: true, leagueAnon: false, remindersEnabled: true, everyDays: 1, hours: [10, 20], goal: 20, gender: "f", avatar: "🦄", formal: false, callName: null, cheers: null, wordOfDay: true },
   };
   function demoVocab() {
     const counts = {}; for (const w of demoState.words) { const k = w.topic || "__general__"; counts[k] = (counts[k] || 0) + 1; }
@@ -459,7 +476,7 @@
     const today = new Date(); const days = [];
     for (let i = 13; i >= 0; i--) { const d = new Date(today.getTime() - i * 864e5); days.push({ date: d.toISOString().slice(0, 10), answers: [12, 20, 0, 15, 24, 18, 9, 30, 22, 0, 16, 25, 19, 7][13 - i] }); }
     const id = demoState.identity;
-    const me = { ok: true, user: { firstName: "Аня", avatar: id.avatar, gender: id.gender }, streak: 12, bestStreak: 23, practicedToday: false, freezes: 2, freezesMax: 2, xp: 1240, level: { number: 3, name: "Confident", next: "Advanced", toNext: 260, progress: 0.65 }, xpToday: 70, xpWeek: 410, goal: id.goal, todayCount: 7, answered: 1480, correct: 1210, vocabCount: demoState.words.length, dueCount: 3, victories: 6, blitzBest: { correct: 8, seconds: 47 }, challenge: { correct: 9, seconds: 45 },
+    const me = { ok: true, user: { firstName: "Аня", avatar: id.avatar, gender: id.gender, formal: !!id.formal, callName: id.callName, cheers: id.cheers, wordOfDay: id.wordOfDay !== false }, streak: 12, bestStreak: 23, practicedToday: false, freezes: 2, freezesMax: 2, xp: 1240, level: { number: 3, name: "Confident", next: "Advanced", toNext: 260, progress: 0.65 }, xpToday: 70, xpWeek: 410, goal: id.goal, todayCount: 7, answered: 1480, correct: 1210, vocabCount: demoState.words.length, dueCount: 3, victories: 6, blitzBest: { correct: 8, seconds: 47 }, challenge: { correct: 9, seconds: 45 },
       quests: [{ title: "Ответить на 15 вопросов", target: 15, progress: 7, done: false }, { title: "5 верных подряд", target: 5, progress: 5, done: true }, { title: "Победить 1 слово из списка ошибок", target: 1, progress: 0, done: false }],
       achievements: [["💯", "Первые 100 слов", "2026-10-02"], ["🚀", "Пятьсот", "2026-10-21"], ["🏔", "Тысяча", null], ["🎯", "Снайпер", "2026-10-11"], ["🔥", "Неделя без пропусков", "2026-10-09"], ["🌟", "Месяц без пропусков", null], ["💎", "Сто дней", null], ["👑", "Год без пропусков", null], ["🏆", "Победитель", "2026-10-30"], ["📁", "Папка пройдена", "2026-10-15"], ["⚡", "Блиц-мастер", null], ["🗓", "Идеальная неделя", null], ["🛡", "Десять побед", null]].map(([emoji, title, date]) => ({ emoji, title, date })),
       wrongTop: [{ en: "reluctant", ru: "неохотный", errors: 4 }, { en: "stave off", ru: "предотвращать", errors: 3 }, { en: "endure", ru: "терпеть; выдерживать", errors: 2 }], days,
@@ -471,7 +488,7 @@
       case "options": return Promise.resolve({ ok: true, avatars: ["🦊", "🐱", "🐼", "🦁", "🐸", "🦄", "🐧", "🐯", "🦋", "🐙", "🐺", "🦉", "🐨", "🦖", "🚀", "🎓"], hours: [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22], frequencies: [{ days: 1, label: "Каждый день" }, { days: 2, label: "Раз в 2 дня" }, { days: 3, label: "Раз в 3 дня" }, { days: 7, label: "Раз в неделю" }], goals: [10, 20, 30], maxHours: 3 });
       case "league": return Promise.resolve(league());
       case "leagueSet": if (extra.optIn !== undefined) id.leagueOptIn = !!extra.optIn; if (extra.anon !== undefined) id.leagueAnon = !!extra.anon; return Promise.resolve(league());
-      case "settings": Object.assign(id, { remindersEnabled: extra.remindersEnabled ?? id.remindersEnabled, everyDays: extra.everyDays ?? id.everyDays, hours: extra.hours ?? id.hours, goal: extra.goal ?? id.goal, gender: extra.gender === undefined ? id.gender : extra.gender, avatar: extra.avatar === undefined ? id.avatar : extra.avatar }); if (extra.recallMode !== undefined) demoCourse.recallMode = !!extra.recallMode; return Promise.resolve({ ok: true, reminders: { enabled: id.remindersEnabled, everyDays: id.everyDays, hours: id.hours }, goal: id.goal, gender: id.gender, avatar: id.avatar, recallMode: !!demoCourse.recallMode });
+      case "settings": Object.assign(id, { remindersEnabled: extra.remindersEnabled ?? id.remindersEnabled, everyDays: extra.everyDays ?? id.everyDays, hours: extra.hours ?? id.hours, goal: extra.goal ?? id.goal, gender: extra.gender === undefined ? id.gender : extra.gender, avatar: extra.avatar === undefined ? id.avatar : extra.avatar }); if (extra.recallMode !== undefined) demoCourse.recallMode = !!extra.recallMode; if (extra.formal !== undefined) id.formal = !!extra.formal; if (extra.callName !== undefined) id.callName = extra.callName === null ? null : String(extra.callName).replace(/[<>&"]/g, "").replace(/\s+/g, " ").trim().slice(0, 15); if (extra.cheers !== undefined) id.cheers = extra.cheers === null ? null : !!extra.cheers; if (extra.wordOfDay !== undefined) id.wordOfDay = !!extra.wordOfDay; return Promise.resolve({ ok: true, reminders: { enabled: id.remindersEnabled, everyDays: id.everyDays, hours: id.hours }, goal: id.goal, gender: id.gender, avatar: id.avatar, recallMode: !!demoCourse.recallMode, formal: !!id.formal, callName: id.callName, cheers: id.cheers, wordOfDay: id.wordOfDay !== false });
       case "addWords": { const lines = String(extra.text || "").split("\n").map((l) => l.trim()).filter(Boolean); let topic = extra.topic || null; if (lines[0] && lines[0].startsWith("#")) { const n = lines.shift().slice(1).trim(); if (!topic) topic = n; } let added = 0, moved = 0; for (const l of lines) { const m = l.split(/\s+[.\-–—]\s+/); if (m.length < 2) continue; const ex = demoState.words.find((w) => w.en.toLowerCase() === m[0].toLowerCase()); if (ex) { if (topic && ex.topic !== topic) { ex.topic = topic; moved++; } } else { demoState.words.push({ en: m[0], ru: m.slice(1).join(" "), topic, errors: 0, due: true }); added++; } } return Promise.resolve({ ok: true, added, moved, topic, ...demoVocab() }); }
       case "deleteWords": { const set = new Set(extra.ens.map((e) => e.toLowerCase())); const before = demoState.words.length; demoState.words = demoState.words.filter((w) => !set.has(w.en.toLowerCase())); return Promise.resolve({ ok: true, removedCount: before - demoState.words.length, ...demoVocab() }); }
       case "moveWords": { const set = new Set(extra.ens.map((e) => e.toLowerCase())); let moved = 0; for (const w of demoState.words) if (set.has(w.en.toLowerCase())) { w.topic = extra.topic || null; moved++; } return Promise.resolve({ ok: true, moved, ...demoVocab() }); }
@@ -480,8 +497,76 @@
     }
   }
 
+  // ---------- Слово дня (идея Маргариты): одно полезное слово, можно послушать и выключить ----------
+  const WORDS_OF_DAY = [
+    ["reliable", "надежный", "She's a reliable friend — she always keeps her promises."],
+    ["to postpone", "откладывать (на потом)", "We had to postpone the meeting until Friday."],
+    ["awkward", "неловкий", "There was an awkward silence after his joke."],
+    ["to figure out", "разобраться, понять", "I can't figure out how this app works."],
+    ["eventually", "в конце концов", "Eventually, we found the right hotel."],
+    ["to afford", "позволить себе (по деньгам)", "We can't afford a new car this year."],
+    ["handy", "удобный, полезный", "This little bag is really handy for trips."],
+    ["to run out of", "закончиться (о запасах)", "We've run out of milk — can you buy some?"],
+    ["actually", "на самом деле", "Actually, I've never been to London."],
+    ["to make sure", "убедиться", "Make sure you lock the door."],
+    ["crowded", "переполненный (людьми)", "The metro is always crowded in the morning."],
+    ["to get used to", "привыкнуть к", "I can't get used to getting up so early."],
+    ["obviously", "очевидно, конечно", "Obviously, she was upset."],
+    ["to look forward to", "ждать с нетерпением", "I'm looking forward to the weekend."],
+    ["exhausted", "измотанный", "After the flight I was completely exhausted."],
+    ["to deal with", "справляться с, разбираться с", "I'll deal with this problem tomorrow."],
+    ["worth", "стоящий (того)", "The museum is definitely worth a visit."],
+    ["to keep in touch", "оставаться на связи", "Let's keep in touch after the course."],
+    ["recently", "недавно", "I've recently started learning Spanish."],
+    ["to complain", "жаловаться", "He always complains about the weather."],
+    ["genuine", "искренний, настоящий", "She showed genuine interest in my work."],
+    ["to turn down", "отказаться, отклонить", "She turned down the job offer."],
+    ["available", "доступный, свободный", "Are you available on Monday afternoon?"],
+    ["to come up with", "придумать", "We need to come up with a better plan."],
+    ["confident", "уверенный", "Practice makes you more confident."],
+    ["to rely on", "полагаться на", "You can always rely on me."],
+    ["convenient", "удобный (по времени, месту)", "Is ten o'clock convenient for you?"],
+    ["to cancel", "отменить", "The flight was cancelled because of the fog."],
+    ["anyway", "в любом случае; ну ладно", "It was raining, but we went out anyway."],
+    ["to find out", "узнать, выяснить", "I need to find out when the shop opens."],
+    ["to share", "делиться", "Can you share the photos with me?"],
+    ["proud", "гордый", "I'm proud of my progress in English."],
+    ["to improve", "улучшать(ся)", "My English has improved a lot this year."],
+    ["especially", "особенно", "I love fruit, especially mangoes."],
+    ["to mention", "упоминать", "Did she mention the party?"],
+    ["brave", "смелый", "It was brave of you to speak first."],
+    ["to manage to", "суметь, справиться", "I managed to finish the report on time."],
+    ["upset", "расстроенный", "He was upset because he missed the train."],
+    ["to borrow", "брать взаймы", "Can I borrow your pen for a second?"],
+    ["to lend", "давать взаймы", "Could you lend me your umbrella?"],
+  ];
+  function wordOfDay() { const d = new Date(); const i = (d.getFullYear() * 372 + d.getMonth() * 31 + d.getDate()) % WORDS_OF_DAY.length; return WORDS_OF_DAY[i]; }
+  const canSpeak = () => { try { return !!(window.speechSynthesis && window.SpeechSynthesisUtterance); } catch (e) { return false; } };
+  function sayEnglish(text) {
+    try { const u = new SpeechSynthesisUtterance(text.replace(/^to /, "")); u.lang = "en-GB"; u.rate = 0.9; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); } catch (e) { toast("Озвучка недоступна на этом телефоне"); }
+  }
+  function decorateProgress(d) {
+    const page = $("#page-progress"); if (!page) return;
+    // приветствие: имя для обращения из настроек и «Здравствуйте» на «вы»
+    const h1 = page.querySelector("h1");
+    if (h1) { const nm = callNameOf(d.user); h1.innerHTML = `${d.user.avatar ? `${esc(d.user.avatar)} ` : ""}${tv("Привет", "Здравствуйте")}${nm ? `, ${esc(nm)}` : ""}`; }
+    if (d.user.wordOfDay === false) return;
+    const [w, tr, ex] = wordOfDay();
+    const head = page.firstElementChild;
+    const html = `<div class="card aqua wod" id="wod"><div class="row between"><div class="muted" style="color:var(--text-2);opacity:.7">Слово дня</div><button class="btn small" id="wod-mute" style="width:auto;padding:4px 10px;background:transparent;font-size:13px">Скрыть</button></div>
+      <div class="row between" style="margin-top:4px"><div><div class="w">${esc(w)}</div><div class="tr">${esc(tr)}</div></div>${canSpeak() ? `<button class="say" id="wod-say" title="Послушать">🔊</button>` : ""}</div>
+      <div class="ex"><i>${esc(ex)}</i></div></div>`;
+    if (head) head.insertAdjacentHTML("afterend", html); else page.insertAdjacentHTML("afterbegin", html);
+    const sy = $("#wod-say"); if (sy) sy.addEventListener("click", () => { haptic(); sayEnglish(w); });
+    $("#wod-mute").addEventListener("click", async () => {
+      haptic(); const res = await api("settings", { wordOfDay: false });
+      if (res && res.ok) { d.user.wordOfDay = false; const c = $("#wod"); if (c) c.remove(); toast("Слово дня скрыто. Вернуть — в «Аккаунте»."); }
+    });
+  }
+
   // ---------- Прогресс ----------
-  function renderProgress(d) {
+  function renderProgress(d) { renderProgressBase(d); try { decorateProgress(d); } catch (e) {} }
+  function renderProgressBase(d) {
     const name = d.user.firstName ? `, ${esc(d.user.firstName)}` : "";
     const avatar = d.user.avatar ? `${esc(d.user.avatar)} ` : "";
     const freezes = "🧊".repeat(d.freezes) + "<span style=\"opacity:.25\">" + "🧊".repeat(Math.max(0, d.freezesMax - d.freezes)) + "</span>";
@@ -720,6 +805,17 @@
       <div style="margin-top:8px"><button class="btn small" id="av-none">Без аватара</button></div>
       <h2>Как обращаться</h2>
       <div class="seg" id="gender"><button data-g="f" class="${d.user.gender === "f" ? "on" : ""}">Я девушка</button><button data-g="m" class="${d.user.gender === "m" ? "on" : ""}">Я мужчина</button><button data-g="" class="${!d.user.gender ? "on" : ""}">Не указывать</button></div>
+      <div class="seg" id="formal" style="margin-top:8px"><button data-f="0" class="${!d.user.formal ? "on" : ""}">На «ты»</button><button data-f="1" class="${d.user.formal ? "on" : ""}">На «вы»</button></div>
+      <div class="muted" style="margin:12px 0 6px">Имя в приложении (до 15 символов)</div>
+      <div class="row" style="gap:8px"><input class="tl-input" id="callname" maxlength="15" style="flex:1;margin:0" placeholder="${esc(d.user.firstName || "Имя")}" value="${esc(d.user.callName === null || d.user.callName === undefined ? "" : d.user.callName)}"><button class="btn small" id="callname-save" style="width:auto">Сохранить</button></div>
+      <div class="seg" id="callmode" style="margin-top:8px"><button data-cm="tg" class="${d.user.callName === null || d.user.callName === undefined ? "on" : ""}">Имя из Telegram</button><button data-cm="none" class="${d.user.callName === "" ? "on" : ""}">Без имени</button></div>
+      <h2>Оформление</h2>
+      <div class="seg" id="theme-mode">${[["auto", "Как в Telegram"], ["light", "Светлая"], ["dark", "Темная"]].map(([k, l]) => `<button data-tm="${k}" class="${(lsGet("app:theme", "auto") || "auto") === k ? "on" : ""}">${l}</button>`).join("")}</div>
+      <div class="seg" id="accent" style="margin-top:8px">${[["", "Бирюзовая"], ["pink", "Розовая"], ["blue", "Синяя"]].map(([k, l]) => `<button data-ac="${k}" class="${(lsGet("app:accent", "") || "") === k ? "on" : ""}">${l}</button>`).join("")}</div>
+      <div class="muted" style="margin-top:6px;font-size:13px">Оформление запоминается на этом телефоне.</div>
+      <h2>Подбадривания</h2>
+      <div class="card"><div class="row between"><div style="flex:1;padding-right:12px"><div style="font-size:15px">Картинка после упражнения</div><div class="muted" style="margin-top:2px;font-size:13px">«Молодец» и смешная картинка в конце упражнения и тренировки</div></div><button class="switch ${d.user.cheers !== false ? "on" : ""}" id="acc-cheers"></button></div>
+        <div class="row between" style="margin-top:14px"><div style="flex:1;padding-right:12px"><div style="font-size:15px">Слово дня</div><div class="muted" style="margin-top:2px;font-size:13px">одно полезное слово на главном экране</div></div><button class="switch ${d.user.wordOfDay !== false ? "on" : ""}" id="acc-wod"></button></div></div>
       <h2>Цель на день</h2>
       <div class="seg" id="goal">${o.goals.map((g) => `<button data-goal="${g}" class="${d.goal === g ? "on" : ""}">${g} слов</button>`).join("")}<button data-goal="0" class="${!d.goal ? "on" : ""}">без цели</button></div>
       <h2>Напоминания</h2>
@@ -736,11 +832,20 @@
       <div class="card"><div class="row between"><div style="font-size:15px">Участвовать в лиге недели</div><button class="switch ${d.league.optIn ? "on" : ""}" id="acc-league"></button></div></div>
       <div class="muted" style="margin-top:16px;line-height:1.5">Все команды бота — /help, подробная инструкция — /guide.</div>
       <div style="height:20px"></div>`;
-    const save = async (patch, msg) => { const res = await api("settings", patch); if (res && res.ok) { d.reminders = res.reminders; d.goal = res.goal; d.user.gender = res.gender; d.user.avatar = res.avatar; state.gender = res.gender; toast(msg || "Сохранено"); renderAccount(); } else toast("Не сохранилось"); };
+    const save = async (patch, msg) => { const res = await api("settings", patch); if (res && res.ok) { d.reminders = res.reminders; d.goal = res.goal; d.user.gender = res.gender; d.user.avatar = res.avatar; ["formal", "callName", "cheers", "wordOfDay"].forEach((k) => { if (res[k] !== undefined) d.user[k] = res[k]; }); state.gender = res.gender; toast(msg || "Сохранено"); renderAccount(); } else toast("Не сохранилось"); };
     root.querySelectorAll("#avatars button").forEach((b) => b.addEventListener("click", () => { haptic(); save({ avatar: b.dataset.av }); }));
     $("#av-none").addEventListener("click", () => save({ avatar: null }));
     root.querySelectorAll("#gender button").forEach((b) => b.addEventListener("click", () => { haptic(); save({ gender: b.dataset.g || null }); }));
     root.querySelectorAll("#goal button").forEach((b) => b.addEventListener("click", () => { haptic(); save({ goal: Number(b.dataset.goal) }); }));
+    root.querySelectorAll("#formal button").forEach((b) => b.addEventListener("click", () => { haptic(); save({ formal: b.dataset.f === "1" }, b.dataset.f === "1" ? "Будем на «вы»" : "Будем на «ты»"); }));
+    const cnSave = () => { const v = $("#callname").value.replace(/\s+/g, " ").trim().slice(0, 15); if (!v) return toast("Напиши имя или выбери вариант ниже"); haptic(); save({ callName: v }, "Имя сохранено"); };
+    $("#callname-save").addEventListener("click", cnSave);
+    $("#callname").addEventListener("keydown", (ev) => { if (ev.key === "Enter") { ev.preventDefault(); cnSave(); } });
+    root.querySelectorAll("#callmode button").forEach((b) => b.addEventListener("click", () => { haptic(); save({ callName: b.dataset.cm === "none" ? "" : null }); }));
+    root.querySelectorAll("#theme-mode button").forEach((b) => b.addEventListener("click", () => { haptic(); lsSet("app:theme", b.dataset.tm === "auto" ? null : b.dataset.tm); applyTheme(); renderAccount(); }));
+    root.querySelectorAll("#accent button").forEach((b) => b.addEventListener("click", () => { haptic(); lsSet("app:accent", b.dataset.ac || null); applyTheme(); renderAccount(); }));
+    $("#acc-cheers").addEventListener("click", () => { haptic(); save({ cheers: d.user.cheers === false }); });
+    $("#acc-wod").addEventListener("click", () => { haptic(); save({ wordOfDay: d.user.wordOfDay === false }); });
     $("#rem-on").addEventListener("click", () => { haptic(); save({ remindersEnabled: !r.enabled }); });
     root.querySelectorAll("#freq button").forEach((b) => b.addEventListener("click", () => { haptic(); save({ remindersEnabled: true, everyDays: Number(b.dataset.days) }); }));
     root.querySelectorAll("#hours button").forEach((b) => b.addEventListener("click", () => {
@@ -1259,8 +1364,11 @@
     const t = state.topic; if (!t || t.id !== state.study.id) return openTopic(state.study.id);
     const lessons = lessonsOf(t); const i = state.study.i; const l = lessons[i]; if (!l) return go("topic", { id: t.id });
     markRead(t.id, l);
-    root.innerHTML = `${lessonHeader(t, l, i, lessons.length)}<h2 style="margin-top:4px">${l.icon} ${esc(l.title)}</h2><div class="card content">${lessonHtml(t, l)}</div>${navButtons(i, lessons.length)}<div style="height:16px"></div>`;
+    const rt = state.returnTo && state.returnTo.id === t.id ? state.returnTo : null;
+    const backBtn = rt ? `<div style="margin-top:12px"><button class="btn primary" id="rt-back">↩ Вернуться к заданиям</button></div>` : "";
+    root.innerHTML = `${lessonHeader(t, l, i, lessons.length)}<h2 style="margin-top:4px">${l.icon} ${esc(l.title)}</h2><div class="card content">${lessonHtml(t, l)}</div>${backBtn}${navButtons(i, lessons.length)}<div style="height:16px"></div>`;
     bindNav(i, lessons.length);
+    if (rt) $("#rt-back").addEventListener("click", () => { haptic(); state.returnTo = null; state.study = rt; renderStudy(); window.scrollTo(0, 0); });
     root.querySelectorAll(".content a").forEach((a) => a.addEventListener("click", (e) => { if (tg && tg.openLink) { e.preventDefault(); tg.openLink(a.href); } }));
   }
   // Упражнения — по одному заданию на экран (как в приложении, а не списком)
@@ -1517,7 +1625,7 @@
     }
     let body = "";
     if (d.type === "type") {
-      body = `<input class="tl-input" id="dr-input" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Твой ответ" value="${esc(st.typed)}" ${st.checked ? "disabled" : ""}>
+      body = `<input class="tl-input" id="dr-input" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="${tv("Твой ответ", "Ваш ответ")}" value="${esc(st.typed)}" ${st.checked ? "disabled" : ""}>
         ${!st.checked ? `<div class="navbtns"><button class="btn" id="dr-giveup">Не знаю</button><button class="btn primary" id="dr-tcheck">Проверить</button></div>` : ""}`;
     } else if (d.type === "choice") {
       const order = shuffled(d.options.map((_, k) => k), seedOf(d.id));
@@ -1564,6 +1672,46 @@
     const own = root.querySelector("#dr-own"); if (own) own.addEventListener("click", () => { haptic("medium"); onDone(true); });
     const nx = root.querySelector("#dr-next"); if (nx) nx.addEventListener("click", () => { haptic(); onDone(!!st.result); });
   }
+  // ---------- 5 ошибок подряд → назад к теории (идея Маргариты) ----------
+  const WRONG_RUN_LIMIT = 5;
+  function trackWrongRun(st, ok) { st.wrongRun = ok ? 0 : (st.wrongRun || 0) + 1; if (st.wrongRun >= WRONG_RUN_LIMIT) { st.wrongRun = 0; st.theoryPrompt = true; } }
+  function renderTheoryPrompt(root, head) {
+    const t = state.topic; const lessons = lessonsOf(t); let i = lessons.findIndex((l) => l.kind === "theory"); if (i < 0) i = 0;
+    root.innerHTML = `${head}<div class="card lavender" style="margin-top:14px;text-align:center"><div style="font-size:44px">📖</div>
+      <div style="font-size:17px;margin-top:6px">${WRONG_RUN_LIMIT} ошибок подряд</div>
+      <div class="muted" style="margin-top:6px;color:var(--text-2);opacity:.8">${tv("Давай вернемся к теории: так быстрее, чем угадывать. Потом продолжишь с того же места.", "Давайте вернемся к теории: так быстрее, чем угадывать. Потом продолжите с того же места.")}</div></div>
+      <div class="navbtns"><button class="btn" id="tp-skip">Пропустить</button><button class="btn primary" id="tp-theory">Открыть теорию</button></div>`;
+    $("#tp-skip").addEventListener("click", () => { haptic(); state.study.theoryPrompt = false; renderStudy(); });
+    $("#tp-theory").addEventListener("click", () => {
+      haptic(); const back = Object.assign({}, state.study, { theoryPrompt: false });
+      state.returnTo = back; openLesson(i);
+    });
+  }
+  // ---------- Подбадривания после упражнения (идея Маргариты): картинка + фраза, можно выключить ----------
+  const CHEERS = {
+    top: [["🏆✨", "Без ошибок! {Ты молодец|Вы молодец}!"], ["🚀", "Чисто! Так держать!"], ["🦸", "Ни одной ошибки — {ты сегодня супергерой|вы сегодня супергерой}."], ["🎯", "В яблочко! Все {верно|верно}."], ["🥇", "Золото! {Ты знаешь эту тему|Вы знаете эту тему}."]],
+    good: [["👏", "Хороший результат! Еще немного — и будет идеально."], ["🌟", "{Ты молодец|Вы молодец}! Почти все верно."], ["💪", "Отлично поработали! Ошибки — это путь."], ["😎", "Уверенно! Осталось чуть-чуть."], ["🍀", "Хорошо идем! {Повтори|Повторите} ошибки — и будет 100%."]],
+    low: [["🐢", "Медленно, но верно — главное не останавливаться."], ["🌱", "Каждая ошибка учит. {Загляни|Загляните} в теорию и попробуй{|те} еще раз."], ["☕", "Сложная тема — нормально. {Сделай|Сделайте} паузу и вернись{|тесь}."], ["🧩", "Пазл складывается не сразу. {Попробуй|Попробуйте} еще раз!"], ["🤗", "Ошибки — доказательство, что {ты пробуешь|вы пробуете}."]],
+  };
+  function cheerText(tpl) { return tpl.replace(/\{([^|}]*)\|([^}]*)\}/g, (m, a, b) => tv(a, b)); }
+  function showCheer(root, score, total, key) {
+    const on = pref("cheers", null); if (on === false || !total) return;
+    const kind = score >= total ? "top" : score >= total * 0.7 ? "good" : "low";
+    const shown = lsGet("app:cheerN", 0) + 1; lsSet("app:cheerN", shown);
+    const list = CHEERS[kind]; const [pic, ph] = list[(shown + String(key).length) % list.length];
+    const ask = on === null ? `<div class="muted" style="margin-top:12px;font-size:14px">${tv("Показывать такие картинки и дальше?", "Показывать такие картинки и дальше?")}</div><div class="navbtns" style="margin-top:8px"><button class="btn" id="ch-no">Нет, не надо</button><button class="btn primary" id="ch-yes">Да, показывать</button></div><div class="muted" style="font-size:12px;margin-top:6px">Это можно поменять в «Аккаунте».</div>` : "";
+    const box = root.querySelector(".card.aqua, .card.cream");
+    const html = `<div class="card pink cheer" id="cheer"><div class="pic">${pic}</div><div class="ph">${esc(cheerText(ph))}</div>${ask}</div>`;
+    if (box) box.insertAdjacentHTML("afterend", html); else root.insertAdjacentHTML("beforeend", html);
+    const ans = async (v) => {
+      haptic(); const res = await api("settings", { cheers: v });
+      if (res && res.ok && state.me && state.me.user) state.me.user.cheers = res.cheers;
+      const c = $("#cheer"); if (c) { if (v) c.querySelectorAll(".muted, .navbtns").forEach((x) => x.remove()); else c.remove(); }
+      toast(v ? "Будем подбадривать" : "Больше не показываю");
+    };
+    const y = $("#ch-yes"); if (y) y.addEventListener("click", () => ans(true));
+    const n = $("#ch-no"); if (n) n.addEventListener("click", () => ans(false));
+  }
   function renderExerciseDrills(root, t, e, list, hdr, exBar, title, total) {
     const st = state.study; const n = list.length;
     if (st.item >= n) {
@@ -1571,13 +1719,15 @@
       root.innerHTML = `${hdr}${exBar}<h2 style="margin-top:0">${esc(title)}</h2><div class="card aqua" style="text-align:center"><div class="big">${st.score}<span style="font-size:20px;color:var(--muted)"> / ${n}</span></div><div style="margin-top:6px">${st.score === n ? "Без ошибок!" : st.score >= n * 0.7 ? "Хорошо!" : "Стоит повторить"}</div></div>
         <div class="navbtns"><button class="btn" id="ex-retry">Ещё раз</button><button class="btn primary" id="ex-next">${st.ex + 1 >= total ? "Готово" : "Следующее упражнение"}</button></div>`;
       $("#ex-retry").addEventListener("click", () => { st.item = 0; st.score = 0; drillReset(st); renderStudy(); });
+      showCheer(root, st.score, n, `${t.id}:${e.n}`);
       return;
     }
+    if (st.theoryPrompt) return renderTheoryPrompt(root, `${hdr}${exBar}`);
     const d = list[st.item]; if (st.dk !== d.id) { drillReset(st); st.dk = d.id; }
     root.innerHTML = `${hdr}${exBar}<h2 style="margin-top:0">${esc(title)}</h2><div class="bar" style="margin:6px 0 12px"><i style="width:${Math.round((st.item / n) * 100)}%"></i></div>
       ${drillHtml(d, st, e, `Задание ${st.item + 1} из ${n}`)}
       <div class="navbtns" style="margin-top:10px"><button class="btn" id="ex-prev" ${st.item === 0 && st.ex === 0 ? "disabled" : ""}>Назад</button><button class="btn" id="ex-skip">Пропустить</button></div><div style="height:16px"></div>`;
-    bindDrill(root, d, st, (ok) => { if (ok) st.score++; st.item++; drillReset(st); renderStudy(); window.scrollTo(0, 0); });
+    bindDrill(root, d, st, (ok) => { if (ok) st.score++; st.item++; trackWrongRun(st, ok); drillReset(st); renderStudy(); window.scrollTo(0, 0); });
     $("#ex-skip").addEventListener("click", () => { st.item++; drillReset(st); renderStudy(); });
   }
   // «Тренировка темы»: 20 заданий вперемешку из всех упражнений; ошибки возвращаются в конец один раз
@@ -1594,8 +1744,10 @@
         <div class="navbtns"><button class="btn" id="tr-topic">К теме</button><button class="btn primary" id="tr-more">Ещё 20</button></div>`;
       $("#tr-topic").addEventListener("click", () => go("topic", { id: t.id }));
       $("#tr-more").addEventListener("click", () => { st.queue = null; renderStudy(); });
+      showCheer(root, st.score, st.firstTotal, `${t.id}:train`);
       return;
     }
+    if (st.theoryPrompt) return renderTheoryPrompt(root, head);
     const d = byId.get(st.queue[st.pos]); const e = t.exercises.find((x) => x.n === d.ex) || {};
     if (st.dk !== d.id) { drillReset(st); st.dk = d.id; }
     const repeat = st.pos >= st.firstTotal;
@@ -1604,7 +1756,7 @@
     bindDrill(root, d, st, (ok) => {
       if (!repeat && ok) st.score++;
       if (!ok && !st.requeued.includes(d.id)) { st.requeued.push(d.id); st.queue.push(d.id); }
-      st.pos++; drillReset(st); renderStudy(); window.scrollTo(0, 0);
+      st.pos++; trackWrongRun(st, ok); drillReset(st); renderStudy(); window.scrollTo(0, 0);
     });
   }
   function renderExercises(root) {

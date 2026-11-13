@@ -11326,6 +11326,20 @@ function appJson(obj, status = 200) {
 
 // Сводка для экрана «Прогресс»: всё, что бот и так показывает в /score,
 // /quests, /achievements, одним объектом.
+// Настройки приложения из идей Маргариты: обращение на «вы», имя для обращения, подбадривания, слово дня
+const CALL_NAME_MAX = 15;
+function cleanCallName(v) {
+  return String(v == null ? "" : v).replace(/[<>&"\u0000-\u001f\u007f]/g, "").replace(/\s+/g, " ").trim().slice(0, CALL_NAME_MAX);
+}
+function appPrefsOf(identity) {
+  return {
+    formal: !!identity.formal,
+    callName: identity.callName === undefined ? null : identity.callName,
+    cheers: identity.cheers === undefined ? null : identity.cheers,
+    wordOfDay: identity.wordOfDay !== false,
+  };
+}
+
 async function appProfilePayload(chatId, identity, nowMs = Date.now()) {
   const [stats, vocab] = await Promise.all([getStats(chatId), getVocab(chatId)]);
   const today = mskNow(nowMs).date;
@@ -11357,6 +11371,7 @@ async function appProfilePayload(chatId, identity, nowMs = Date.now()) {
       username: identity.username || null,
       avatar: avatarOf(identity) || null,
       gender: identity.gender || null,
+      ...appPrefsOf(identity),
     },
     streak: currentDayStreak(stats, nowMs),
     bestStreak: stats.bestDayStreak || 0,
@@ -12047,6 +12062,12 @@ async function handleAppApi(body) {
           if (body.recallMode !== undefined) next.recallMode = !!body.recallMode;
           if (body.avatar === null) next.avatar = null;
           else if (typeof body.avatar === "string" && AVATARS.includes(body.avatar)) next.avatar = body.avatar;
+          // обращение: на «вы» или на «ты»; имя — из Telegram (null), свое до 15 символов или без имени ("")
+          if (body.formal !== undefined) next.formal = !!body.formal;
+          if (body.callName !== undefined) next.callName = body.callName === null ? null : cleanCallName(body.callName);
+          // подбадривающие картинки после заданий: null — еще не спрашивали
+          if (body.cheers !== undefined) next.cheers = body.cheers === null ? null : !!body.cheers;
+          if (body.wordOfDay !== undefined) next.wordOfDay = !!body.wordOfDay;
           return next;
         });
         return appJson({
@@ -12056,6 +12077,7 @@ async function handleAppApi(body) {
           gender: updated.gender || null,
           avatar: avatarOf(updated) || null,
           recallMode: !!updated.recallMode,
+          ...appPrefsOf(updated),
         });
       }
       // ----- курс -----
