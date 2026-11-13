@@ -366,7 +366,7 @@
 </toggle>
 
 <toggle>
-Упражнения 6-8 — раскрой, когда закроешь первые пять
+Упражнения 6-21 — раскрой, когда закроешь первые пять
 
 ### Упражнение 6. Найди и исправь ошибку
 
@@ -484,6 +484,526 @@
 13. <b>hard</b>
 14. <b>gently</b>
 15. <b>politely</b>
+</toggle>
+
+### Упражнение 9. Образуй наречие (2)
+
+Следи за написанием: -y → -ily, -le → -ly, true → truly, full → fully.
+
+1. sad → <code>____</code>
+2. nice → <code>____</code>
+3. loud → <code>____</code>
+4. serious → <code>____</code>
+5. comfortable → <code>____</code>
+6. simple → <code>____</code>
+7. honest → <code>____</code>
+8. real → <code>____</code>
+9. heavy → <code>____</code>
+10. true → <code>____</code>
+11. safe → <code>____</code>
+12. full → <code>____</code>
+13. nervous → <code>____</code>
+14. noisy → <code>____</code>
+15. brave → <code>____</code>
+
+<toggle heading="h3">
+Ответы к упражнению 9
+
+1. <b>sadly</b>
+2. <b>nicely</b>
+3. <b>loudly</b>
+4. <b>seriously</b>
+5. <b>comfortably</b>
+6. <b>simply</b>
+7. <b>honestly</b>
+8. <b>really</b>
+9. <b>heavily</b>
+10. <b>truly</b>
+11. <b>safely</b>
+12. <b>fully</b>
+13. <b>nervously</b>
+14. <b>noisily</b>
+15. <b>bravely</b>
+</toggle>
+
+### Упражнение 10. После связки: прилагательное или наречие?
+
+После look, sound, smell, taste, feel, seem, become, get, stay — прилагательное. Если глагол описывает действие — наречие.
+
+1. This bed feels (comfortable / comfortably).
+2. You sound (sad / sadly). What happened?
+3. He looked at me (sad / sadly).
+4. The plan seems (simple / simply).
+5. Explain it (simple / simply), please.
+6. It's getting (dark / darkly). Let's go home.
+7. She stayed (calm / calmly) during the test.
+8. She answered the question (calm / calmly).
+9. The kitchen smells (nice / nicely).
+10. The children behaved (nice / nicely) at the party.
+11. Your idea sounds (great / greatly).
+12. He became (famous / famously) after the film.
+13. The milk tastes (strange / strangely).
+14. He smiled (strange / strangely) at me.
+15. The baby looked at the dog (curious / curiously).
+
+<toggle heading="h3">
+Ответы к упражнению 10
+
+1. <b>comfortable</b> — feels + прилагательное
+2. <b>sad</b>
+3. <b>sadly</b> — looked at = смотрел, действие
+4. <b>simple</b>
+5. <b>simply</b>
+6. <b>dark</b>
+7. <b>calm</b>
+8. <b>calmly</b>
+9. <b>nice</b>
+10. <b>nicely</b>
+11. <b>great</b>
+12. <b>famous</b>
+13. <b>strange</b>
+14. <b>strangely</b>
+15. <b>curiously</b> — looked at = смотрел
+</toggle>
+
+### Упражнение 11. Good или well?
+
+Good — прилагательное (какой?), well — наречие (как?). Если подходят оба — так и отметь.
+
+1. You speak French very (good / well).
+2. That's a (good / well) idea.
+3. — How are you? — I'm (good / well), thanks.
+4. The cake looks (good / well).
+5. She doesn't sleep (good / well) at night.
+6. He is a (good / well) listener.
+7. Our team played really (good / well) yesterday.
+8. This song sounds (good / well).
+9. My grandma can't hear very (good / well).
+10. Your English is very (good / well).
+11. I don't know him very (good / well).
+12. Everything went (good / well) at the interview.
+13. She writes (good / well) but speaks badly.
+14. These shoes are (good / well) for running.
+15. Well done! You did it (good / well).
+
+<toggle heading="h3">
+Ответы к упражнению 11
+
+1. <b>well</b>
+2. <b>good</b>
+3. <b>оба</b> — I'm well (здоров, нейтрально) и I'm good (разговорное)
+4. <b>good</b> — looks + прилагательное
+5. <b>well</b>
+6. <b>good</b>
+7. <b>well</b>
+8. <b>good</b>
+9. <b>well</b>
+10. <b>good</b>
+11. <b>well</b>
+12. <b>well</b>
+13. <b>well</b>
+14. <b>good</b>
+15. <b>well</b>
+</toggle>
+
+### Упражнение 12. С -ly или без?
+
+Напиши наречие от слова в скобках. Помни: fast, hard, late, early, high, straight не берут -ly.
+
+1. Don't speak so <code>____</code> (fast). I can't understand you.
+2. Please come <code>____</code> (quick). It's important.
+3. My flight leaves <code>____</code> (early) tomorrow.
+4. He spoke <code>____</code> (soft) to the child.
+5. The bus arrived <code>____</code> (late) again.
+6. We worked <code>____</code> (hard) all weekend.
+7. Go <code>____</code> (straight) on and turn left.
+8. The snow fell <code>____</code> (heavy) all night.
+9. I want to leave work <code>____</code> (early) today.
+10. He drove <code>____</code> (slow) in the fog.
+11. The plane flew <code>____</code> (high) above the clouds.
+12. She ran <code>____</code> (fast) to catch the bus.
+13. The kids got up <code>____</code> (late) on Sunday.
+14. Speak <code>____</code> (clear), please.
+15. Breathe <code>____</code> (deep) and relax.
+
+<toggle heading="h3">
+Ответы к упражнению 12
+
+1. <b>fast</b>
+2. <b>quickly</b>
+3. <b>early</b>
+4. <b>softly</b>
+5. <b>late</b>
+6. <b>hard</b>
+7. <b>straight</b>
+8. <b>heavily</b>
+9. <b>early</b>
+10. <b>slowly</b>
+11. <b>high</b>
+12. <b>fast</b>
+13. <b>late</b>
+14. <b>clearly</b>
+15. <b>deeply</b>
+</toggle>
+
+### Упражнение 13. Раскрой скобки: прилагательное или наречие?
+
+Оставь прилагательное или сделай из него наречие.
+
+1. The water is <code>____</code> (cold). Don't swim.
+2. He closed the door <code>____</code> (quiet).
+3. This chair isn't very <code>____</code> (comfortable).
+4. She smiled <code>____</code> (happy).
+5. Your plan sounds <code>____</code> (perfect).
+6. He speaks Italian <code>____</code> (perfect).
+7. The room was <code>____</code> (noisy).
+8. The kids played <code>____</code> (noisy).
+9. I'm not joking. I'm <code>____</code> (serious).
+10. He was <code>____</code> (serious) ill last year.
+11. She looks <code>____</code> (nervous).
+12. He waited <code>____</code> (nervous) outside the office.
+13. The instructions were <code>____</code> (simple).
+14. You can fix it <code>____</code> (easy).
+15. The bread smells <code>____</code> (fresh).
+
+<toggle heading="h3">
+Ответы к упражнению 13
+
+1. <b>cold</b>
+2. <b>quietly</b>
+3. <b>comfortable</b>
+4. <b>happily</b>
+5. <b>perfect</b>
+6. <b>perfectly</b>
+7. <b>noisy</b>
+8. <b>noisily</b>
+9. <b>serious</b>
+10. <b>seriously</b>
+11. <b>nervous</b>
+12. <b>nervously</b>
+13. <b>simple</b>
+14. <b>easily</b>
+15. <b>fresh</b>
+</toggle>
+
+### Упражнение 14. Наречие-комментарий
+
+Выбери наречие по смыслу.
+
+1. I lost my keys, but (luckily / unfortunately) my neighbour had a spare set.
+2. We wanted to go to the beach, but (luckily / unfortunately) it rained.
+3. After three years of study, she (finally / suddenly) got her diploma.
+4. I was reading when (suddenly / finally) the lights went out.
+5. It's very cloudy. It will (probably / actually) rain.
+6. Everybody thinks he's 40, but (actually / probably) he's 55.
+7. I forgot my umbrella, and (luckily / unfortunately) it started to rain.
+8. The car stopped (suddenly / finally) in the middle of the road.
+9. He's not at work today. He's (probably / actually) ill.
+10. (Luckily / Unfortunately), nobody was hurt in the accident.
+11. I thought the shop was closed, but (actually / probably) it was open.
+12. We (finally / suddenly) finished the project after six months.
+13. (Honestly / Probably), I don't like this dress.
+14. (Sadly / Luckily), the old cinema closed last year. Everyone loved it.
+15. I'll (probably / actually) be late — the traffic is bad.
+
+<toggle heading="h3">
+Ответы к упражнению 14
+
+1. <b>luckily</b>
+2. <b>unfortunately</b>
+3. <b>finally</b>
+4. <b>suddenly</b>
+5. <b>probably</b>
+6. <b>actually</b>
+7. <b>unfortunately</b>
+8. <b>suddenly</b>
+9. <b>probably</b>
+10. <b>Luckily</b>
+11. <b>actually</b>
+12. <b>finally</b>
+13. <b>Honestly</b>
+14. <b>Sadly</b>
+15. <b>probably</b>
+</toggle>
+
+### Упражнение 15. Собери предложение
+
+Расставь слова. Наречие образа действия обычно стоит после глагола и дополнения.
+
+1. (speaks / she / quietly / always) → <code>____</code>
+2. (carefully / the letter / read / he) → <code>____</code>
+3. (well / plays / my brother / the guitar) → <code>____</code>
+4. (badly / slept / I / last night) → <code>____</code>
+5. (the kids / happily / in the park / played) → <code>____</code>
+6. (very / she / fast / types) → <code>____</code>
+7. (suddenly / the door / opened) → <code>____</code>
+8. (luckily / had / we / an umbrella) → <code>____</code>
+9. (English / speaks / he / fluently) → <code>____</code>
+10. (the soup / slowly / ate / the old man) → <code>____</code>
+11. (hard / for the exam / studied / they) → <code>____</code>
+12. (politely / the waiter / us / greeted) → <code>____</code>
+13. (early / gets up / my dad / every day) → <code>____</code>
+14. (really / the film / good / was) → <code>____</code>
+15. (quickly / your coat / put on) → <code>____</code>
+
+<toggle heading="h3">
+Ответы к упражнению 15
+
+1. <b>She always speaks quietly.</b>
+2. <b>He read the letter carefully.</b>
+3. <b>My brother plays the guitar well.</b>
+4. <b>I slept badly last night.</b>
+5. <b>The kids played happily in the park.</b>
+6. <b>She types very fast.</b>
+7. <b>Suddenly the door opened.</b> (или <b>The door suddenly opened.</b> / <b>The door opened suddenly.</b>)
+8. <b>Luckily, we had an umbrella.</b>
+9. <b>He speaks English fluently.</b>
+10. <b>The old man ate the soup slowly.</b>
+11. <b>They studied hard for the exam.</b>
+12. <b>The waiter greeted us politely.</b>
+13. <b>My dad gets up early every day.</b>
+14. <b>The film was really good.</b>
+15. <b>Put on your coat quickly.</b> (или <b>Put your coat on quickly.</b>)
+</toggle>
+
+### Упражнение 16. Очень, ужасно, невероятно: наречие перед прилагательным
+
+Перед прилагательным — наречие (extremely tired). Перед существительным — прилагательное (an extreme sport).
+
+1. It's (terrible / terribly) cold today.
+2. She was (real / really) happy.
+3. The test was (incredible / incredibly) easy.
+4. He's an (incredible / incredibly) singer.
+5. The hotel was (extreme / extremely) expensive.
+6. I'm (awful / awfully) sorry.
+7. That was a (terrible / terribly) film.
+8. The room is (perfect / perfectly) clean.
+9. She has (perfect / perfectly) teeth.
+10. It was a (surprising / surprisingly) warm day.
+11. This box is (amazing / amazingly) light.
+12. We had an (amazing / amazingly) holiday.
+13. He was (complete / completely) wrong.
+14. This is a (complete / completely) new phone.
+15. It's (unusual / unusually) quiet here today.
+
+<toggle heading="h3">
+Ответы к упражнению 16
+
+1. <b>terribly</b>
+2. <b>really</b>
+3. <b>incredibly</b>
+4. <b>incredible</b> — перед существительным singer
+5. <b>extremely</b>
+6. <b>awfully</b>
+7. <b>terrible</b> — перед существительным film
+8. <b>perfectly</b>
+9. <b>perfect</b>
+10. <b>surprisingly</b> — относится к warm
+11. <b>amazingly</b>
+12. <b>amazing</b>
+13. <b>completely</b>
+14. <b>completely</b> — относится к new
+15. <b>unusually</b>
+</toggle>
+
+### Упражнение 17. Найди и исправь ошибку (2)
+
+В некоторых предложениях ошибки нет — отметь их как верные.
+
+1. She smiled at me nicely.
+2. He drives very careful.
+3. The flowers smell sweetly.
+4. I'm terrible sorry.
+5. They arrived early.
+6. He plays football good.
+7. She spoke very loudly.
+8. You did it perfect.
+9. It's real hot today.
+10. He answered honest.
+11. The children seem happy.
+12. She worked very hardly on the project.
+13. Speak slowly, please.
+14. I fully agree with you.
+15. He was angrily with his son.
+
+<toggle heading="h3">
+Ответы к упражнению 17
+
+1. ✅ <b>Верно</b>
+2. ❌ careful → ✅ <b>He drives very carefully.</b>
+3. ❌ smell sweetly → ✅ <b>The flowers smell sweet.</b> (после smell — прилагательное)
+4. ❌ terrible sorry → ✅ <b>I'm terribly sorry.</b>
+5. ✅ <b>Верно</b>
+6. ❌ good → ✅ <b>He plays football well.</b>
+7. ✅ <b>Верно</b>
+8. ❌ perfect → ✅ <b>You did it perfectly.</b>
+9. ❌ real hot → ✅ <b>It's really hot today.</b>
+10. ❌ honest → ✅ <b>He answered honestly.</b>
+11. ✅ <b>Верно</b>
+12. ❌ hardly → ✅ <b>She worked very hard on the project.</b> (hardly — почти не)
+13. ✅ <b>Верно</b>
+14. ✅ <b>Верно</b>
+15. ❌ angrily → ✅ <b>He was angry with his son.</b> (после was — прилагательное)
+</toggle>
+
+### Упражнение 18. Переведи на английский (2)
+
+Переведи предложения.
+
+1. Говори громче, пожалуйста.
+2. Он внимательно слушал.
+3. Она плохо спала прошлой ночью.
+4. К сожалению, магазин был закрыт.
+5. Вдруг зазвонил телефон.
+6. Ты очень хорошо танцуешь.
+7. Пицца пахнет восхитительно.
+8. Он ехал медленно из-за снега.
+9. Мы наконец нашли наш отель.
+10. Она вежливо ответила.
+11. Я честно не знаю.
+12. Было ужасно холодно.
+13. Он свободно говорит по-немецки.
+14. Этот план кажется простым.
+15. Дети быстро уснули.
+
+<toggle heading="h3">
+Ответы к упражнению 18
+
+1. <b>Speak more loudly, please.</b> (или <b>Speak louder, please.</b>)
+2. <b>He listened carefully.</b>
+3. <b>She slept badly last night.</b>
+4. <b>Unfortunately, the shop was closed.</b>
+5. <b>Suddenly the phone rang.</b>
+6. <b>You dance very well.</b>
+7. <b>The pizza smells delicious.</b>
+8. <b>He drove slowly because of the snow.</b>
+9. <b>We finally found our hotel.</b>
+10. <b>She answered politely.</b>
+11. <b>I honestly don't know.</b> (или <b>Honestly, I don't know.</b>)
+12. <b>It was terribly cold.</b> (или <b>awfully cold</b>)
+13. <b>He speaks German fluently.</b>
+14. <b>This plan seems simple.</b>
+15. <b>The children fell asleep quickly.</b>
+</toggle>
+
+### Упражнение 19. Как? Ответь на вопрос
+
+Ответь полным предложением с наречием по подсказке.
+
+1. How does your mum drive? (осторожно) → <code>____</code>
+2. How did you sleep? (хорошо) → <code>____</code>
+3. How does Tom speak? (тихо) → <code>____</code>
+4. How did they play? (плохо) → <code>____</code>
+5. How does Anna sing? (красиво) → <code>____</code>
+6. How did he answer? (вежливо) → <code>____</code>
+7. How does your cat eat? (медленно) → <code>____</code>
+8. How did the kids behave? (хорошо) → <code>____</code>
+9. How does Max run? (быстро) → <code>____</code>
+10. How did she explain it? (понятно) → <code>____</code>
+11. How do your neighbours talk? (громко) → <code>____</code>
+12. How did you pass the test? (легко) → <code>____</code>
+13. How does Mr Brown work? (усердно) → <code>____</code>
+14. How did the dog look at you? (грустно) → <code>____</code>
+15. How did Bella open the box? (аккуратно) → <code>____</code>
+
+<toggle heading="h3">
+Ответы к упражнению 19
+
+1. <b>She drives carefully.</b>
+2. <b>I slept well.</b>
+3. <b>He speaks quietly.</b>
+4. <b>They played badly.</b>
+5. <b>She sings beautifully.</b>
+6. <b>He answered politely.</b>
+7. <b>It eats slowly.</b>
+8. <b>They behaved well.</b> (или <b>nicely</b>)
+9. <b>He runs fast.</b> (или <b>quickly</b>)
+10. <b>She explained it clearly.</b>
+11. <b>They talk loudly.</b>
+12. <b>I passed it easily.</b>
+13. <b>He works hard.</b>
+14. <b>It looked at me sadly.</b>
+15. <b>She opened it carefully.</b>
+</toggle>
+
+### Упражнение 20. Рассказ о выходных: прилагательное или наречие?
+
+Раскрой скобки: оставь прилагательное или сделай наречие.
+
+1. Last Saturday was a <code>____</code> (beautiful) day.
+2. We got up <code>____</code> (early) and had a quick breakfast.
+3. Then we drove <code>____</code> (slow) to the lake because the road was narrow.
+4. The water looked <code>____</code> (calm).
+5. My son swam <code>____</code> (good) — he took lessons last year.
+6. My daughter played <code>____</code> (happy) on the beach.
+7. Suddenly the wind became <code>____</code> (strong).
+8. It started to rain <code>____</code> (heavy).
+9. We ran <code>____</code> (fast) to the car.
+10. <code>____</code> (lucky), we had towels in the car.
+11. The children were <code>____</code> (cold) and wet.
+12. My husband drove home <code>____</code> (careful).
+13. At home, the soup smelled <code>____</code> (wonderful).
+14. We ate it <code>____</code> (quick).
+15. It was a <code>____</code> (real) good day after all.
+
+<toggle heading="h3">
+Ответы к упражнению 20
+
+1. <b>beautiful</b>
+2. <b>early</b>
+3. <b>slowly</b>
+4. <b>calm</b>
+5. <b>well</b>
+6. <b>happily</b>
+7. <b>strong</b>
+8. <b>heavily</b>
+9. <b>fast</b>
+10. <b>Luckily</b>
+11. <b>cold</b>
+12. <b>carefully</b>
+13. <b>wonderful</b>
+14. <b>quickly</b>
+15. <b>really</b>
+</toggle>
+
+### Упражнение 21. Итоговый тест
+
+Выбери верный вариант.
+
+1. She speaks (clear / clearly).
+2. He's a (careful / carefully) person.
+3. The music is too (loud / loudly).
+4. I can (hard / hardly) hear you.
+5. He plays tennis (good / well).
+6. It smells (good / well) in here.
+7. He came home (late / lately).
+8. (Lucky / Luckily), the train was on time.
+9. She is (extreme / extremely) busy.
+10. They ran (fast / fastly).
+11. You look (tired / tiredly).
+12. He spoke to me (angry / angrily).
+13. She dresses (nice / nicely).
+14. I (complete / completely) forgot.
+15. The baby is sleeping (peaceful / peacefully).
+
+<toggle heading="h3">
+Ответы к упражнению 21
+
+1. <b>clearly</b>
+2. <b>careful</b>
+3. <b>loud</b>
+4. <b>hardly</b>
+5. <b>well</b>
+6. <b>good</b>
+7. <b>late</b>
+8. <b>Luckily</b>
+9. <b>extremely</b>
+10. <b>fast</b>
+11. <b>tired</b>
+12. <b>angrily</b>
+13. <b>nicely</b>
+14. <b>completely</b>
+15. <b>peacefully</b>
 </toggle>
 </toggle>
 

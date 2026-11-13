@@ -363,7 +363,7 @@
 </toggle>
 
 <toggle>
-Упражнения 6-8 — раскрой, когда закроешь первые пять
+Упражнения 6-21 — раскрой, когда закроешь первые пять
 
 ### Упражнение 6. Найди и исправь ошибку
 
@@ -481,6 +481,526 @@
 13. <b>…find my headphones.</b>
 14. <b>…fix anything in the house.</b>
 15. <b>…go on holiday.</b>
+</toggle>
+
+### Упражнение 9. Задай вопрос с could
+
+Составь вопрос из слов.
+
+1. (you / could / swim / when you were six) → <code>____</code>
+2. (could / your mother / drive / at that time) → <code>____</code>
+3. (what / could / you / do / at five) → <code>____</code>
+4. (could / they / see / the stage) → <code>____</code>
+5. (why / couldn't / you / come) → <code>____</code>
+6. (could / he / read / before school) → <code>____</code>
+7. (how many languages / could / your grandfather / speak) → <code>____</code>
+8. (could / you / hear / me) → <code>____</code>
+9. (where / could / you / buy / fresh bread / in your village) → <code>____</code>
+10. (why / couldn't / she / find / a hotel) → <code>____</code>
+11. (could / your sister / ride / a bike / at four) → <code>____</code>
+12. (what / couldn't / you / understand) → <code>____</code>
+13. (could / the students / use / phones / in your school) → <code>____</code>
+14. (who / could / help / you / at that time) → <code>____</code>
+15. (could / you / play / outside / alone / as a child) → <code>____</code>
+
+<toggle heading="h3">
+Ответы к упражнению 9
+
+1. <b>Could you swim when you were six?</b>
+2. <b>Could your mother drive at that time?</b>
+3. <b>What could you do at five?</b>
+4. <b>Could they see the stage?</b>
+5. <b>Why couldn't you come?</b>
+6. <b>Could he read before school?</b>
+7. <b>How many languages could your grandfather speak?</b>
+8. <b>Could you hear me?</b>
+9. <b>Where could you buy fresh bread in your village?</b>
+10. <b>Why couldn't she find a hotel?</b>
+11. <b>Could your sister ride a bike at four?</b>
+12. <b>What couldn't you understand?</b>
+13. <b>Could the students use phones in your school?</b>
+14. <b>Who could help you at that time?</b>
+15. <b>Could you play outside alone as a child?</b>
+</toggle>
+
+### Упражнение 10. Краткий ответ: Yes, I could / No, I couldn't
+
+Ответь кратко по подсказке. Здесь you — это ты один.
+
+1. Could you read when you were four? (да) → <code>____</code>
+2. Could your dad cook? (нет) → <code>____</code>
+3. Could Anna speak English at school? (да) → <code>____</code>
+4. Could they see the fireworks? (нет) → <code>____</code>
+5. Could you sleep on the plane? (нет) → <code>____</code>
+6. Could your grandparents dance? (да) → <code>____</code>
+7. Could Tom fix the car? (нет) → <code>____</code>
+8. Could you hear the music from your flat? (да) → <code>____</code>
+9. Could your dog swim? (да) → <code>____</code>
+10. Could Max and you find the address? (нет) → <code>____</code>
+11. Could Mrs Smith play the guitar? (да) → <code>____</code>
+12. Could you understand the lecture? (нет) → <code>____</code>
+13. Could your brother walk at one year old? (да) → <code>____</code>
+14. Could the children use the pool? (да) → <code>____</code>
+15. Could Bella answer all the questions? (нет) → <code>____</code>
+
+<toggle heading="h3">
+Ответы к упражнению 10
+
+1. <b>Yes, I could.</b>
+2. <b>No, he couldn't.</b>
+3. <b>Yes, she could.</b>
+4. <b>No, they couldn't.</b>
+5. <b>No, I couldn't.</b>
+6. <b>Yes, they could.</b>
+7. <b>No, he couldn't.</b>
+8. <b>Yes, I could.</b>
+9. <b>Yes, it could.</b>
+10. <b>No, we couldn't.</b>
+11. <b>Yes, she could.</b>
+12. <b>No, I couldn't.</b>
+13. <b>Yes, he could.</b>
+14. <b>Yes, they could.</b>
+15. <b>No, she couldn't.</b>
+</toggle>
+
+### Упражнение 11. Просьба или вопрос о прошлом?
+
+Could you…? бывает вежливой просьбой и вопросом об умении в прошлом. Выбери подходящий ответ.
+
+1. Could you pass the salt? — (Sure, here you are. / Yes, I could.)
+2. Could you ride a bike when you were five? — (Yes, I could. / Sure, here you are.)
+3. Could I borrow your umbrella? — (Of course. / Yes, you could.)
+4. Could you hold this for a second? — (Sure. / Yes, I could.)
+5. Could your grandma use a smartphone? — (No, she couldn't. / Sorry, I can't.)
+6. Could you wait five minutes? — (No problem. / Yes, I could.)
+7. Could you see the sea from your old flat? — (Yes, we could. / Of course, here it is.)
+8. Could I sit next to you? — (Sure, go ahead. / Yes, you could sit.)
+9. Could you send me the link? — (Sorry, I can't right now. / No, I couldn't.)
+10. Could you swim before you went to school? — (No, I couldn't. / Sorry, I can't.)
+11. Could you turn down the TV? — (Of course. / Yes, I could turn.)
+12. Could I open the window? — (Yes, of course. / Yes, I could.)
+13. Could your parents speak English? — (Yes, they could. / Sure, go ahead.)
+14. Could you check my email? — (Sure, show me. / Yes, I could check.)
+15. Could you hear the speaker at the back yesterday? — (No, we couldn't. / Sorry, we can't.)
+
+<toggle heading="h3">
+Ответы к упражнению 11
+
+1. <b>Sure, here you are.</b> — просьба
+2. <b>Yes, I could.</b> — вопрос о прошлом умении
+3. <b>Of course.</b>
+4. <b>Sure.</b>
+5. <b>No, she couldn't.</b>
+6. <b>No problem.</b>
+7. <b>Yes, we could.</b>
+8. <b>Sure, go ahead.</b>
+9. <b>Sorry, I can't right now.</b> — отказ на просьбу: can't
+10. <b>No, I couldn't.</b>
+11. <b>Of course.</b>
+12. <b>Yes, of course.</b>
+13. <b>Yes, they could.</b>
+14. <b>Sure, show me.</b>
+15. <b>No, we couldn't.</b> — вопрос о вчерашнем дне
+</toggle>
+
+### Упражнение 12. Can, could или will be able to?
+
+Can — сейчас, could — в прошлом. Для будущего умения бери will be able to.
+
+1. I'm taking driving lessons. In three months I (can / could / will be able to) drive on my own.
+2. When I was a child, I (can / could / will be able to) climb any tree.
+3. Look! My daughter (can / could / will be able to) write her name now.
+4. After this course, you (can / could / will be able to) talk to clients in English.
+5. Ten years ago we (can't / couldn't / won't be able to) buy a car.
+6. Sorry, I (can't / couldn't / won't be able to) talk right now. I'm in a meeting.
+7. My grandma is 90. She (can't / couldn't / won't be able to) walk far now.
+8. Last night I (can't / couldn't / won't be able to) sleep.
+9. In a few years, robots (can / could / will be able to) drive all our cars.
+10. My grandfather (can / could / will be able to) fix any radio when he was young.
+11. I (can / could / will be able to) hear you well now.
+12. When the baby is older, she (can / could / will be able to) walk.
+13. Before the bridge was built, people (can / could / will be able to) only cross the river by boat.
+14. My son is six. He (can / could / will be able to) already read.
+15. If you practise every day, you (can / could / will be able to) play this song next month.
+
+<toggle heading="h3">
+Ответы к упражнению 12
+
+1. <b>will be able to</b> — будущее умение
+2. <b>could</b>
+3. <b>can</b>
+4. <b>will be able to</b>
+5. <b>couldn't</b>
+6. <b>can't</b>
+7. <b>can't</b>
+8. <b>couldn't</b>
+9. <b>will be able to</b>
+10. <b>could</b>
+11. <b>can</b>
+12. <b>will be able to</b>
+13. <b>could</b>
+14. <b>can</b>
+15. <b>will be able to</b>
+</toggle>
+
+### Упражнение 13. Один случай: managed to или couldn't?
+
+Это один конкретный случай. Получилось — managed to + глагол. Не получилось — couldn't + глагол.
+
+1. The box was heavy, but I <code>____</code> (carry) it upstairs.
+2. The box was very heavy, and I <code>____</code> (lift) it. I called my neighbour.
+3. We got lost, but in the end we <code>____</code> (find) the hotel.
+4. The music was too loud, so I <code>____</code> (hear) the phone.
+5. The tickets sold out fast, but Max <code>____</code> (get) two.
+6. The exam was really hard, and Anna <code>____</code> (finish) it in time. She left three questions empty.
+7. My laptop broke, but I <code>____</code> (save) all my files.
+8. The restaurant was full, so we <code>____</code> (get) a table.
+9. It was snowing, but the plane <code>____</code> (land) safely.
+10. I forgot my password, so I <code>____</code> (log in).
+11. The traffic was awful, but Tom <code>____</code> (catch) his train.
+12. The jar was stuck. I tried and tried, but I <code>____</code> (open) it.
+13. The shop was closing, but I <code>____</code> (buy) the last cake.
+14. The road was blocked, so the ambulance <code>____</code> (get) through.
+15. It was a difficult climb, but we <code>____</code> (reach) the top before sunset.
+
+<toggle heading="h3">
+Ответы к упражнению 13
+
+1. <b>managed to carry</b> (или <b>was able to carry</b>)
+2. <b>couldn't lift</b>
+3. <b>managed to find</b> (или <b>were able to find</b>)
+4. <b>couldn't hear</b>
+5. <b>managed to get</b> (или <b>was able to get</b>)
+6. <b>couldn't finish</b>
+7. <b>managed to save</b> (или <b>was able to save</b>)
+8. <b>couldn't get</b>
+9. <b>managed to land</b> (или <b>was able to land</b>)
+10. <b>couldn't log in</b>
+11. <b>managed to catch</b> (или <b>was able to catch</b>)
+12. <b>couldn't open</b>
+13. <b>managed to buy</b> (или <b>was able to buy</b>)
+14. <b>couldn't get</b>
+15. <b>managed to reach</b> (или <b>were able to reach</b>)
+</toggle>
+
+### Упражнение 14. Собери предложение
+
+Расставь слова.
+
+1. (could / my grandmother / sew / her own clothes) → <code>____</code>
+2. (couldn't / we / the end of the film / see) → <code>____</code>
+3. (could / from the balcony / hear / the sea / we) → <code>____</code>
+4. (I / find / couldn't / a parking space) → <code>____</code>
+5. (at three / could / my son / count to twenty) → <code>____</code>
+6. (she / couldn't / the answer / remember) → <code>____</code>
+7. (could / in the old days / people / smoke on planes) → <code>____</code>
+8. (couldn't / the children / go out / because of the storm) → <code>____</code>
+9. (could / he / for two hours / talk / on the phone) → <code>____</code>
+10. (I / couldn't / my eyes / believe) → <code>____</code>
+11. (could / a cheap flat / find / students / in the centre) → <code>____</code>
+12. (they / couldn't / the instructions / understand) → <code>____</code>
+13. (could / without a map / my dad / find / any place) → <code>____</code>
+14. (we / couldn't / stop / laughing) → <code>____</code>
+15. (you / could / the stars / see / in the village) → <code>____</code>
+
+<toggle heading="h3">
+Ответы к упражнению 14
+
+1. <b>My grandmother could sew her own clothes.</b>
+2. <b>We couldn't see the end of the film.</b>
+3. <b>We could hear the sea from the balcony.</b> (или <b>From the balcony we could hear the sea.</b>)
+4. <b>I couldn't find a parking space.</b>
+5. <b>My son could count to twenty at three.</b> (или <b>At three, my son could count to twenty.</b>)
+6. <b>She couldn't remember the answer.</b>
+7. <b>In the old days people could smoke on planes.</b> (или <b>People could smoke on planes in the old days.</b>)
+8. <b>The children couldn't go out because of the storm.</b>
+9. <b>He could talk on the phone for two hours.</b> (или <b>He could talk for two hours on the phone.</b>)
+10. <b>I couldn't believe my eyes.</b>
+11. <b>Students could find a cheap flat in the centre.</b>
+12. <b>They couldn't understand the instructions.</b>
+13. <b>My dad could find any place without a map.</b> (или <b>Without a map, my dad could find any place.</b>)
+14. <b>We couldn't stop laughing.</b>
+15. <b>You could see the stars in the village.</b> (или <b>In the village you could see the stars.</b>)
+</toggle>
+
+### Упражнение 15. Could I…? или Could you…?
+
+Кто будет делать действие — ты или собеседник? Обрати внимание на borrow (взять) и lend (дать).
+
+1. (Could I / Could you) borrow your pen?
+2. (Could I / Could you) lend me your pen?
+3. (Could I / Could you) show me the way?
+4. (Could I / Could you) see the menu?
+5. (Could I / Could you) pick me up at six?
+6. (Could I / Could you) leave early today? I have a doctor's appointment.
+7. (Could I / Could you) take a photo of me and my wife?
+8. (Could I / Could you) try on these shoes?
+9. (Could I / Could you) spell your name, please?
+10. (Could I / Could you) have the bill, please?
+11. (Could I / Could you) give me a discount?
+12. (Could I / Could you) pay by card?
+13. (Could I / Could you) keep an eye on my bag for a minute?
+14. (Could I / Could you) ask you a question?
+15. (Could I / Could you) wake me up at seven?
+
+<toggle heading="h3">
+Ответы к упражнению 15
+
+1. <b>Could I</b> — я возьму
+2. <b>Could you</b> — ты дашь
+3. <b>Could you</b>
+4. <b>Could I</b>
+5. <b>Could you</b>
+6. <b>Could I</b>
+7. <b>Could you</b>
+8. <b>Could I</b>
+9. <b>Could you</b>
+10. <b>Could I</b>
+11. <b>Could you</b>
+12. <b>Could I</b>
+13. <b>Could you</b>
+14. <b>Could I</b>
+15. <b>Could you</b>
+</toggle>
+
+### Упражнение 16. Извинись: переведи
+
+Переведи оправдания с couldn't.
+
+1. Извини, я не смог позвонить — у меня сел телефон.
+2. Я не смог прийти на урок, я заболел.
+3. Мы не смогли найти твой дом.
+4. Простите, я не смог ответить на ваше письмо вчера.
+5. Она не смогла приехать из-за погоды.
+6. Я не мог сосредоточиться — было очень шумно.
+7. Мы не смогли купить билеты — их уже не было.
+8. Я не смог открыть файл.
+9. Он не смог починить машину сам.
+10. Извини, я не смогла встретить тебя в аэропорту.
+11. Я не мог дождаться выходных.
+12. Мы не смогли договориться о дате.
+13. Я не смог прочитать твое сообщение — не было интернета.
+14. Она не смогла вспомнить пароль.
+15. Мы не смогли поехать в отпуск в этом году.
+
+<toggle heading="h3">
+Ответы к упражнению 16
+
+1. <b>Sorry, I couldn't call — my phone died.</b> (или <b>my battery was dead</b>)
+2. <b>I couldn't come to the lesson — I was ill.</b>
+3. <b>We couldn't find your house.</b>
+4. <b>Sorry, I couldn't answer your email yesterday.</b> (или <b>reply to your email</b>)
+5. <b>She couldn't come because of the weather.</b>
+6. <b>I couldn't concentrate — it was very noisy.</b>
+7. <b>We couldn't buy tickets — they were sold out.</b>
+8. <b>I couldn't open the file.</b>
+9. <b>He couldn't fix the car himself.</b>
+10. <b>Sorry, I couldn't meet you at the airport.</b>
+11. <b>I couldn't wait for the weekend.</b>
+12. <b>We couldn't agree on a date.</b>
+13. <b>I couldn't read your message — there was no internet.</b>
+14. <b>She couldn't remember the password.</b>
+15. <b>We couldn't go on holiday this year.</b>
+</toggle>
+
+### Упражнение 17. Найди и исправь ошибку (2)
+
+В некоторых предложениях ошибки нет — отметь их как верные.
+
+1. My brother could played chess at five.
+2. Did you could swim as a child?
+3. I couldn't see the screen from my seat.
+4. Yesterday, after two hours on the phone, I could finally book a flight.
+5. Could you lend me some money? — Yes, I could.
+6. She can't come to the party yesterday.
+7. Could I have a glass of water?
+8. They couldn't understood the question.
+9. When I was young, I could run very fast.
+10. He not could open the door.
+11. We could hear the birds every morning.
+12. Could your mother to cook well?
+13. I wasn't able to sleep last night.
+14. Can you speak English when you were ten?
+15. In the end, we managed to fix the roof.
+
+<toggle heading="h3">
+Ответы к упражнению 17
+
+1. ❌ could played → ✅ <b>My brother could play chess at five.</b>
+2. ❌ Did you could → ✅ <b>Could you swim as a child?</b>
+3. ✅ <b>Верно</b>
+4. ❌ could finally book → ✅ <b>Yesterday, after two hours on the phone, I finally managed to book a flight.</b> (один успех — managed to / was able to)
+5. ❌ Yes, I could → ✅ <b>Sure.</b> (на просьбу не отвечают could)
+6. ❌ can't come → ✅ <b>She couldn't come to the party yesterday.</b>
+7. ✅ <b>Верно</b>
+8. ❌ couldn't understood → ✅ <b>They couldn't understand the question.</b>
+9. ✅ <b>Верно</b>
+10. ❌ not could → ✅ <b>He couldn't open the door.</b>
+11. ✅ <b>Верно</b>
+12. ❌ to cook → ✅ <b>Could your mother cook well?</b>
+13. ✅ <b>Верно</b>
+14. ❌ Can you → ✅ <b>Could you speak English when you were ten?</b>
+15. ✅ <b>Верно</b>
+</toggle>
+
+### Упражнение 18. Тогда и сейчас: перепиши о прошлом
+
+Перепиши предложение в прошлом с could или couldn't. Добавь время из скобок.
+
+1. I can't open this app. (yesterday) → <code>____</code>
+2. She can play the flute. (when she was eight) → <code>____</code>
+3. We can see the lake from the hotel. (last summer) → <code>____</code>
+4. He can't drive. (two years ago) → <code>____</code>
+5. Can you hear the singer? (at the concert) → <code>____</code>
+6. They can't afford a holiday. (last year) → <code>____</code>
+7. My son can say a few words. (at one year old) → <code>____</code>
+8. I can't stay awake. (during the film) → <code>____</code>
+9. You can smoke in restaurants. (in the 1990s) → <code>____</code>
+10. We can't get a phone signal in the mountains. (last weekend) → <code>____</code>
+11. Can your dad cook? (when you were little) → <code>____</code>
+12. I can walk to school. (as a child) → <code>____</code>
+13. Tom can't sleep. (on the night bus) → <code>____</code>
+14. The kids can play outside till dark. (in our old town) → <code>____</code>
+15. I can't believe it! (when I heard the news) → <code>____</code>
+
+<toggle heading="h3">
+Ответы к упражнению 18
+
+1. <b>I couldn't open this app yesterday.</b>
+2. <b>She could play the flute when she was eight.</b>
+3. <b>Last summer we could see the lake from the hotel.</b> (или <b>We could see the lake from the hotel last summer.</b>)
+4. <b>He couldn't drive two years ago.</b>
+5. <b>Could you hear the singer at the concert?</b>
+6. <b>They couldn't afford a holiday last year.</b>
+7. <b>My son could say a few words at one year old.</b>
+8. <b>I couldn't stay awake during the film.</b>
+9. <b>In the 1990s you could smoke in restaurants.</b> (или <b>You could smoke in restaurants in the 1990s.</b>)
+10. <b>Last weekend we couldn't get a phone signal in the mountains.</b> (или <b>We couldn't get a phone signal in the mountains last weekend.</b>)
+11. <b>Could your dad cook when you were little?</b>
+12. <b>As a child, I could walk to school.</b> (или <b>I could walk to school as a child.</b>)
+13. <b>Tom couldn't sleep on the night bus.</b>
+14. <b>In our old town the kids could play outside till dark.</b> (или <b>The kids could play outside till dark in our old town.</b>)
+15. <b>I couldn't believe it when I heard the news.</b>
+</toggle>
+
+### Упражнение 19. Расспроси о детстве: переведи
+
+Переведи вопросы. Ты — это you.
+
+1. Что ты умел делать в пять лет?
+2. Ты мог гулять один в детстве?
+3. Почему вы не смогли позвонить?
+4. Твоя бабушка умела вязать?
+5. Где вы могли купить джинсы в девяностые?
+6. Ты умел кататься на коньках?
+7. Кто мог помочь тебе с математикой?
+8. Ты мог смотреть телевизор допоздна?
+9. Из окна были видны горы?
+10. Что ты не мог есть в детстве?
+11. Твоя сестра умела рисовать?
+12. Ты умел свистеть?
+13. Ты мог позвонить родителям из лагеря?
+14. Почему она не могла спать?
+15. Ты понимал английские песни в детстве?
+
+<toggle heading="h3">
+Ответы к упражнению 19
+
+1. <b>What could you do when you were five?</b> (или <b>at five</b>)
+2. <b>Could you go out alone as a child?</b>
+3. <b>Why couldn't you call?</b>
+4. <b>Could your grandmother knit?</b> (или <b>grandma</b>)
+5. <b>Where could you buy jeans in the nineties?</b>
+6. <b>Could you skate?</b>
+7. <b>Who could help you with maths?</b>
+8. <b>Could you watch TV late?</b>
+9. <b>Could you see the mountains from the window?</b>
+10. <b>What couldn't you eat as a child?</b>
+11. <b>Could your sister draw?</b>
+12. <b>Could you whistle?</b>
+13. <b>Could you call your parents from the camp?</b>
+14. <b>Why couldn't she sleep?</b>
+15. <b>Could you understand English songs as a child?</b>
+</toggle>
+
+### Упражнение 20. Диалог с дедушкой — заполни пропуски
+
+Вставь одно слово: could, couldn't, can или managed.
+
+1. — Grandpa, what <code>____</code> you do when you were ten?
+2. — Oh, I <code>____</code> climb any tree in the village.
+3. — <code>____</code> you swim?
+4. — No, I <code>____</code>. There was no river near us.
+5. — And now? <code>____</code> you swim now?
+6. — Yes, I <code>____</code>. I learned at forty!
+7. — Wow. <code>____</code> you use a computer at school?
+8. — No! There were no computers. We <code>____</code> even imagine them.
+9. — Really? And <code>____</code> you watch TV?
+10. — Yes, we <code>____</code>, but only one channel.
+11. — Sometimes the picture was bad, and we <code>____</code> see anything.
+12. — Last month you <code>____</code> to call me on video. That was cool!
+13. — Yes, but I <code>____</code> do it alone — your sister helped me.
+14. — And today you called me yourself! So now you <code>____</code> do it alone.
+15. — Yes. Grandpa, <code>____</code> you show me your old photos, please?
+
+<toggle heading="h3">
+Ответы к упражнению 20
+
+1. <b>could</b>
+2. <b>could</b>
+3. <b>Could</b>
+4. <b>couldn't</b>
+5. <b>Can</b>
+6. <b>can</b>
+7. <b>Could</b>
+8. <b>couldn't</b>
+9. <b>could</b>
+10. <b>could</b>
+11. <b>couldn't</b>
+12. <b>managed</b>
+13. <b>couldn't</b>
+14. <b>can</b>
+15. <b>could</b> (или <b>can</b>) — вежливая просьба
+</toggle>
+
+### Упражнение 21. Итоговый тест
+
+Выбери верный вариант.
+
+1. I could (ride / rode) a bike at four.
+2. She (couldn't / didn't can) come yesterday.
+3. (Could you / Did you could) read at five?
+4. Could you pass the sugar? — (Sure. / Yes, I could.)
+5. After a long search, we (could / managed to) find the cat.
+6. Now I (can / could) speak Spanish.
+7. My grandma (could / can) knit when she was young.
+8. (Could I / Could you) borrow your car?
+9. The music was loud, and I (couldn't / can't) hear you.
+10. Could you swim at six? — No, I (couldn't / didn't).
+11. They (could / could to) see the river from the house.
+12. Yesterday I (was able to / could) finish my project early.
+13. (Could / Can) you hear the fireworks last night?
+14. I (wasn't able / couldn't) to answer.
+15. Could your dad (speak / to speak) English?
+
+<toggle heading="h3">
+Ответы к упражнению 21
+
+1. <b>ride</b>
+2. <b>couldn't</b>
+3. <b>Could you</b>
+4. <b>Sure.</b>
+5. <b>managed to</b> — один успех
+6. <b>can</b>
+7. <b>could</b>
+8. <b>Could I</b>
+9. <b>couldn't</b>
+10. <b>couldn't</b>
+11. <b>could</b>
+12. <b>was able to</b> — один успех
+13. <b>Could</b>
+14. <b>wasn't able</b>
+15. <b>speak</b>
 </toggle>
 </toggle>
 

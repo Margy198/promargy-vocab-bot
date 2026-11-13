@@ -377,7 +377,7 @@
 </toggle>
 
 <toggle>
-Упражнения 6-8 — раскрой, когда закроешь первые пять
+Упражнения 6-21 — раскрой, когда закроешь первые пять
 
 ### Упражнение 6. Найди и исправь ошибку
 
@@ -495,6 +495,522 @@
 13. <b>to</b>
 14. <b>to</b>
 15. <b>like</b>
+</toggle>
+
+### Упражнение 9. Задай вопрос с would like
+
+Составь вопрос из слов.
+
+1. (what / you / would / like / to drink) → <code>____</code>
+2. (where / you / would / like / to go) → <code>____</code>
+3. (what / would / she / like / for her birthday) → <code>____</code>
+4. (when / you / would / like / to start) → <code>____</code>
+5. (which room / would / you / like) → <code>____</code>
+6. (what / you / would / like / to eat) → <code>____</code>
+7. (who / would / you / like / to invite) → <code>____</code>
+8. (how / you / would / like / to pay) → <code>____</code>
+9. (where / would / they / like / to sit) → <code>____</code>
+10. (what time / would / you / like / to meet) → <code>____</code>
+11. (what / your son / would / like / to be) → <code>____</code>
+12. (how many tickets / would / you / like) → <code>____</code>
+13. (which film / would / you / like / to see) → <code>____</code>
+14. (how / would / you / like / your steak) → <code>____</code>
+15. (where / would / you / like / to live) → <code>____</code>
+
+<toggle heading="h3">
+Ответы к упражнению 9
+
+1. <b>What would you like to drink?</b>
+2. <b>Where would you like to go?</b>
+3. <b>What would she like for her birthday?</b>
+4. <b>When would you like to start?</b>
+5. <b>Which room would you like?</b>
+6. <b>What would you like to eat?</b>
+7. <b>Who would you like to invite?</b>
+8. <b>How would you like to pay?</b>
+9. <b>Where would they like to sit?</b>
+10. <b>What time would you like to meet?</b>
+11. <b>What would your son like to be?</b>
+12. <b>How many tickets would you like?</b>
+13. <b>Which film would you like to see?</b>
+14. <b>How would you like your steak?</b>
+15. <b>Where would you like to live?</b>
+</toggle>
+
+### Упражнение 10. Краткий ответ о желании
+
+Это вопросы о мечтах, а не предложения угощения. Ответь кратко по подсказке: Yes, I would / No, I wouldn't.
+
+1. Would you like to live in another country? (да) → <code>____</code>
+2. Would you like to be famous? (нет) → <code>____</code>
+3. Would you like to learn Chinese? (да) → <code>____</code>
+4. Would you like to fly into space? (нет) → <code>____</code>
+5. Would you like to have a big family? (да) → <code>____</code>
+6. Would you like to work from home? (да) → <code>____</code>
+7. Would you like to live in the mountains? (нет) → <code>____</code>
+8. Would you like to meet a famous actor? (да) → <code>____</code>
+9. Would you like to run a marathon? (нет) → <code>____</code>
+10. Would you like to have a dog? (да) → <code>____</code>
+11. Would you like to be a teacher? (нет) → <code>____</code>
+12. Would you like to visit Japan? (да) → <code>____</code>
+13. Would you like to live on a boat? (нет) → <code>____</code>
+14. Would you like to speak five languages? (да) → <code>____</code>
+15. Would you like to be a child again? (нет) → <code>____</code>
+
+<toggle heading="h3">
+Ответы к упражнению 10
+
+1. <b>Yes, I would.</b>
+2. <b>No, I wouldn't.</b>
+3. <b>Yes, I would.</b>
+4. <b>No, I wouldn't.</b>
+5. <b>Yes, I would.</b>
+6. <b>Yes, I would.</b>
+7. <b>No, I wouldn't.</b>
+8. <b>Yes, I would.</b>
+9. <b>No, I wouldn't.</b>
+10. <b>Yes, I would.</b>
+11. <b>No, I wouldn't.</b>
+12. <b>Yes, I would.</b>
+13. <b>No, I wouldn't.</b>
+14. <b>Yes, I would.</b>
+15. <b>No, I wouldn't.</b>
+</toggle>
+
+### Упражнение 11. Like или would like? (2)
+
+Выбери вариант по смыслу.
+
+1. I (like / 'd like) swimming. I go to the pool twice a week.
+2. It's so hot! I (like / 'd like) a cold drink.
+3. My dad (likes / 'd like) old films. He watches them every weekend.
+4. Excuse me, I (like / 'd like) to ask a question.
+5. (Do you like / Would you like) to see my new flat? Come on Saturday!
+6. (Do you like / Would you like) your new teacher? — Yes, she's great.
+7. We (like / 'd like) two coffees and a cake, please.
+8. Tom (likes / 'd like) his job. He's happy there.
+9. I'm tired. I (like / 'd like) to go home.
+10. She (likes / 'd like) to visit Spain one day.
+11. My children (like / 'd like) pizza. It's their favourite food.
+12. (Do you like / Would you like) a lift to the station? It's raining.
+13. I (like / 'd like) my coffee with milk. Always.
+14. They (like / 'd like) to buy a bigger house next year.
+15. (Do you like / Would you like) jazz? — Not really.
+
+<toggle heading="h3">
+Ответы к упражнению 11
+
+1. <b>like</b> — люблю вообще
+2. <b>'d like</b> — хочу сейчас
+3. <b>likes</b> — вообще
+4. <b>'d like</b> — вежливая просьба
+5. <b>Would you like</b> — приглашение
+6. <b>Do you like</b> — нравится ли вообще
+7. <b>'d like</b> — заказ
+8. <b>likes</b>
+9. <b>'d like</b>
+10. <b>'d like</b> — мечта
+11. <b>like</b>
+12. <b>Would you like</b> — предложение
+13. <b>like</b> — всегда так пью
+14. <b>'d like</b> — желание
+15. <b>Do you like</b>
+</toggle>
+
+### Упражнение 12. Мечты: собери предложение
+
+Расставь слова.
+
+1. (to visit / I'd like / Australia) → <code>____</code>
+2. (a pilot / my son / would like / to be) → <code>____</code>
+3. (to learn / she'd like / to dance) → <code>____</code>
+4. (we'd like / by the sea / to live) → <code>____</code>
+5. (a new car / they'd like) → <code>____</code>
+6. (to meet / I'd like / your parents) → <code>____</code>
+7. (to write / a book / he'd like) → <code>____</code>
+8. (a cat / my daughter / would like) → <code>____</code>
+9. (to open / I'd like / a cafe) → <code>____</code>
+10. (to travel / around the world / we'd like) → <code>____</code>
+11. (would like / my grandma / to see / the Eiffel Tower) → <code>____</code>
+12. (to change / I'd like / my job) → <code>____</code>
+13. (a garden / she'd like / with flowers) → <code>____</code>
+14. (to play / he'd like / in a band) → <code>____</code>
+15. (to study / abroad / I'd like) → <code>____</code>
+
+<toggle heading="h3">
+Ответы к упражнению 12
+
+1. <b>I'd like to visit Australia.</b>
+2. <b>My son would like to be a pilot.</b>
+3. <b>She'd like to learn to dance.</b>
+4. <b>We'd like to live by the sea.</b>
+5. <b>They'd like a new car.</b>
+6. <b>I'd like to meet your parents.</b>
+7. <b>He'd like to write a book.</b>
+8. <b>My daughter would like a cat.</b>
+9. <b>I'd like to open a cafe.</b>
+10. <b>We'd like to travel around the world.</b>
+11. <b>My grandma would like to see the Eiffel Tower.</b>
+12. <b>I'd like to change my job.</b>
+13. <b>She'd like a garden with flowers.</b>
+14. <b>He'd like to play in a band.</b>
+15. <b>I'd like to study abroad.</b>
+</toggle>
+
+### Упражнение 13. A / some или to?
+
+Вставь a, some или to.
+
+1. Would you like <code>____</code> sandwich?
+2. Would you like <code>____</code> join us?
+3. I'd like <code>____</code> water, please.
+4. She'd like <code>____</code> new bag.
+5. We'd like <code>____</code> book a table.
+6. Would you like <code>____</code> biscuits?
+7. I'd like <code>____</code> try the soup.
+8. He'd like <code>____</code> glass of juice.
+9. Would you like <code>____</code> watch a film tonight?
+10. They'd like <code>____</code> information about the tour.
+11. I'd like <code>____</code> cup of tea.
+12. Would you like <code>____</code> come in?
+13. I'd like <code>____</code> advice.
+14. I'd like <code>____</code> see the manager.
+15. Would you like <code>____</code> orange juice?
+
+<toggle heading="h3">
+Ответы к упражнению 13
+
+1. <b>a</b>
+2. <b>to</b>
+3. <b>some</b> — water неисчисляемое
+4. <b>a</b>
+5. <b>to</b>
+6. <b>some</b> — мн. число
+7. <b>to</b>
+8. <b>a</b>
+9. <b>to</b>
+10. <b>some</b> — information неисчисляемое
+11. <b>a</b>
+12. <b>to</b>
+13. <b>some</b> — advice неисчисляемое
+14. <b>to</b>
+15. <b>some</b> — juice неисчисляемое
+</toggle>
+
+### Упражнение 14. Вежливая просьба вместо приказа
+
+Перепиши с I'd like или Would you like… для гостя.
+
+1. Give me the menu. → <code>____</code>
+2. I want a room with a view. → <code>____</code>
+3. (гостю) Take a seat! → <code>____</code>
+4. I want to send this parcel. → <code>____</code>
+5. (гостю) Have some tea! → <code>____</code>
+6. I want three apples. → <code>____</code>
+7. I want to speak to Mr Brown. → <code>____</code>
+8. (гостю) Eat some cake! → <code>____</code>
+9. I want a return ticket to Oxford. → <code>____</code>
+10. I want to open an account. → <code>____</code>
+11. (гостю) Stay for dinner! → <code>____</code>
+12. I want the fish. → <code>____</code>
+13. I want to cancel my order. → <code>____</code>
+14. (гостю) Sit by the window! → <code>____</code>
+15. I want a glass of water. → <code>____</code>
+
+<toggle heading="h3">
+Ответы к упражнению 14
+
+1. <b>I'd like the menu, please.</b>
+2. <b>I'd like a room with a view.</b>
+3. <b>Would you like to take a seat?</b> (или <b>Would you like to sit down?</b>)
+4. <b>I'd like to send this parcel.</b>
+5. <b>Would you like some tea?</b>
+6. <b>I'd like three apples.</b>
+7. <b>I'd like to speak to Mr Brown.</b>
+8. <b>Would you like some cake?</b>
+9. <b>I'd like a return ticket to Oxford.</b>
+10. <b>I'd like to open an account.</b>
+11. <b>Would you like to stay for dinner?</b>
+12. <b>I'd like the fish.</b>
+13. <b>I'd like to cancel my order.</b>
+14. <b>Would you like to sit by the window?</b>
+15. <b>I'd like a glass of water.</b>
+</toggle>
+
+### Упражнение 15. В ресторане: переведи
+
+1. Мы бы хотели столик у окна.
+2. Что бы вы хотели заказать?
+3. Я бы хотела салат.
+4. Хотите десерт?
+5. Можно мне меню? (с would like)
+6. Мой муж хотел бы стейк.
+7. Что бы вы хотели выпить?
+8. Я бы хотел попробовать местное вино.
+9. Хотите еще хлеба?
+10. Мы бы хотели заплатить отдельно.
+11. Я бы хотела кофе без сахара.
+12. Хотите посмотреть винную карту?
+13. Наши дети хотели бы мороженое.
+14. Я бы хотел счет, пожалуйста.
+15. Хотите еще что-нибудь?
+
+<toggle heading="h3">
+Ответы к упражнению 15
+
+1. <b>We'd like a table by the window.</b>
+2. <b>What would you like to order?</b>
+3. <b>I'd like a salad.</b>
+4. <b>Would you like a dessert?</b> (или <b>Would you like some dessert?</b>)
+5. <b>I'd like the menu, please.</b>
+6. <b>My husband would like a steak.</b>
+7. <b>What would you like to drink?</b>
+8. <b>I'd like to try the local wine.</b>
+9. <b>Would you like some more bread?</b>
+10. <b>We'd like to pay separately.</b>
+11. <b>I'd like a coffee without sugar.</b>
+12. <b>Would you like to see the wine list?</b>
+13. <b>Our children would like some ice cream.</b>
+14. <b>I'd like the bill, please.</b>
+15. <b>Would you like anything else?</b>
+</toggle>
+
+### Упражнение 16. Вежливый отказ
+
+Выбери вежливый и естественный отказ.
+
+1. Would you like some more soup? — (No, thank you. I'm full. / No. I don't want.)
+2. Would you like to come to the party? — (I'd love to, but I'm busy. / I don't like to.)
+3. Would you like a plastic bag? — (No, thanks. I have one. / No, I wouldn't like.)
+4. Would you like to dance? — (Maybe later, thanks. / No, I don't dance with you.)
+5. Would you like a cigarette? — (No, thanks. I don't smoke. / No, I'd not like.)
+6. Would you like some sugar? — (No, thank you. / No, I like not.)
+7. Would you like to join us for lunch? — (Thanks, but I have a meeting. / No, I don't join.)
+8. Would you like dessert? — (Not for me, thanks. / Not want.)
+9. Would you like a newspaper? — (No, thank you. / No, I wouldn't want it a newspaper.)
+10. Would you like to see the photos? — (Maybe another time. / I don't want see.)
+11. Would you like some help? — (Thanks, I'm fine. / No help.)
+12. Would you like a receipt? — (No, thanks. / No, I don't like receipt.)
+13. Would you like to try this? — (No, thank you. I don't eat meat. / No, I would not like try.)
+14. Would you like a coffee? — (I'm OK, thanks. / I'm not like.)
+15. Would you like to stay longer? — (I'd love to, but I have to go. / I would like not.)
+
+<toggle heading="h3">
+Ответы к упражнению 16
+
+1. <b>No, thank you. I'm full.</b>
+2. <b>I'd love to, but I'm busy.</b>
+3. <b>No, thanks. I have one.</b>
+4. <b>Maybe later, thanks.</b>
+5. <b>No, thanks. I don't smoke.</b>
+6. <b>No, thank you.</b>
+7. <b>Thanks, but I have a meeting.</b>
+8. <b>Not for me, thanks.</b>
+9. <b>No, thank you.</b>
+10. <b>Maybe another time.</b>
+11. <b>Thanks, I'm fine.</b>
+12. <b>No, thanks.</b>
+13. <b>No, thank you. I don't eat meat.</b>
+14. <b>I'm OK, thanks.</b>
+15. <b>I'd love to, but I have to go.</b>
+</toggle>
+
+### Упражнение 17. Найди и исправь ошибку (2)
+
+В некоторых предложениях ошибки нет — отметь их как верные.
+
+1. Would you like go for a walk?
+2. I'd like a piece of cake.
+3. What you would like to drink?
+4. She'd likes to see the city.
+5. Would you like some water?
+6. I would like to the chicken.
+7. Do you would like to come?
+8. We'd like to pay now.
+9. He would like have a dog.
+10. Would she like a coffee?
+11. I'd like going home.
+12. What would you like for dinner?
+13. They would like visiting Rome.
+14. Would you like to sit here?
+15. Where you would like to go?
+
+<toggle heading="h3">
+Ответы к упражнению 17
+
+1. ❌ like go → ✅ <b>Would you like to go for a walk?</b>
+2. ✅ <b>Верно</b>
+3. ❌ What you would like → ✅ <b>What would you like to drink?</b>
+4. ❌ She'd likes → ✅ <b>She'd like to see the city.</b>
+5. ✅ <b>Верно</b>
+6. ❌ like to the chicken → ✅ <b>I would like the chicken.</b>
+7. ❌ Do you would like → ✅ <b>Would you like to come?</b>
+8. ✅ <b>Верно</b>
+9. ❌ like have → ✅ <b>He would like to have a dog.</b>
+10. ✅ <b>Верно</b>
+11. ❌ like going → ✅ <b>I'd like to go home.</b> (после would like — to + глагол)
+12. ✅ <b>Верно</b>
+13. ❌ like visiting → ✅ <b>They would like to visit Rome.</b>
+14. ✅ <b>Верно</b>
+15. ❌ Where you would like → ✅ <b>Where would you like to go?</b>
+</toggle>
+
+### Упражнение 18. Переведи на английский (2)
+
+1. Я бы хотел жить у моря.
+2. Хотите сок?
+3. Куда бы ты хотел поехать летом?
+4. Моя мама хотела бы новый телефон.
+5. Не хочешь поиграть в теннис в субботу?
+6. Я бы хотела задать вопрос.
+7. Что бы ты хотел на день рождения?
+8. Мы бы хотели забронировать номер на три ночи.
+9. Хочешь печенье?
+10. Он хотел бы стать врачом.
+11. Ты хотел бы жить в другой стране? — Да.
+12. Я бы хотел два билета на 7 часов.
+13. Не хотите присоединиться к нам?
+14. Она хотела бы учить французский.
+15. Где бы вы хотели сесть?
+
+<toggle heading="h3">
+Ответы к упражнению 18
+
+1. <b>I'd like to live by the sea.</b>
+2. <b>Would you like some juice?</b>
+3. <b>Where would you like to go in summer?</b>
+4. <b>My mum would like a new phone.</b>
+5. <b>Would you like to play tennis on Saturday?</b>
+6. <b>I'd like to ask a question.</b>
+7. <b>What would you like for your birthday?</b>
+8. <b>We'd like to book a room for three nights.</b>
+9. <b>Would you like a biscuit?</b> (или <b>Would you like some biscuits?</b>)
+10. <b>He'd like to be a doctor.</b> (или <b>He'd like to become a doctor.</b>)
+11. <b>Would you like to live in another country? — Yes, I would.</b>
+12. <b>I'd like two tickets for 7 o'clock.</b>
+13. <b>Would you like to join us?</b>
+14. <b>She'd like to learn French.</b>
+15. <b>Where would you like to sit?</b>
+</toggle>
+
+### Упражнение 19. Предложи в ситуации
+
+Что ты скажешь? Начни с Would you like.
+
+1. Друг замерз. (горячий чай) → <code>____</code>
+2. Коллега несет тяжелые коробки. (помощь) → <code>____</code>
+3. Гость пришел мокрый. (полотенце) → <code>____</code>
+4. Подруга скучает в субботу. (пойти в кино) → <code>____</code>
+5. Соседка забыла зонт. (взять мой зонт) → <code>____</code>
+6. Гость голоден. (бутерброд) → <code>____</code>
+7. Друг устал стоять. (присесть) → <code>____</code>
+8. Коллега не знает город. (показать — карта) → <code>____</code>
+9. Гость хочет пить. (стакан воды) → <code>____</code>
+10. Друг опоздал на автобус. (подвезти) → <code>____</code>
+11. Подруга любит книги. (взять эту книгу) → <code>____</code>
+12. Гость остается допоздна. (остаться на ночь) → <code>____</code>
+13. Брат грустит. (поговорить) → <code>____</code>
+14. Друг любит пиццу. (кусок пиццы) → <code>____</code>
+15. Коллега идет в кафе. (пойти вместе) → <code>____</code>
+
+<toggle heading="h3">
+Ответы к упражнению 19
+
+1. <b>Would you like some hot tea?</b> (или <b>a cup of hot tea</b>)
+2. <b>Would you like some help?</b>
+3. <b>Would you like a towel?</b>
+4. <b>Would you like to go to the cinema?</b>
+5. <b>Would you like to take my umbrella?</b>
+6. <b>Would you like a sandwich?</b>
+7. <b>Would you like to sit down?</b>
+8. <b>Would you like a map?</b>
+9. <b>Would you like a glass of water?</b>
+10. <b>Would you like a lift?</b>
+11. <b>Would you like to take this book?</b>
+12. <b>Would you like to stay the night?</b>
+13. <b>Would you like to talk?</b>
+14. <b>Would you like a piece of pizza?</b>
+15. <b>Would you like to go together?</b>
+</toggle>
+
+### Упражнение 20. Диалог в магазине — заполни пропуски
+
+Вставь одно слово: would, like, to, a или some.
+
+1. — Hello. Can I help you? — Yes, I'd <code>____</code> a scarf, please.
+2. — What colour <code>____</code> you like?
+3. — I'd like <code>____</code> blue one.
+4. — Would you <code>____</code> to try this one?
+5. — Yes, I'd like <code>____</code> try it.
+6. — <code>____</code> you like a bag for it?
+7. — No, thanks. I'd like <code>____</code> pay by card.
+8. — Would you like <code>____</code> gloves too? They're on sale.
+9. — Hmm, I'd <code>____</code> to see them.
+10. — Would you like <code>____</code> receipt?
+11. — Yes, please. And I'd <code>____</code> to ask about returns.
+12. — Of course. <code>____</code> you like to leave your email?
+13. — No, thank you. I'd like <code>____</code> paper receipt.
+14. — Would you like <code>____</code> loyalty card?
+15. — Maybe. I'd like <code>____</code> see your winter coats.
+
+<toggle heading="h3">
+Ответы к упражнению 20
+
+1. <b>like</b>
+2. <b>would</b>
+3. <b>a</b>
+4. <b>like</b>
+5. <b>to</b>
+6. <b>Would</b>
+7. <b>to</b>
+8. <b>some</b>
+9. <b>like</b>
+10. <b>a</b>
+11. <b>like</b>
+12. <b>Would</b>
+13. <b>a</b>
+14. <b>a</b>
+15. <b>to</b>
+</toggle>
+
+### Упражнение 21. Итоговый тест
+
+Выбери верный вариант.
+
+1. I'd like (a coffee / coffee a), please.
+2. Would you like (to come / come) with us?
+3. She (would like / would likes) a new phone.
+4. (Would you like / Do you like) some cake? I just made it.
+5. I (like / 'd like) reading. I read every day.
+6. What (would you like / you would like) to eat?
+7. Would you like some tea? — (Yes, please. / Yes, I would like.)
+8. We'd like (to book / booking) a table.
+9. Would you like to come to my wedding? — (I'd love to! / I love!)
+10. He'd like (to be / be) a vet.
+11. (Do you would / Would you) like a lift?
+12. I'd like (some / a) water.
+13. Would you like to live in Paris? — (Yes, I would. / Yes, please.)
+14. My parents (would like / would to like) to visit us.
+15. I'd like (the fish / to the fish), please.
+
+<toggle heading="h3">
+Ответы к упражнению 21
+
+1. <b>a coffee</b>
+2. <b>to come</b>
+3. <b>would like</b>
+4. <b>Would you like</b>
+5. <b>like</b>
+6. <b>would you like</b>
+7. <b>Yes, please.</b>
+8. <b>to book</b>
+9. <b>I'd love to!</b>
+10. <b>to be</b>
+11. <b>Would you</b>
+12. <b>some</b>
+13. <b>Yes, I would.</b> — вопрос о желании, а не предложение
+14. <b>would like</b>
+15. <b>the fish</b>
 </toggle>
 </toggle>
 

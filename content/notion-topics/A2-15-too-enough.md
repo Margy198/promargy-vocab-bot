@@ -365,7 +365,7 @@
 </toggle>
 
 <toggle>
-Упражнения 6-8 — раскрой, когда закроешь первые пять
+Упражнения 6-21 — раскрой, когда закроешь первые пять
 
 ### Упражнение 6. Найди и исправь ошибку
 
@@ -483,6 +483,526 @@
 13. <b>The film was too long.</b>
 14. <b>The water isn't warm enough.</b>
 15. <b>The car isn't new enough.</b>
+</toggle>
+
+### Упражнение 9. Too, too much или too many?
+
+Too — перед прилагательным и наречием. Too much — перед неисчисляемым, too many — перед исчисляемым во множественном числе.
+
+1. There's (too / too much / too many) sugar in this cake.
+2. This jacket is (too / too much / too many) big for me.
+3. My son has (too / too much / too many) toys.
+4. The exam was (too / too much / too many) hard.
+5. I've got (too / too much / too many) emails to answer.
+6. Don't use (too / too much / too many) shampoo.
+7. The bus was (too / too much / too many) crowded.
+8. There are (too / too much / too many) tourists in the old town in summer.
+9. He watches (too / too much / too many) TV.
+10. You're driving (too / too much / too many) fast.
+11. We invited (too / too much / too many) guests.
+12. I had (too / too much / too many) work last week.
+13. The stairs are (too / too much / too many) steep for my grandma.
+14. There's (too / too much / too many) snow on the roads.
+15. She bought (too / too much / too many) bags in the sale.
+
+<toggle heading="h3">
+Ответы к упражнению 9
+
+1. <b>too much</b>
+2. <b>too</b>
+3. <b>too many</b>
+4. <b>too</b>
+5. <b>too many</b>
+6. <b>too much</b>
+7. <b>too</b>
+8. <b>too many</b>
+9. <b>too much</b>
+10. <b>too</b>
+11. <b>too many</b>
+12. <b>too much</b>
+13. <b>too</b>
+14. <b>too much</b>
+15. <b>too many</b>
+</toggle>
+
+### Упражнение 10. Enough: до или после?
+
+Прилагательное или наречие + enough. Enough + существительное.
+
+1. Are you (old enough / enough old) to watch this film?
+2. We don't have (enough plates / plates enough) for everyone.
+3. The ice isn't (thick enough / enough thick) to walk on.
+4. Did you get (enough sleep / sleep enough) last night?
+5. My car isn't (enough big / big enough) for five people.
+6. Is there (enough milk / milk enough) for pancakes?
+7. He isn't (enough strong / strong enough) to open the jar.
+8. I have (enough cash / cash enough) for a taxi.
+9. The garden isn't (sunny enough / enough sunny) for tomatoes.
+10. We don't have (enough eggs / eggs enough) for an omelette.
+11. Speak (loud enough / enough loud) — everyone must hear you.
+12. There aren't (enough buses / buses enough) at night.
+13. Is this rope (long enough / enough long)?
+14. She doesn't eat (enough vegetables / vegetables enough).
+15. The kids are (enough tired / tired enough) to fall asleep at once.
+
+<toggle heading="h3">
+Ответы к упражнению 10
+
+1. <b>old enough</b>
+2. <b>enough plates</b>
+3. <b>thick enough</b>
+4. <b>enough sleep</b>
+5. <b>big enough</b>
+6. <b>enough milk</b>
+7. <b>strong enough</b>
+8. <b>enough cash</b>
+9. <b>sunny enough</b>
+10. <b>enough eggs</b>
+11. <b>loud enough</b>
+12. <b>enough buses</b>
+13. <b>long enough</b>
+14. <b>enough vegetables</b>
+15. <b>tired enough</b>
+</toggle>
+
+### Упражнение 11. Too или not … enough?
+
+Подумай, в чем проблема: слишком много качества или его не хватает.
+
+1. I can't reach the top shelf. I'm (too tall / not tall enough).
+2. I hit my head on the door. I'm (too tall / not tall enough).
+3. Max can't ride the big roller coaster. He's (too young / not young enough).
+4. These trousers fall down. They're (too big / not big enough).
+5. My little brother can't go to school yet. He's (too old / not old enough).
+6. The children can't swim here alone. The water is (too deep / not deep enough).
+7. I can't jump into the pool here. The water is (too deep / not deep enough). It's only 50 cm.
+8. I can't read anything on the screen. It's (too bright / not bright enough).
+9. I can't sleep. The room is (too hot / not hot enough).
+10. My salary is small. It's (too high / not high enough) to buy a flat.
+11. Anna didn't get the job. She was (too experienced / not experienced enough).
+12. We can't hear the speaker. He speaks (too quietly / not quietly enough).
+13. The ice cream melted. The freezer was (too cold / not cold enough).
+14. I can't carry my suitcase. It's (too heavy / not heavy enough).
+15. The jeans are tight. They're (too big / not big enough).
+
+<toggle heading="h3">
+Ответы к упражнению 11
+
+1. <b>not tall enough</b>
+2. <b>too tall</b>
+3. <b>too young</b>
+4. <b>too big</b>
+5. <b>not old enough</b>
+6. <b>too deep</b>
+7. <b>not deep enough</b>
+8. <b>not bright enough</b>
+9. <b>too hot</b>
+10. <b>not high enough</b>
+11. <b>not experienced enough</b>
+12. <b>too quietly</b>
+13. <b>not cold enough</b>
+14. <b>too heavy</b>
+15. <b>not big enough</b>
+</toggle>
+
+### Упражнение 12. Enough + to + глагол
+
+Соедини в одно предложение по подсказке.
+
+1. Max is 18. (old enough / vote) → <code>____</code>
+2. The ice is thick. (thick enough / walk on) → <code>____</code>
+3. I have some money. (enough money / buy a bike) → <code>____</code>
+4. Anna is 17. (not old enough / drive) → <code>____</code>
+5. The kitchen is big. (big enough / eat in) → <code>____</code>
+6. We have some time. (enough time / visit the museum) → <code>____</code>
+7. Tom is tall. (tall enough / play basketball) → <code>____</code>
+8. It's warm today. (warm enough / sit outside) → <code>____</code>
+9. I don't have many eggs. (not enough eggs / make a cake) → <code>____</code>
+10. My daughter is 12. (old enough / stay home alone) → <code>____</code>
+11. The car is small. (not big enough / take five people) → <code>____</code>
+12. She has some experience. (enough experience / lead the team) → <code>____</code>
+13. The rope is short. (not long enough / reach the ground) → <code>____</code>
+14. He speaks good English. (well enough / work in London) → <code>____</code>
+15. The bag is small. (not big enough / hold my laptop) → <code>____</code>
+
+<toggle heading="h3">
+Ответы к упражнению 12
+
+1. <b>Max is old enough to vote.</b>
+2. <b>The ice is thick enough to walk on.</b>
+3. <b>I have enough money to buy a bike.</b>
+4. <b>Anna isn't old enough to drive.</b> (или <b>is not old enough</b>)
+5. <b>The kitchen is big enough to eat in.</b>
+6. <b>We have enough time to visit the museum.</b>
+7. <b>Tom is tall enough to play basketball.</b>
+8. <b>It's warm enough to sit outside.</b>
+9. <b>I don't have enough eggs to make a cake.</b>
+10. <b>My daughter is old enough to stay home alone.</b>
+11. <b>The car isn't big enough to take five people.</b>
+12. <b>She has enough experience to lead the team.</b>
+13. <b>The rope isn't long enough to reach the ground.</b>
+14. <b>He speaks English well enough to work in London.</b>
+15. <b>The bag isn't big enough to hold my laptop.</b>
+</toggle>
+
+### Упражнение 13. Too или very? (2)
+
+Very — просто очень. Too — слишком, и это проблема.
+
+1. The museum was (very / too) interesting. We stayed for four hours.
+2. The museum was (very / too) crowded. We left after ten minutes.
+3. My grandma is (very / too) old, but she still drives.
+4. My grandma is (very / too) old to travel alone now.
+5. This phone is (very / too) cheap. Let's buy it!
+6. This phone is (very / too) cheap. It will break in a week.
+7. The teacher is (very / too) strict, but we like her.
+8. The path is (very / too) narrow for a car.
+9. It's (very / too) windy today, but we can still go sailing.
+10. It's (very / too) windy to go sailing.
+11. The hotel staff were (very / too) friendly.
+12. The jacket is (very / too) warm for spring. I'm sweating.
+13. The new cafe is (very / too) popular. You need to book a table.
+14. My son is (very / too) shy to sing on stage.
+15. The exam was (very / too) easy, and I got a good mark.
+
+<toggle heading="h3">
+Ответы к упражнению 13
+
+1. <b>very</b>
+2. <b>too</b>
+3. <b>very</b>
+4. <b>too</b>
+5. <b>very</b>
+6. <b>too</b>
+7. <b>very</b>
+8. <b>too</b>
+9. <b>very</b>
+10. <b>too</b>
+11. <b>very</b>
+12. <b>too</b>
+13. <b>very</b>
+14. <b>too</b>
+15. <b>very</b>
+</toggle>
+
+### Упражнение 14. Собери предложение
+
+Расставь слова.
+
+1. (too / is / this bed / soft) → <code>____</code>
+2. (enough / we / time / don't have) → <code>____</code>
+3. (too many / there are / on this bus / people) → <code>____</code>
+4. (warm enough / the sea / isn't / for swimming) → <code>____</code>
+5. (too much / you / on clothes / spend) → <code>____</code>
+6. (too / is / to walk / far / the station) → <code>____</code>
+7. (enough / are / old / you / to understand) → <code>____</code>
+8. (too much / there's / in my coffee / milk) → <code>____</code>
+9. (too tired / was / I / to cook) → <code>____</code>
+10. (enough / chairs / there aren't) → <code>____</code>
+11. (fast enough / doesn't / my laptop / work) → <code>____</code>
+12. (too many / he / mistakes / makes) → <code>____</code>
+13. (too / it's / to go out / cold) → <code>____</code>
+14. (big enough / for us / this flat / isn't) → <code>____</code>
+15. (enough / have / do / we / petrol) → <code>____</code>
+
+<toggle heading="h3">
+Ответы к упражнению 14
+
+1. <b>This bed is too soft.</b>
+2. <b>We don't have enough time.</b>
+3. <b>There are too many people on this bus.</b>
+4. <b>The sea isn't warm enough for swimming.</b>
+5. <b>You spend too much on clothes.</b>
+6. <b>The station is too far to walk.</b>
+7. <b>You are old enough to understand.</b>
+8. <b>There's too much milk in my coffee.</b>
+9. <b>I was too tired to cook.</b>
+10. <b>There aren't enough chairs.</b>
+11. <b>My laptop doesn't work fast enough.</b>
+12. <b>He makes too many mistakes.</b>
+13. <b>It's too cold to go out.</b>
+14. <b>This flat isn't big enough for us.</b>
+15. <b>Do we have enough petrol?</b>
+</toggle>
+
+### Упражнение 15. Посчитай: too many / too much или not enough?
+
+Сравни числа и выбери.
+
+1. Ten guests and six chairs: there are (too many / not enough) chairs.
+2. Four people and twelve pizzas: we have (too many / not enough) pizzas.
+3. Thirty students and one teacher: there are (too many / not enough) teachers.
+4. Thirty students in a tiny room: there are (too many / not enough) students.
+5. A cake for twenty, and only four guests: there is (too much / not enough) cake.
+6. Two litres of milk for one pancake: that's (too much / not enough) milk.
+7. One bottle of water for a day in the desert: that's (too much / not enough) water.
+8. Five euros for a taxi to the airport: that's (too much / not enough) money.
+9. Fifty euros for a cup of coffee: that's (too much / not enough) money.
+10. Three hours to watch a ten-minute video: that's (too much / not enough) time.
+11. Ten minutes to cook a big turkey: that's (too much / not enough) time.
+12. Five suitcases for a weekend trip: that's (too many / not enough) suitcases.
+13. One towel for a family of five: there are (too many / not enough) towels.
+14. A hundred photos of the same cat: that's (too many / not enough) photos.
+15. Two eggs for a big omelette for six people: there are (too many / not enough) eggs.
+
+<toggle heading="h3">
+Ответы к упражнению 15
+
+1. <b>not enough</b>
+2. <b>too many</b>
+3. <b>not enough</b>
+4. <b>too many</b>
+5. <b>too much</b>
+6. <b>too much</b>
+7. <b>not enough</b>
+8. <b>not enough</b>
+9. <b>too much</b>
+10. <b>too much</b>
+11. <b>not enough</b>
+12. <b>too many</b>
+13. <b>not enough</b>
+14. <b>too many</b>
+15. <b>not enough</b>
+</toggle>
+
+### Упражнение 16. Переведи на английский (2)
+
+Переведи предложения.
+
+1. Эти джинсы слишком узкие.
+2. В этом городе слишком много туристов.
+3. У меня недостаточно опыта.
+4. Ты недостаточно спишь.
+5. Здесь слишком шумно, чтобы работать.
+6. Он слишком молод для этой работы.
+7. Мы купили слишком много еды.
+8. Квартира достаточно большая для нашей семьи.
+9. Сейчас слишком жарко, чтобы гулять.
+10. У нас достаточно яиц?
+11. У нее слишком много обуви.
+12. Этот фильм слишком страшный для детей.
+13. Она недостаточно высокая, чтобы достать до полки.
+14. Ты кладешь слишком много сахара в чай.
+15. Это кафе очень дорогое, но мне оно нравится.
+
+<toggle heading="h3">
+Ответы к упражнению 16
+
+1. <b>These jeans are too tight.</b>
+2. <b>There are too many tourists in this city.</b>
+3. <b>I don't have enough experience.</b>
+4. <b>You don't sleep enough.</b>
+5. <b>It's too noisy to work here.</b>
+6. <b>He's too young for this job.</b>
+7. <b>We bought too much food.</b>
+8. <b>The flat is big enough for our family.</b>
+9. <b>It's too hot to go for a walk now.</b>
+10. <b>Do we have enough eggs?</b>
+11. <b>She has too many shoes.</b>
+12. <b>This film is too scary for children.</b>
+13. <b>She isn't tall enough to reach the shelf.</b>
+14. <b>You put too much sugar in your tea.</b>
+15. <b>This cafe is very expensive, but I like it.</b>
+</toggle>
+
+### Упражнение 17. Найди и исправь ошибку (2)
+
+В некоторых предложениях ошибки нет — отметь их как верные.
+
+1. There is too many snow.
+2. He's enough strong to help.
+3. We have enough plates.
+4. It's too much cold today.
+5. She's too young to get married.
+6. I don't have enough of time.
+7. The river is too dangerous for swim.
+8. You work too much.
+9. I ate too many cake.
+10. Is it warm enough for a picnic?
+11. The book is too boring to finish it.
+12. He drives too fast.
+13. My bag isn't enough big.
+14. They have too many money.
+15. I'm not hungry enough to eat all this.
+
+<toggle heading="h3">
+Ответы к упражнению 17
+
+1. ❌ too many snow → ✅ <b>There is too much snow.</b>
+2. ❌ enough strong → ✅ <b>He's strong enough to help.</b>
+3. ✅ <b>Верно</b>
+4. ❌ too much cold → ✅ <b>It's too cold today.</b>
+5. ✅ <b>Верно</b>
+6. ❌ enough of time → ✅ <b>I don't have enough time.</b>
+7. ❌ for swim → ✅ <b>The river is too dangerous to swim in.</b> (или <b>for swimming</b>)
+8. ✅ <b>Верно</b>
+9. ❌ too many cake → ✅ <b>I ate too much cake.</b>
+10. ✅ <b>Верно</b>
+11. ❌ to finish it → ✅ <b>The book is too boring to finish.</b> (it лишнее)
+12. ✅ <b>Верно</b>
+13. ❌ enough big → ✅ <b>My bag isn't big enough.</b>
+14. ❌ too many money → ✅ <b>They have too much money.</b>
+15. ✅ <b>Верно</b>
+</toggle>
+
+### Упражнение 18. Enough или too much / too many?
+
+Достаточно — или уже слишком? Выбери по смыслу.
+
+1. I sleep only five hours. I don't get (enough / too much) sleep.
+2. He eats fast food every day. That's (enough / too much) fast food.
+3. She walks 3,000 steps a day. That's not (enough / too many) steps.
+4. You have 40 tabs open in your browser. That's (enough / too many) tabs!
+5. We have 200 euros for the weekend. That's (enough / too much) for a short trip.
+6. I spent all my salary in a week. I spent (enough / too much) money.
+7. Drink eight glasses of water. That's (enough / too many) for a day.
+8. My son has six lessons after school. That's (enough / too many) for a ten-year-old.
+9. The soup tastes perfect. There's (enough / too much) salt.
+10. I have three jobs and no free time. I work (enough / too much).
+11. You only had a yogurt for lunch. That isn't (enough / too much) food.
+12. He has ten credit cards! That's (enough / too many) cards.
+13. We have four bedrooms for four people. That's (enough / too many) rooms.
+14. I get 300 messages a day. That's (enough / too many) messages.
+15. Two hours of TV a day is (enough / too much) for kids.
+
+<toggle heading="h3">
+Ответы к упражнению 18
+
+1. <b>enough</b>
+2. <b>too much</b>
+3. <b>enough</b>
+4. <b>too many</b>
+5. <b>enough</b>
+6. <b>too much</b>
+7. <b>enough</b>
+8. <b>too many</b>
+9. <b>enough</b>
+10. <b>too much</b>
+11. <b>enough</b>
+12. <b>too many</b>
+13. <b>enough</b>
+14. <b>too many</b>
+15. <b>enough</b>
+</toggle>
+
+### Упражнение 19. For или to?
+
+Too / enough + for + существительное или местоимение. Too / enough + to + глагол.
+
+1. This book is too difficult (for / to) me.
+2. This book is too difficult (for / to) read.
+3. The water is warm enough (for / to) a swim.
+4. The water is warm enough (for / to) swim in.
+5. He's too young (for / to) this job.
+6. He's too young (for / to) work here.
+7. The bag is too small (for / to) my laptop.
+8. It's too late (for / to) go to the shop.
+9. Is the flat big enough (for / to) your family?
+10. I'm too busy (for / to) a holiday.
+11. I'm too busy (for / to) take a holiday.
+12. The weather is good enough (for / to) a picnic.
+13. She's clever enough (for / to) solve it.
+14. The film is too scary (for / to) children.
+15. The coffee is too strong (for / to) drink at night.
+
+<toggle heading="h3">
+Ответы к упражнению 19
+
+1. <b>for</b>
+2. <b>to</b>
+3. <b>for</b>
+4. <b>to</b>
+5. <b>for</b>
+6. <b>to</b>
+7. <b>for</b>
+8. <b>to</b>
+9. <b>for</b>
+10. <b>for</b>
+11. <b>to</b>
+12. <b>for</b>
+13. <b>to</b>
+14. <b>for</b>
+15. <b>to</b>
+</toggle>
+
+### Упражнение 20. Жалобы в отеле
+
+Вставь одно слово: too, much, many, enough или very.
+
+1. — Good morning. How can I help? — Our room is <code>____</code> small. We can't open our suitcases.
+2. — Also, there isn't <code>____</code> space in the wardrobe.
+3. — And there are too <code>____</code> mosquitoes! We didn't sleep at all.
+4. — The air conditioning makes too <code>____</code> noise.
+5. — The water in the shower isn't hot <code>____</code>.
+6. — The breakfast was <code>____</code> good, thank you. We liked it.
+7. — But there were too <code>____</code> people in the restaurant.
+8. — We waited <code>____</code> long for a table — forty minutes!
+9. — The pool is nice, but there aren't <code>____</code> sunbeds.
+10. — Is that all? — No. The wifi is <code>____</code> slow to watch films.
+11. — And the bar is <code>____</code> expensive for us.
+12. — I'm <code>____</code> sorry about this. Let me show you another room.
+13. — Do you have <code>____</code> time to see it now? — Yes, of course.
+14. — Here it is. — Oh, it's <code>____</code> beautiful! It has a sea view.
+15. — And it's big <code>____</code> for our family. We'll take it!
+
+<toggle heading="h3">
+Ответы к упражнению 20
+
+1. <b>too</b>
+2. <b>enough</b>
+3. <b>many</b>
+4. <b>much</b>
+5. <b>enough</b>
+6. <b>very</b>
+7. <b>many</b>
+8. <b>too</b>
+9. <b>enough</b>
+10. <b>too</b>
+11. <b>too</b>
+12. <b>very</b>
+13. <b>enough</b>
+14. <b>very</b>
+15. <b>enough</b>
+</toggle>
+
+### Упражнение 21. Итоговый тест
+
+Выбери верный вариант.
+
+1. There are (too much / too many) flies in the kitchen.
+2. I'm not (enough old / old enough).
+3. It's (too / too much) noisy here.
+4. We have (enough food / food enough).
+5. He spends (too much / too many) time online.
+6. The tea is (very / too) hot, but I like it this way.
+7. She's too tired (to / for) drive.
+8. This flat is too small (to / for) us.
+9. Is it warm (enough / too) for a T-shirt?
+10. You eat (too much / too many) chocolate.
+11. The film was (too / very) long. We fell asleep.
+12. There aren't (enough / too) seats on the bus.
+13. He's (too / enough) short to play basketball.
+14. I can't buy it. It's (too / very) expensive.
+15. They don't speak (enough slowly / slowly enough).
+
+<toggle heading="h3">
+Ответы к упражнению 21
+
+1. <b>too many</b>
+2. <b>old enough</b>
+3. <b>too</b>
+4. <b>enough food</b>
+5. <b>too much</b>
+6. <b>very</b>
+7. <b>to</b>
+8. <b>for</b>
+9. <b>enough</b>
+10. <b>too much</b>
+11. <b>too</b>
+12. <b>enough</b>
+13. <b>too</b>
+14. <b>too</b>
+15. <b>slowly enough</b>
 </toggle>
 </toggle>
 

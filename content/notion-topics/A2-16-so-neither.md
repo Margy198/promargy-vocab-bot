@@ -365,7 +365,7 @@
 </toggle>
 
 <toggle>
-Упражнения 6-8 — раскрой, когда закроешь первые пять
+Упражнения 6-21 — раскрой, когда закроешь первые пять
 
 ### Упражнение 6. Найди и исправь ошибку
 
@@ -483,6 +483,526 @@
 13. <b>I'll go tomorrow. — So will I.</b>
 14. <b>I wasn't at the party. — Neither was I.</b>
 15. <b>I enjoyed the concert. — So did I.</b>
+</toggle>
+
+### Упражнение 9. Не только I: so does my wife
+
+Ответь «… тоже» о человеке в скобках. Вспомогательный глагол согласуй с ним.
+
+1. Tom likes jazz. (my wife) → <code>____</code>
+2. Anna can't ski. (her husband) → <code>____</code>
+3. My boss is on holiday. (his assistant) → <code>____</code>
+4. I didn't hear the alarm. (my neighbours) → <code>____</code>
+5. Max has got a new phone. (his sister) → <code>____</code>
+6. The kids were tired. (the teachers) → <code>____</code>
+7. My dad doesn't eat fish. (my mum) → <code>____</code>
+8. Bella will come to the party. (her cousins) → <code>____</code>
+9. Our flat isn't very big. (theirs) → <code>____</code>
+10. Kate passed the exam. (all her friends) → <code>____</code>
+11. My phone doesn't work. (my laptop) → <code>____</code>
+12. Mike has visited Japan. (his brother) → <code>____</code>
+13. The train was late. (the bus) → <code>____</code>
+14. I can't find my keys. (my husband) → <code>____</code>
+15. My son loves dinosaurs. (my daughter) → <code>____</code>
+
+<toggle heading="h3">
+Ответы к упражнению 9
+
+1. <b>So does my wife.</b>
+2. <b>Neither can her husband.</b>
+3. <b>So is his assistant.</b>
+4. <b>Neither did my neighbours.</b>
+5. <b>So has his sister.</b>
+6. <b>So were the teachers.</b>
+7. <b>Neither does my mum.</b>
+8. <b>So will her cousins.</b>
+9. <b>Neither is theirs.</b>
+10. <b>So did all her friends.</b>
+11. <b>Neither does my laptop.</b>
+12. <b>So has his brother.</b>
+13. <b>So was the bus.</b>
+14. <b>Neither can my husband.</b>
+15. <b>So does my daughter.</b>
+</toggle>
+
+### Упражнение 10. Соедини: and so / and neither
+
+Сделай из двух предложений одно.
+
+1. Anna is from Kazan. Max is from Kazan too. → <code>____</code>
+2. I don't like opera. My husband doesn't like opera either. → <code>____</code>
+3. Tom can play chess. His son can play chess too. → <code>____</code>
+4. My mum didn't call. My dad didn't call either. → <code>____</code>
+5. The shop is closed. The bank is closed too. → <code>____</code>
+6. I've lost my umbrella. Kate has lost her umbrella too. → <code>____</code>
+7. We weren't at home. Our neighbours weren't at home either. → <code>____</code>
+8. Bella speaks Italian. Her sister speaks Italian too. → <code>____</code>
+9. My car isn't new. Your car isn't new either. → <code>____</code>
+10. I went to the gym. Mike went to the gym too. → <code>____</code>
+11. Max won't be there. Anna won't be there either. → <code>____</code>
+12. The soup was cold. The pasta was cold too. → <code>____</code>
+13. I haven't read the book. My friends haven't read it either. → <code>____</code>
+14. My grandma can knit. My aunt can knit too. → <code>____</code>
+15. Our cat doesn't like water. Our dog doesn't like water either. → <code>____</code>
+
+<toggle heading="h3">
+Ответы к упражнению 10
+
+1. <b>Anna is from Kazan, and so is Max.</b>
+2. <b>I don't like opera, and neither does my husband.</b>
+3. <b>Tom can play chess, and so can his son.</b>
+4. <b>My mum didn't call, and neither did my dad.</b>
+5. <b>The shop is closed, and so is the bank.</b>
+6. <b>I've lost my umbrella, and so has Kate.</b>
+7. <b>We weren't at home, and neither were our neighbours.</b>
+8. <b>Bella speaks Italian, and so does her sister.</b>
+9. <b>My car isn't new, and neither is yours.</b>
+10. <b>I went to the gym, and so did Mike.</b>
+11. <b>Max won't be there, and neither will Anna.</b>
+12. <b>The soup was cold, and so was the pasta.</b>
+13. <b>I haven't read the book, and neither have my friends.</b>
+14. <b>My grandma can knit, and so can my aunt.</b>
+15. <b>Our cat doesn't like water, and neither does our dog.</b>
+</toggle>
+
+### Упражнение 11. Согласись или нет
+
+(=) — ответь «я тоже», (≠) — «а я нет» или «а я да».
+
+1. I love winter. (=) → <code>____</code>
+2. I love winter. (≠) → <code>____</code>
+3. I'm not good at maths. (=) → <code>____</code>
+4. I'm not good at maths. (≠) → <code>____</code>
+5. I can ride a horse. (≠) → <code>____</code>
+6. I didn't go out last night. (=) → <code>____</code>
+7. I've got two brothers. (=) → <code>____</code>
+8. I don't watch the news. (≠) → <code>____</code>
+9. I was at school here. (=) → <code>____</code>
+10. I'll never learn Chinese. (=) → <code>____</code>
+11. I won't be at work tomorrow. (≠) → <code>____</code>
+12. I like spicy food. (≠) → <code>____</code>
+13. I haven't had lunch. (≠) → <code>____</code>
+14. I can't stand loud music. (=) → <code>____</code>
+15. I'm a vegetarian. (=) → <code>____</code>
+
+<toggle heading="h3">
+Ответы к упражнению 11
+
+1. <b>So do I.</b>
+2. <b>I don't.</b>
+3. <b>Neither am I.</b>
+4. <b>I am.</b>
+5. <b>I can't.</b>
+6. <b>Neither did I.</b>
+7. <b>So have I.</b>
+8. <b>I do.</b>
+9. <b>So was I.</b>
+10. <b>Neither will I.</b> — never делает фразу отрицательной
+11. <b>I will.</b>
+12. <b>I don't.</b>
+13. <b>I have.</b>
+14. <b>Neither can I.</b>
+15. <b>So am I.</b>
+</toggle>
+
+### Упражнение 12. Выбери вспомогательный глагол (2)
+
+Повтори вспомогательный или модальный глагол из фразы собеседника.
+
+1. I'm learning Spanish. — So (am / do) I.
+2. I should go to bed. — So (should / do) I.
+3. I'd like a coffee. — So (would / do) I.
+4. I've got a headache. — So (have / do) I.
+5. I wasn't listening. — Neither (was / did) I.
+6. I'm going to the party. — So (am / do) I.
+7. I could swim at five. — So (could / did) I.
+8. I must leave soon. — So (must / do) I.
+9. I don't have a car. — Neither (do / have) I.
+10. My son wants a puppy. — So (does / is) mine.
+11. We were watching TV. — So (were / did) we.
+12. I shouldn't eat sugar. — Neither (should / do) I.
+13. I'm not working today. — Neither (am / do) I.
+14. I couldn't sleep. — Neither (could / did) I.
+15. They've moved house. — So (have / did) our neighbours.
+
+<toggle heading="h3">
+Ответы к упражнению 12
+
+1. <b>am</b>
+2. <b>should</b>
+3. <b>would</b> — I'd = I would
+4. <b>have</b> — I've got
+5. <b>was</b>
+6. <b>am</b>
+7. <b>could</b>
+8. <b>must</b>
+9. <b>do</b> — don't have
+10. <b>does</b>
+11. <b>were</b>
+12. <b>should</b>
+13. <b>am</b>
+14. <b>could</b>
+15. <b>have</b> — they've
+</toggle>
+
+### Упражнение 13. Too или either?
+
+Разговорный вариант: I do too / I can too — на утверждение; I don't either / I can't either — на отрицание.
+
+1. I love pizza. — I do <code>____</code>.
+2. I can't dance. — I can't <code>____</code>.
+3. I'm cold. — I am <code>____</code>.
+4. I didn't understand the question. — I didn't <code>____</code>.
+5. I've been there. — I have <code>____</code>.
+6. I don't like rain. — I don't <code>____</code>.
+7. Max isn't coming. — Anna isn't <code>____</code>.
+8. I was at the concert. — My sister was <code>____</code>.
+9. I won't tell anyone. — I won't <code>____</code>.
+10. My kids love the beach. — Mine do <code>____</code>.
+11. I haven't got any cash. — I haven't <code>____</code>.
+12. I can see the sea! — I can <code>____</code>.
+13. I don't eat sugar. — My husband doesn't <code>____</code>.
+14. I'll help you. — I will <code>____</code>.
+15. I wasn't hungry. — I wasn't <code>____</code>.
+
+<toggle heading="h3">
+Ответы к упражнению 13
+
+1. <b>too</b>
+2. <b>either</b>
+3. <b>too</b>
+4. <b>either</b>
+5. <b>too</b>
+6. <b>either</b>
+7. <b>either</b>
+8. <b>too</b>
+9. <b>either</b>
+10. <b>too</b>
+11. <b>either</b>
+12. <b>too</b>
+13. <b>either</b>
+14. <b>too</b>
+15. <b>either</b>
+</toggle>
+
+### Упражнение 14. Собери ответ
+
+Расставь слова в ответе.
+
+1. My wife likes cats. — (does / so / my mother) → <code>____</code>
+2. I can't come. — (can / neither / Tom) → <code>____</code>
+3. We're tired. — (are / so / we) → <code>____</code>
+4. I didn't vote. — (did / nor / I) → <code>____</code>
+5. Anna has a cold. — (does / so / her son) → <code>____</code>
+6. The kids aren't hungry. — (am / neither / I) → <code>____</code>
+7. I've finished my work. — (have / so / I) → <code>____</code>
+8. My dad wasn't at home. — (was / neither / my mum) → <code>____</code>
+9. I'll be late. — (will / so / I) → <code>____</code>
+10. I don't understand. — (do / neither / we) → <code>____</code>
+11. Max went to Spain. — (did / so / his friends) → <code>____</code>
+12. I can't hear you. — (can / neither / the people at the back) → <code>____</code>
+13. I'm from Minsk. — (is / so / my husband) → <code>____</code>
+14. My son doesn't like soup. — (does / neither / my daughter) → <code>____</code>
+15. We were at the match. — (were / so / our neighbours) → <code>____</code>
+
+<toggle heading="h3">
+Ответы к упражнению 14
+
+1. <b>So does my mother.</b>
+2. <b>Neither can Tom.</b>
+3. <b>So are we.</b>
+4. <b>Nor did I.</b>
+5. <b>So does her son.</b>
+6. <b>Neither am I.</b>
+7. <b>So have I.</b>
+8. <b>Neither was my mum.</b>
+9. <b>So will I.</b>
+10. <b>Neither do we.</b>
+11. <b>So did his friends.</b>
+12. <b>Neither can the people at the back.</b>
+13. <b>So is my husband.</b>
+14. <b>Neither does my daughter.</b>
+15. <b>So were our neighbours.</b>
+</toggle>
+
+### Упражнение 15. Первое свидание — заполни пропуски
+
+Вставь одно слово.
+
+1. — I love travelling. — So <code>____</code> I!
+2. — I've been to Italy three times. — So <code>____</code> I!
+3. — I'm not a big fan of beaches. — <code>____</code> am I.
+4. — I prefer mountains. — So <code>____</code> I.
+5. — I can't cook at all. — Really? I <code>____</code>. I'm a good cook.
+6. — I don't eat meat. — <code>____</code> do I! I'm a vegetarian too.
+7. — I was born in April. — So <code>____</code> I!
+8. — I didn't like school. — <code>____</code> did I.
+9. — But I loved university. — I <code>____</code> too.
+10. — I'm learning to play the guitar. — So <code>____</code> I!
+11. — I won't sing for you today. — Me <code>____</code>!
+12. — I have a cat. — I <code>____</code> too! Her name is Luna.
+13. — I don't watch TV much. — I don't <code>____</code>.
+14. — I'd like to see you again. — So <code>____</code> I.
+15. — Great! I'm free on Saturday. — So <code>____</code> I!
+
+<toggle heading="h3">
+Ответы к упражнению 15
+
+1. <b>do</b>
+2. <b>have</b>
+3. <b>Neither</b> (или <b>Nor</b>)
+4. <b>do</b>
+5. <b>can</b>
+6. <b>Neither</b> (или <b>Nor</b>)
+7. <b>was</b>
+8. <b>Neither</b> (или <b>Nor</b>)
+9. <b>did</b>
+10. <b>am</b>
+11. <b>neither</b>
+12. <b>do</b>
+13. <b>either</b>
+14. <b>would</b>
+15. <b>am</b>
+</toggle>
+
+### Упражнение 16. Переведи на английский (2)
+
+Переведи диалоги и предложения.
+
+1. Мой муж не любит футбол, и мой сын тоже.
+2. Анна сдала экзамен. — Макс тоже.
+3. Я не могу найти телефон. — Я тоже.
+4. Мы были в Праге. — Мы тоже!
+5. Я работаю по субботам. — А я нет.
+6. Моя сестра живет в Лондоне, и мой брат тоже.
+7. Я не голоден. — А я голоден.
+8. Я хочу пить. — Я тоже. (разговорно)
+9. Я не была на свадьбе. — Мои родители тоже.
+10. Я буду дома в шесть. — Я тоже.
+11. Магазин не работает по воскресеньям, и почта тоже.
+12. Я смотрю этот сериал. — Я тоже!
+13. Я не люблю рано вставать. — Я тоже. (разговорно)
+14. Наш учитель говорит по-китайски, и его жена тоже.
+15. Я забыл пароль. — Я тоже.
+
+<toggle heading="h3">
+Ответы к упражнению 16
+
+1. <b>My husband doesn't like football, and neither does my son.</b>
+2. <b>Anna passed the exam. — So did Max.</b>
+3. <b>I can't find my phone. — Neither can I.</b>
+4. <b>We've been to Prague. — So have we!</b> (или <b>We were in Prague. — So were we!</b>)
+5. <b>I work on Saturdays. — I don't.</b>
+6. <b>My sister lives in London, and so does my brother.</b>
+7. <b>I'm not hungry. — I am.</b>
+8. <b>I'm thirsty. — Me too.</b>
+9. <b>I wasn't at the wedding. — Neither were my parents.</b>
+10. <b>I'll be home at six. — So will I.</b>
+11. <b>The shop doesn't open on Sundays, and neither does the post office.</b>
+12. <b>I'm watching this series. — So am I!</b>
+13. <b>I don't like getting up early. — Me neither.</b>
+14. <b>Our teacher speaks Chinese, and so does his wife.</b>
+15. <b>I forgot my password. — So did I.</b> (или <b>I've forgotten my password. — So have I.</b>)
+</toggle>
+
+### Упражнение 17. Найди и исправь ошибку (2)
+
+В некоторых предложениях ошибки нет — отметь их как верные.
+
+1. I'm a student. — So do I.
+2. My dad can't swim, and neither can my mum.
+3. I don't like tea. — Neither I do.
+4. I didn't see him. — Me too.
+5. Anna likes jazz, and so does Tom.
+6. I've been to Rome. — So have I.
+7. I'm not ready. — So am I.
+8. They were late, and so was we.
+9. I can drive. — I can't.
+10. Kate lives here, and so lives Max.
+11. I won't go. — Neither won't I.
+12. I don't eat sugar either.
+13. I like dogs. — I don't too.
+14. My son is ten, and so is my nephew.
+15. I wasn't tired. — Neither did I.
+
+<toggle heading="h3">
+Ответы к упражнению 17
+
+1. ❌ So do I → ✅ <b>So am I</b>
+2. ✅ <b>Верно</b>
+3. ❌ Neither I do → ✅ <b>Neither do I</b>
+4. ❌ Me too → ✅ <b>Me neither</b>
+5. ✅ <b>Верно</b>
+6. ✅ <b>Верно</b>
+7. ❌ So am I → ✅ <b>Neither am I</b>
+8. ❌ so was we → ✅ <b>They were late, and so were we.</b>
+9. ✅ <b>Верно</b>
+10. ❌ so lives Max → ✅ <b>Kate lives here, and so does Max.</b>
+11. ❌ Neither won't I → ✅ <b>Neither will I</b>
+12. ✅ <b>Верно</b>
+13. ❌ I don't too → ✅ <b>I do too</b> (если согласен) или <b>I don't</b> (если нет)
+14. ✅ <b>Верно</b>
+15. ❌ Neither did I → ✅ <b>Neither was I</b>
+</toggle>
+
+### Упражнение 18. Скажи иначе: I do too / I don't either
+
+Замени So … I и Neither … I на разговорный вариант.
+
+1. I play the piano. — So do I. → <code>____</code>
+2. I can't cook. — Neither can I. → <code>____</code>
+3. I'm bored. — So am I. → <code>____</code>
+4. I didn't call her. — Neither did I. → <code>____</code>
+5. I've got a cold. — So have I. → <code>____</code>
+6. I wasn't there. — Neither was I. → <code>____</code>
+7. I'll wait. — So will I. → <code>____</code>
+8. I don't know him. — Neither do I. → <code>____</code>
+9. I went to the party. — So did I. → <code>____</code>
+10. I haven't decided. — Neither have I. → <code>____</code>
+11. I was scared. — So was I. → <code>____</code>
+12. I won't be late. — Neither will I. → <code>____</code>
+13. I like this song. — So do I. → <code>____</code>
+14. I can't hear anything. — Neither can I. → <code>____</code>
+15. I'm not sure. — Neither am I. → <code>____</code>
+
+<toggle heading="h3">
+Ответы к упражнению 18
+
+1. <b>I do too.</b>
+2. <b>I can't either.</b>
+3. <b>I am too.</b>
+4. <b>I didn't either.</b>
+5. <b>I have too.</b>
+6. <b>I wasn't either.</b>
+7. <b>I will too.</b>
+8. <b>I don't either.</b>
+9. <b>I did too.</b>
+10. <b>I haven't either.</b>
+11. <b>I was too.</b>
+12. <b>I won't either.</b>
+13. <b>I do too.</b>
+14. <b>I can't either.</b>
+15. <b>I'm not either.</b>
+</toggle>
+
+### Упражнение 19. Мы разные: соедини с but
+
+Сделай одно предложение с but и коротким вспомогательным глаголом в конце.
+
+1. My sister likes cats. I don't like cats. → <code>____</code>
+2. Tom can swim. His brother can't swim. → <code>____</code>
+3. I'm not tired. My husband is tired. → <code>____</code>
+4. We went to the concert. Our friends didn't go. → <code>____</code>
+5. Anna has a car. Max doesn't have a car. → <code>____</code>
+6. I don't drink coffee. My colleagues drink a lot of coffee. → <code>____</code>
+7. My mum was at home. My dad wasn't at home. → <code>____</code>
+8. I haven't seen the film. My son has seen it. → <code>____</code>
+9. Kate will come. Bella won't come. → <code>____</code>
+10. The kids are hungry. I'm not hungry. → <code>____</code>
+11. I didn't like the hotel. My wife liked it. → <code>____</code>
+12. My phone works. My laptop doesn't work. → <code>____</code>
+13. We can't come. Our children can come. → <code>____</code>
+14. I wasn't scared. My friend was scared. → <code>____</code>
+15. My boss speaks French. I don't speak French. → <code>____</code>
+
+<toggle heading="h3">
+Ответы к упражнению 19
+
+1. <b>My sister likes cats, but I don't.</b>
+2. <b>Tom can swim, but his brother can't.</b>
+3. <b>I'm not tired, but my husband is.</b>
+4. <b>We went to the concert, but our friends didn't.</b>
+5. <b>Anna has a car, but Max doesn't.</b>
+6. <b>I don't drink coffee, but my colleagues do.</b>
+7. <b>My mum was at home, but my dad wasn't.</b>
+8. <b>I haven't seen the film, but my son has.</b>
+9. <b>Kate will come, but Bella won't.</b>
+10. <b>The kids are hungry, but I'm not.</b>
+11. <b>I didn't like the hotel, but my wife did.</b>
+12. <b>My phone works, but my laptop doesn't.</b>
+13. <b>We can't come, but our children can.</b>
+14. <b>I wasn't scared, but my friend was.</b>
+15. <b>My boss speaks French, but I don't.</b>
+</toggle>
+
+### Упражнение 20. Чат с друзьями: выбери реакцию «я тоже»
+
+Выбери верный ответ.
+
+1. — I'm so bored at work today. — (So do I / So am I / Neither am I).
+2. — I didn't sleep last night. — (So did I / Neither do I / Neither did I).
+3. — I've just bought a new bike! — (So have I / So did I / So am I).
+4. — I can't wait for Friday! — (So can I / Neither can I / Neither do I).
+5. — I don't understand the homework. — (Me too / So do I / Me neither).
+6. — My parents are coming this weekend. — (So do mine / So are mine / Neither are mine).
+7. — I hate Mondays. — (Me too / Me neither / Neither do I).
+8. — I wasn't at the meeting. — (Neither did I / So was I / Neither was I).
+9. — I'll bring pizza. — (So do I / So will I / Neither will I).
+10. — I've never tried sushi. — (So have I / Neither did I / Neither have I).
+11. — My cat hates the vet. — (So does mine / So is mine / Neither does mine).
+12. — I'm not going to the party. — (Neither do I / So am I / Neither am I).
+13. — I could hear the music from my flat. — (So did I / So could I / So can I).
+14. — I should start running. — (So do I / So will I / So should I).
+15. — I don't like this weather. — (I do either / I don't either / I don't too).
+
+<toggle heading="h3">
+Ответы к упражнению 20
+
+1. <b>So am I</b>
+2. <b>Neither did I</b>
+3. <b>So have I</b>
+4. <b>Neither can I</b>
+5. <b>Me neither</b>
+6. <b>So are mine</b>
+7. <b>Me too</b>
+8. <b>Neither was I</b>
+9. <b>So will I</b>
+10. <b>Neither have I</b>
+11. <b>So does mine</b>
+12. <b>Neither am I</b>
+13. <b>So could I</b>
+14. <b>So should I</b>
+15. <b>I don't either</b>
+</toggle>
+
+### Упражнение 21. Итоговый тест
+
+Выбери верный вариант.
+
+1. I like tea. — So (do / am) I.
+2. I'm not tired. — (Neither / So) am I.
+3. I can't swim. — Me (too / neither).
+4. I went home. — So (did / went) I.
+5. She's a nurse, and so (is / does) her sister.
+6. I haven't eaten. — Neither (have / did) I.
+7. I'll call you. — So (will / do) I.
+8. I don't smoke. — (I don't either / I don't too).
+9. Tom likes golf, and so (does / do) his sons.
+10. I was late. — So (was / did) I.
+11. I love it. — Really? I (don't / not).
+12. I'm hungry. — (So am I / So I am).
+13. We didn't win. — Neither (did / didn't) they.
+14. My dog can swim, and so (can / does) my cat.
+15. I don't have time. — Neither (do / have) I.
+
+<toggle heading="h3">
+Ответы к упражнению 21
+
+1. <b>do</b>
+2. <b>Neither</b>
+3. <b>neither</b>
+4. <b>did</b>
+5. <b>is</b>
+6. <b>have</b>
+7. <b>will</b>
+8. <b>I don't either</b>
+9. <b>do</b> — his sons, множественное число
+10. <b>was</b>
+11. <b>don't</b>
+12. <b>So am I</b>
+13. <b>did</b>
+14. <b>can</b>
+15. <b>do</b>
 </toggle>
 </toggle>
 

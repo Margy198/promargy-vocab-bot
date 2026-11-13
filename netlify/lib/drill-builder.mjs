@@ -470,7 +470,10 @@ export function buildDrill(ex, i, qHtml, aHtml, meta) {
       for (let n = Math.min(aw.length, rw.length - 1); n >= 1; n--) if (rw.slice(-n).map(lw).join(" ") === aw.slice(0, n).map(lw).join(" ")) { rw = rw.slice(0, -n); break; }
       return (before + rw.join(" ") + after).replace(/\s+/g, " ").replace(/\s+([.,!?])/g, "$1").replace(/([,;])(\s*[,;])+/g, "$1").replace(/([.!?])\1+$/, "$1").trim();
     };
-    if (wrong && orig.includes(wrong)) fixed = splice(orig.indexOf(wrong), wrong.length);
+    // ключ — уже целое исправленное предложение (с перестановкой слов): берем его как есть
+    const wcount = (x) => x.split(/\s+/).filter((w) => /[A-Za-z]/.test(w)).length;
+    if (/^[A-Z]/.test(right) && /[.!?]$/.test(right) && wcount(right) >= wcount(orig) - 1 && wcount(right) >= 3) fixed = right;
+    else if (wrong && orig.includes(wrong)) fixed = splice(orig.indexOf(wrong), wrong.length);
     else if (wrong && orig.toLowerCase().includes(wrong.toLowerCase())) fixed = splice(orig.toLowerCase().indexOf(wrong.toLowerCase()), wrong.length);
     // несколько ошибок в пункте: «is engineer / the Germany» → «is an engineer from Germany» заменяет весь отрезок
     else if (wrong && /\s\/\s/.test(wrong)) {
@@ -572,9 +575,13 @@ export function buildDrill(ex, i, qHtml, aHtml, meta) {
       const opts = [ans, hw];
       if (ADV_EXC[hw] && hw !== "good" && hw !== "early") opts.push(hw + "ly"); // fastly, hardly, lately — частые ошибки
       if (hw === "good") opts.push("goodly");
-      const uniq = [...new Set(opts.map((x) => x.toLowerCase()))];
+      const cap = /^[A-Z]/.test(ans) ? (x) => x[0].toUpperCase() + x.slice(1) : (x) => x;
+      const uniq = [...new Set(opts.map((x) => x.toLowerCase()))].map(cap);
       if (uniq.length >= 2) return { ...base, type: "choice", options: uniq, correct: 0, src: "gen", hint: hint.raw };
       skipGen = true; // early → early: честных неверных форм нет
+    } else if (hw && meta.adverbs && /^[a-z]+$/.test(hw) && ans.toLowerCase() === hw && !ADV_EXC[hw]) {
+      // прилагательное остается после связки: (calm) → calm, неверный вариант — наречие calmly
+      return { ...base, type: "choice", options: [ans, lyOf(hw)], correct: 0, src: "gen", hint: hint.raw };
     }
     // разделительный вопрос: хвостик «aux(n't) + местоимение» → смена знака и чужой вспомогательный
     const TAG = ans.match(/^(won't|can't|shan't|do|does|did|is|are|am|was|were|have|has|had|will|would|can|could|shall|should|must)(n't)? (I|you|he|she|it|we|they|there)$/i);
@@ -594,6 +601,9 @@ export function buildDrill(ex, i, qHtml, aHtml, meta) {
       let cands;
       if (/^let's\b/i.test(qText)) cands = ["do we", "don't we"];
       else cands = [`${flip} ${pr}`, `${sw === "am" && neg ? "aren't" : mk(sw, !!neg)} ${pr}`];
+      // повелительное «Open the door, will you?»: won't you тоже возможен (приглашение) — не даем его как неверный
+      const firstW = qText.replace(/^[^A-Za-z]+/, "").split(/\s/)[0].toLowerCase();
+      if (/^will you$/i.test(ans) && !/^(don't|you|nobody|no|none|neither|never)$/.test(firstW)) cands = cands.map((w) => (/^won't you$/i.test(w) ? "don't you" : w));
       cands = [...new Set(cands)].filter((w) => !okSet.has(norm(w)) && norm(w) !== norm(ans));
       if (cands.length) return { ...base, type: "choice", options: [ans, ...cands], correct: 0, src: "tag" };
     }
@@ -724,6 +734,7 @@ export function buildTopicDrills(topic) {
       if (nb) qs = nb;
     }
     const meta = { topicId: topic.id, contrast: CONTRAST_RX.test(htmlToText(ex.title)), geo: /географ/i.test(topic.title || ""),
+      adverbs: /наречи/i.test(topic.title || "") || /наречи/i.test(htmlToText(ex.title) + " " + htmlToText(ex.html).slice(0, 300)),
       articles: /артикл/i.test(topic.title || "") || /артикл|\ba\s*\/\s*an\b/i.test(htmlToText(ex.title) + " " + htmlToText(ex.html).slice(0, 300)) };
     if (!qs.length || !as.length) { stats.whole++; continue; }
     if (qs.length !== as.length) { stats.mismatch++; stats.whole++; continue; }
