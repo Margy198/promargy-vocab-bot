@@ -23,6 +23,7 @@ import { VOCAB as DEFAULT_VOCAB } from "../../data/vocab.mjs";
 import { PREP_ITEMS_A, PREP_ITEMS_B, COND_ITEMS, GERUND_PREP_ITEMS } from "../../data/grammar-extra.mjs";
 // Индексы курса и тем по интересам попадают в бандл статически (не зависят от included_files)
 import COURSE_INDEX from "../../data/course/index.mjs";
+import { buildTopicDrills } from "../lib/drill-builder.mjs";
 import INTEREST_INDEX from "../../data/interests/index.mjs";
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -7486,6 +7487,8 @@ const MODAL_PERFECT = [
 function ruPastOf(subj, v) { return subj.isPlural ? v.ruPastPl : subj.gender === "f" ? v.ruPastF : v.ruPastM; }
 // Состояния (знать, нравиться, нуждаться) с «смог / мог бы / зря» не сочетаются — в прошедших и перфектных форматах их не берём.
 const MODAL_STATIVE = new Set(["know", "like", "need", "have", "see"]);
+// с модальными — только живые сочетания: «needs to need more time», «needed to mean trouble», «has to right the situation» не берем
+const MODAL_OK_VERBS = GRAMMAR_VERBS.filter((v) => !["need", "like", "mean", "right"].includes(v.base));
 
 // Примечание (02.10.2026): раньше тут были словари RU_DATIVE/RU_NOM,
 // жёстко привязанные к 6 исходным местоимениям (I/You/He/She/We/They) —
@@ -7548,7 +7551,7 @@ function ruModalSentence(subject, modal, verb, tense) {
 function buildModalPresentQuestion(forbiddenText) {
   for (let attempt = 0; attempt < 25; attempt++) {
     const subject = RU_SENTENCE_SUBJECTS[Math.floor(Math.random() * RU_SENTENCE_SUBJECTS.length)];
-    const verb = GRAMMAR_VERBS[Math.floor(Math.random() * GRAMMAR_VERBS.length)];
+    const verb = MODAL_OK_VERBS[Math.floor(Math.random() * MODAL_OK_VERBS.length)];
     const targetModal = MODAL_VERBS[Math.floor(Math.random() * MODAL_VERBS.length)];
     const context = contextFor(subject, verb);
     const phraseFor = (modal) => `${subject.pron} ${subject.is3rd && !subject.isPlural ? modal.thirdSg : modal.base} ${verb.base} ${context}`;
@@ -7566,7 +7569,7 @@ function buildModalPresentQuestion(forbiddenText) {
 function buildModalPastQuestion(forbiddenText) {
   for (let attempt = 0; attempt < 25; attempt++) {
     const subject = RU_SENTENCE_SUBJECTS[Math.floor(Math.random() * RU_SENTENCE_SUBJECTS.length)];
-    const verb = GRAMMAR_VERBS[Math.floor(Math.random() * GRAMMAR_VERBS.length)];
+    const verb = MODAL_OK_VERBS[Math.floor(Math.random() * MODAL_OK_VERBS.length)];
     if (MODAL_STATIVE.has(verb.base)) continue;
     const target = MODAL_PAST[Math.floor(Math.random() * MODAL_PAST.length)];
     const context = contextFor(subject, verb);
@@ -7585,7 +7588,7 @@ function buildModalPastQuestion(forbiddenText) {
 function buildModalPerfectQuestion(forbiddenText) {
   for (let attempt = 0; attempt < 25; attempt++) {
     const subject = RU_SENTENCE_SUBJECTS[Math.floor(Math.random() * RU_SENTENCE_SUBJECTS.length)];
-    const verb = GRAMMAR_VERBS[Math.floor(Math.random() * GRAMMAR_VERBS.length)];
+    const verb = MODAL_OK_VERBS[Math.floor(Math.random() * MODAL_OK_VERBS.length)];
     if (!verb.participle || !verb.ruPastM || MODAL_STATIVE.has(verb.base)) continue;
     const target = MODAL_PERFECT[Math.floor(Math.random() * MODAL_PERFECT.length)];
     const context = contextFor(subject, verb);
@@ -7615,7 +7618,7 @@ function buildModalToQuestion(forbiddenText) {
   for (let attempt = 0; attempt < 25; attempt++) {
     const modal = MODAL_VERBS[Math.floor(Math.random() * MODAL_VERBS.length)];
     const subject = RU_SENTENCE_SUBJECTS[Math.floor(Math.random() * RU_SENTENCE_SUBJECTS.length)];
-    const verb = GRAMMAR_VERBS[Math.floor(Math.random() * GRAMMAR_VERBS.length)];
+    const verb = MODAL_OK_VERBS[Math.floor(Math.random() * MODAL_OK_VERBS.length)];
     const context = contextFor(subject, verb);
     const usePast = !!modal.past && Math.random() < 0.5;
 
@@ -11512,21 +11515,51 @@ async function readBundledCourseIndex() {
   courseIndexCache = JSON.parse(await readFile(join(dir, "index.json"), "utf8"));
   return courseIndexCache;
 }
-async function readCourseIndex() {
+async function readCourseIndex(track = "general") {
+  if (track === "business") return readBizIndex();
   const fromBlobs = await readBlobCourseIndex();
   if (fromBlobs) return fromBlobs;
   return readBundledCourseIndex();
 }
-async function readCourseTopic(id) {
+// Бизнес-версия плана («для работы»): собирается из Notion в biz:* (course-rebuild-background, mode bizCourse).
+// Встроенного бандла нет — пока ее не собрали, переключатель в приложении скрыт.
+let bizIndexCache = { at: 0, value: undefined };
+async function readBizIndex() {
+  if (Date.now() - bizIndexCache.at < CONTENT_TTL_MS) return bizIndexCache.value;
+  let v = null;
+  try { v = await courseStore().get("biz:index", { type: "json" }); } catch (e) { v = null; }
+  bizIndexCache = { at: Date.now(), value: v && Array.isArray(v.levels) && v.levels.length ? v : null };
+  return bizIndexCache.value;
+}
+const courseTrackOf = (progress) => (progress && progress.track === "business" ? "business" : "general");
+async function readCourseTopicRaw(id) {
   if (!/^[0-9a-f]{32}$/.test(String(id))) return null;
   if (await readBlobCourseIndex()) {
     try { const t = await courseStore().get(`course:topic:${id}`, { type: "json" }); if (t && t.id) return t; } catch (e) { /* падаем на бандл */ }
+  }
+  if (await readBizIndex()) {
+    try { const t = await courseStore().get(`biz:topic:${id}`, { type: "json" }); if (t && t.id) return { ...t, track: "business" }; } catch (e) { /* нет в бизнес-версии */ }
   }
   const dir = courseDir();
   if (!dir) return null;
   const file = join(dir, "topics", `${id}.json`);
   if (!existsSync(file)) return null;
   return JSON.parse(await readFile(file, "utf8"));
+}
+// Интерактивные задания (выбор / собери из слов / вспомни) строятся из упражнений темы
+// при отдаче: так они всегда соответствуют текущему тексту в Notion после пересборки.
+const drillCache = new Map();
+async function readCourseTopic(id) {
+  const t = await readCourseTopicRaw(id);
+  if (!t || Array.isArray(t.drills)) return t;
+  const sig = `${t.id}:${(t.exercises || []).length}:${JSON.stringify(t.exercises || []).length}`;
+  let built = drillCache.get(sig);
+  if (!built) {
+    try { const r = buildTopicDrills(t); built = { drills: r.drills, drillLeads: r.leads }; } catch (e) { console.error("drills", id, e && e.message); built = { drills: [], drillLeads: {} }; }
+    if (drillCache.size > 120) drillCache.clear();
+    drillCache.set(sig, built);
+  }
+  return { ...t, ...built };
 }
 // Задания грамматики: из Notion-базы (Blobs grammar:items), если там есть хотя бы 5 заданий типа, иначе встроенные.
 const BUNDLED_GRAMMAR = { prepA: PREP_ITEMS_A, prepB: PREP_ITEMS_B, condB1: COND_ITEMS, gerundPrep: GERUND_PREP_ITEMS };
@@ -11560,6 +11593,11 @@ async function contentStatusPayload() {
     course: { source: idx ? "notion" : "bundle", builtAt: idx ? (meta && meta.builtAt) || idx.builtAt : (bundled && bundled.builtAt) || null, topics: count(idx || bundled), bundledTopics: count(bundled), sources: meta && meta.sources ? meta.sources : null },
     grammar: { source: gram ? "notion" : "bundle", builtAt: gram ? gram.builtAt : null, counts: gram ? gram.counts : Object.fromEntries(Object.entries(BUNDLED_GRAMMAR).map(([k, v]) => [k, v.length])), bundledCounts: Object.fromEntries(Object.entries(BUNDLED_GRAMMAR).map(([k, v]) => [k, v.length])), skipped: gram ? gram.skipped || [] : [], dbId: grammarDb, dbUrl: grammarDb ? `https://www.notion.so/${String(grammarDb).replace(/-/g, "")}` : null },
     rebuild: status || null,
+    biz: await (async () => {
+      bizIndexCache = { at: 0, value: undefined };
+      const bi = await readBizIndex(); const bm = await courseStore().get("biz:meta", { type: "json" }).catch(() => null);
+      return { rootUrl: `https://www.notion.so/${String(process.env.NOTION_BUSINESS_ROOT || "4022f2f8690d8143b223fce9744efecb").replace(/-/g, "")}`, built: !!bi, builtAt: bi ? (bm && bm.builtAt) || bi.builtAt : null, topics: count(bi), levels: bi ? bi.levels.map((l) => l.code) : [] };
+    })(),
   };
 }
 async function startContentRebuild(mode, by) {
@@ -11583,6 +11621,10 @@ async function resetContent(what) {
     const list = await courseStore().list({ prefix: "course:" });
     for (const b of (list && list.blobs) || []) await courseStore().delete(b.key);
     blobIndexCache = { at: 0, value: undefined };
+  } else if (what === "bizCourse") {
+    const list = await courseStore().list({ prefix: "biz:" });
+    for (const b of (list && list.blobs) || []) await courseStore().delete(b.key);
+    bizIndexCache = { at: 0, value: undefined };
   } else if (what === "grammar") {
     await courseStore().delete("grammar:items"); grammarCache = { at: 0, value: null };
   }
@@ -11621,9 +11663,11 @@ function categoryStatus(topics) {
   return "locked";
 }
 async function appCoursePayload(chatId) {
-  const index = await readCourseIndex();
-  if (!index) return { ok: false, error: "content_missing" };
   const progress = await readCourseProgress(chatId);
+  const biz = await readBizIndex();
+  const track = courseTrackOf(progress) === "business" && biz ? "business" : "general";
+  const index = await readCourseIndex(track);
+  if (!index) return { ok: false, error: "content_missing" };
   const byId = new Map();
   for (const lv of index.levels) for (const t of lv.topics) byId.set(t.id, t);
   // порядок уроков внутри категории задаёт блокировку
@@ -11641,12 +11685,15 @@ async function appCoursePayload(chatId) {
   });
   const all = levels.flatMap((l) => l.topics.filter((t) => t.kind === "topic"));
   const homework = await appHomeworkPayload(chatId);
-  return { ok: true, levels, categories, level: progress.level, total: all.length, done: all.filter((t) => t.status === "done").length, builtAt: index.builtAt || null, homework };
+  // в бизнес-версии нет A0 — свой уровень хранится отдельно (bizLevel)
+  const lvl = track === "business" ? (progress.bizLevel || (progress.level && progress.level !== "A0" ? progress.level : null)) : progress.level;
+  return { ok: true, track, businessAvailable: !!biz, levels, categories, level: levels.some((l) => l.code === lvl) ? lvl : null, total: all.length, done: all.filter((t) => t.status === "done").length, builtAt: index.builtAt || null, homework };
 }
 async function setCourseTopicStatus(chatId, topicId, status) {
   const index = await readCourseIndex();
   if (!index) return { ok: false, error: "content_missing" };
-  const known = index.levels.some((l) => l.topics.some((t) => t.id === topicId));
+  const biz = await readBizIndex();
+  const known = [index, biz].filter(Boolean).some((ix) => ix.levels.some((l) => l.topics.some((t) => t.id === topicId)));
   if (!known) return { ok: false, error: "unknown_topic" };
   let awardedXp = 0;
   await withOptimisticUpdate(courseStore(), `progress:${chatId}`, emptyCourseProgress, (current) => {
@@ -11808,9 +11855,17 @@ async function teacherStudentPayload(studentId, nowMs = Date.now()) {
   return { profile, topics, courseLevel: course.ok ? course.level : null, courseDone: course.ok ? course.done : 0, courseTotal: course.ok ? course.total : 0, homework: hw, victories: (stats.victories || []).slice(-10) };
 }
 async function setCourseLevel(chatId, level) {
-  const index = await readCourseIndex();
+  const track = courseTrackOf(await readCourseProgress(chatId));
+  const index = await readCourseIndex(track);
   if (!index || !index.levels.some((l) => l.code === level)) return { ok: false, error: "unknown_level" };
-  await withOptimisticUpdate(courseStore(), `progress:${chatId}`, emptyCourseProgress, (current) => ({ ...emptyCourseProgress(), ...current, level, updatedAt: new Date().toISOString() }));
+  const field = track === "business" ? "bizLevel" : "level";
+  await withOptimisticUpdate(courseStore(), `progress:${chatId}`, emptyCourseProgress, (current) => ({ ...emptyCourseProgress(), ...current, [field]: level, updatedAt: new Date().toISOString() }));
+  return { ok: true };
+}
+async function setCourseTrack(chatId, track) {
+  if (!["general", "business"].includes(track)) return { ok: false, error: "bad_track" };
+  if (track === "business" && !(await readBizIndex())) return { ok: false, error: "business_missing" };
+  await withOptimisticUpdate(courseStore(), `progress:${chatId}`, emptyCourseProgress, (current) => ({ ...emptyCourseProgress(), ...current, track, updatedAt: new Date().toISOString() }));
   return { ok: true };
 }
 async function mutateNotes(chatId, fn) {
@@ -12034,7 +12089,7 @@ async function handleAppApi(body) {
       case "contentRebuild": {
         if (!(await isAdmin(chatId))) return appJson({ ok: false, error: "forbidden" }, 403);
         const mode = String(body.what || "");
-        if (!["course", "grammar", "seedGrammar"].includes(mode)) return appJson({ ok: false, error: "bad_mode" }, 400);
+        if (!["course", "bizCourse", "grammar", "seedGrammar"].includes(mode)) return appJson({ ok: false, error: "bad_mode" }, 400);
         const r = await startContentRebuild(mode, chatId);
         if (!r.ok) return appJson(r, 400);
         return appJson({ ok: true, ...(await contentStatusPayload()) });
@@ -12042,7 +12097,7 @@ async function handleAppApi(body) {
       case "contentReset": {
         if (!(await isAdmin(chatId))) return appJson({ ok: false, error: "forbidden" }, 403);
         const what = String(body.what || "");
-        if (!["course", "grammar"].includes(what)) return appJson({ ok: false, error: "bad_mode" }, 400);
+        if (!["course", "bizCourse", "grammar"].includes(what)) return appJson({ ok: false, error: "bad_mode" }, 400);
         await resetContent(what);
         return appJson({ ok: true, ...(await contentStatusPayload()) });
       }
@@ -12064,6 +12119,11 @@ async function handleAppApi(body) {
         const status = String(body.status || "");
         if (!["started", "done", "reset"].includes(status)) return appJson({ ok: false, error: "bad_status" }, 400);
         const r = await setCourseTopicStatus(chatId, String(body.id || ""), status);
+        if (!r.ok) return appJson(r, 400);
+        return appJson({ ...r, ...(await appCoursePayload(chatId)) });
+      }
+      case "courseTrack": {
+        const r = await setCourseTrack(chatId, String(body.track || ""));
         if (!r.ok) return appJson(r, 400);
         return appJson({ ...r, ...(await appCoursePayload(chatId)) });
       }

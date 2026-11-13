@@ -23,6 +23,9 @@ const store = () => getStore("vocab-bot-course", { consistency: "strong" });
 const NOTION = "https://api.notion.com/v1";
 const NOTION_VERSION = "2022-06-28";
 const DEFAULT_ROOT = "34c2f2f8690d814e82e8fb81e078333e";
+// Бизнес-версия плана («для работы») — отдельное дерево страниц, пишется в biz:* (переменная NOTION_BUSINESS_ROOT — необязательно)
+const DEFAULT_BIZ_ROOT = "4022f2f8690d8143b223fce9744efecb";
+const PFX = (track) => (track === "business" ? "biz" : "course");
 export const GRAMMAR_TYPES = [
   ["prepA", "at/in/on — до B1", PREP_ITEMS_A],
   ["prepB", "at/in/on — B1+ и бизнес", PREP_ITEMS_B],
@@ -139,30 +142,32 @@ async function rebuildLevel(levelRef) {
   for (const [id, tp] of built.topics) if (!tp.sections.length && tp.kind === "topic") built.log.push(`тема «${tp.title}» без разделов (## …) — проверь структуру страницы`);
   return built;
 }
-async function writeLevel(built) {
-  for (const [id, tp] of built.topics) await store().setJSON(`course:topic:${id}`, tp);
-  await store().setJSON(`course:level:${built.record.code}`, built.record);
+async function writeLevel(built, track) {
+  for (const [id, tp] of built.topics) await store().setJSON(`${PFX(track)}:topic:${id}`, tp);
+  await store().setJSON(`${PFX(track)}:level:${built.record.code}`, built.record);
 }
-async function publishIndex(bundledIndex) {
+async function publishIndex(bundledIndex, track) {
+  const pfx = PFX(track);
   // собираем индекс из уровней в Blobs; для уровней, которых там нет, берём встроенные
   const codes = ["A0", "A1", "A2", "B1", "B2", "C1"];
   const records = []; const sources = {};
   for (const c of codes) {
-    const rec = await store().get(`course:level:${c}`, { type: "json" });
+    const rec = await store().get(`${pfx}:level:${c}`, { type: "json" });
     if (rec && Array.isArray(rec.topics)) { records.push(rec); sources[c] = "notion"; }
-    else { const b = bundledIndex && bundledIndex.levels.find((l) => l.code === c); if (b) { records.push(JSON.parse(JSON.stringify(b))); sources[c] = "bundle"; } }
+    else if (track !== "business") { const b = bundledIndex && bundledIndex.levels.find((l) => l.code === c); if (b) { records.push(JSON.parse(JSON.stringify(b))); sources[c] = "bundle"; } }
   }
   const index = assembleIndex(records, new Date().toISOString().slice(0, 10));
-  await store().setJSON("course:index", index);
-  await store().setJSON("course:meta", { builtAt: new Date().toISOString(), sources, topics: index.levels.reduce((a, l) => a + l.topics.length, 0) });
+  await store().setJSON(`${pfx}:index`, index);
+  await store().setJSON(`${pfx}:meta`, { builtAt: new Date().toISOString(), sources, topics: index.levels.reduce((a, l) => a + l.topics.length, 0) });
   return index;
 }
 
 async function runCourse(body) {
-  const rootId = nid(process.env.NOTION_COURSE_ROOT || DEFAULT_ROOT);
+  const track = body.track === "business" ? "business" : "general";
+  const rootId = track === "business" ? nid(process.env.NOTION_BUSINESS_ROOT || DEFAULT_BIZ_ROOT) : nid(process.env.NOTION_COURSE_ROOT || DEFAULT_ROOT);
   let queue = Array.isArray(body.levels) && body.levels.length ? body.levels : null;
   if (!queue) {
-    await setStatus({ mode: "course", status: "running", startedAt: new Date().toISOString(), finishedAt: null, by: body.by || null, log: [], done: [], failed: [], error: null });
+    await setStatus({ mode: track === "business" ? "bizCourse" : "course", status: "running", startedAt: new Date().toISOString(), finishedAt: null, by: body.by || null, log: [], done: [], failed: [], error: null });
     await appendLog("ищу страницы уровней в Notion…");
     const levels = await discoverLevels(rootId);
     if (!levels.length) throw new Error("не нашла страницы уровней (A0 — …, A1 — …) под корневой страницей. Проверь, что интеграции открыт доступ к странице плана.");
@@ -175,7 +180,7 @@ async function runCourse(body) {
   let failed = false;
   try {
     const built = await rebuildLevel({ code, id });
-    await writeLevel(built);
+    await writeLevel(built, track);
     for (const l of built.log) await appendLog(`${code}: ${l}`);
     await appendLog(`уровень ${code}: ${built.record.topics.length} тем записано`);
   } catch (e) {
@@ -191,7 +196,7 @@ async function runCourse(body) {
     return;
   }
   await appendLog("собираю индекс курса…");
-  const index = await publishIndex(BUNDLED_INDEX);
+  const index = await publishIndex(BUNDLED_INDEX, track);
   const fin = (await store().get(STATUS_KEY, { type: "json" })) || {};
   const failedLevels = fin.failed || [];
   await setStatus({ status: failedLevels.length ? "warning" : "done", finishedAt: new Date().toISOString(), topics: index.levels.reduce((a, l) => a + l.topics.length, 0), error: failedLevels.length ? `не удалось обновить уровни: ${failedLevels.join(", ")} — для них оставлена прежняя версия` : null });
@@ -290,6 +295,7 @@ export default async (req) => {
   if (!process.env.NOTION_TOKEN) { await setStatus({ mode: body.mode, status: "error", error: "нет переменной NOTION_TOKEN в Netlify", finishedAt: new Date().toISOString() }); return new Response("no token", { status: 200 }); }
   try {
     if (body.mode === "course") await runCourse(body);
+    else if (body.mode === "bizCourse") await runCourse({ ...body, track: "business" });
     else if (body.mode === "grammar") await runGrammar(body);
     else if (body.mode === "seedGrammar") await runSeedGrammar(body);
     else return new Response("bad mode", { status: 400 });

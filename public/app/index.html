@@ -185,6 +185,7 @@
   .folder { display: flex; align-items: center; justify-content: space-between; padding: 18px 16px; border-radius: var(--radius); box-shadow: var(--shadow); margin-top: 12px; cursor: pointer; }
   .folder .t { font-size: 18px; color: var(--text-2); } .folder .pills { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
   .seg { display: flex; gap: 6px; flex-wrap: wrap; }
+  .track-seg button { flex: 1; max-width: 180px; }
   .seg button { font: inherit; font-size: 13px; padding: 8px 12px; border-radius: 10px; border: 1.5px solid var(--accent-soft); background: var(--card); color: var(--text-2); cursor: pointer; }
   .seg button.on { background: var(--g-accent); border-color: transparent; box-shadow: 0 4px 14px var(--glow); }
   .avatars { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
@@ -240,6 +241,7 @@
   .lesson.read .ln { width: calc(100% - 28px); }
   .navbtns { display: flex; gap: 12px; margin-top: 18px; }
   .navbtns .btn { background: var(--g-aqua); font-size: 14px; }
+  .navbtns .btn.primary { background: var(--g-accent); }
   .navbtns .btn:disabled { opacity: .4; }
   .content { font-size: 15px; line-height: 1.5; color: var(--text); }
   .content p { margin: 0 0 10px; } .content ul, .content ol { margin: 0 0 10px; padding-left: 20px; } .content li { margin: 3px 0; }
@@ -285,6 +287,16 @@
   .opt { display: block; width: 100%; text-align: left; font: inherit; font-size: 16px; padding: 14px 16px; margin-top: 10px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--card); color: var(--text); cursor: pointer; box-shadow: var(--shadow); }
   .opt:active { transform: scale(.99); }
   .opt.ok { background: var(--ok-bg); border-color: var(--ok-line); color: var(--ok-fg); } .opt.bad { background: var(--bad-bg); border-color: var(--bad-line); color: var(--bad-fg); } .opt.dim { opacity: .5; }
+  .gap { display: inline-block; min-width: 46px; border-bottom: 2px solid var(--accent); color: var(--accent); text-align: center; line-height: 1.1; padding: 0 4px; }
+  .tl-ans { min-height: 58px; margin-top: 12px; padding: 10px; border-radius: 14px; border: 1.5px dashed var(--line); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: var(--card); }
+  .tl-ans.ok { border-style: solid; border-color: var(--ok-line); background: var(--ok-bg); } .tl-ans.bad { border-style: solid; border-color: var(--bad-line); background: var(--bad-bg); }
+  .tl-pool { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .tl { font: inherit; font-size: 16px; padding: 9px 13px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--card); color: var(--text); box-shadow: var(--shadow); cursor: pointer; }
+  .tl.used { visibility: hidden; } .tl.on { border-color: var(--accent); }
+  .tl-end { font-size: 18px; color: var(--muted); }
+  .tl-input { width: 100%; margin-top: 12px; padding: 14px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--card); color: var(--text); font: inherit; font-size: 17px; box-sizing: border-box; outline: none; }
+  .tl-input:focus { border-color: var(--accent); }
+  .train-card { display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; }
   .chip { display: inline-block; padding: 8px 12px; border-radius: 20px; border: 1.5px solid var(--line); background: var(--card); font-size: 14px; margin: 0 6px 8px 0; cursor: pointer; color: var(--text-2); }
   .chip.on { background: var(--g-accent); border-color: transparent; box-shadow: 0 4px 12px var(--glow); }
   .chip.pending { border-style: dashed; } .chip.err { border-color: var(--bad-line); }
@@ -407,7 +419,7 @@
     const categories = idx.categories.map((c) => { const topics = c.topics.map((id) => byId.get(id)).filter(Boolean).map(ws); const status = topics.every((t) => t.status === "done") ? "done" : topics.some((t) => t.status === "done" || t.status === "started") ? "started" : topics.some((t) => t.status === "available") ? "available" : "locked"; return { key: c.key, title: c.title, outline: c.outline, topics, total: topics.length, done: topics.filter((t) => t.status === "done").length, status }; });
     const all = levels.flatMap((l) => l.topics.filter((t) => t.kind === "topic"));
     demoHomework(); for (const h of demoCourse.hw) if (!h.topicId) { const t = all.find((x) => x.title === h.title) || all[0]; h.topicId = t.id; }
-    return { ok: true, levels, categories, level: demoCourse.level, total: all.length, done: all.filter((t) => t.status === "done").length, homework: demoHomework() };
+    return { ok: true, track: demoCourse.track || "general", businessAvailable: true, levels, categories, level: demoCourse.level, total: all.length, done: all.filter((t) => t.status === "done").length, homework: demoHomework() };
   }
   async function demoAsync(action, extra) {
     switch (action) {
@@ -415,6 +427,7 @@
       case "topic": { const topic = await demoFetchJson("__course/topics/" + extra.id + ".json"); return { ok: true, topic, progress: demoCourse.progress[extra.id] || null, notes: demoCourse.notes.filter((n) => n.topicId === extra.id) }; }
       case "courseSet": { if (extra.status === "done" && demoCourse.hw) for (const h of demoCourse.hw) if (h.topicId === extra.id && !h.doneAt) h.doneAt = new Date().toISOString(); const prev = demoCourse.progress[extra.id]; let awardedXp = 0; if (extra.status === "reset") delete demoCourse.progress[extra.id]; else if (!(extra.status === "started" && prev && prev.status === "done")) { if (extra.status === "done" && !(prev && prev.status === "done")) awardedXp = 50; demoCourse.progress[extra.id] = { status: extra.status, updatedAt: new Date().toISOString() }; } return { ok: true, awardedXp, ...(await demoCoursePayload()) }; }
       case "courseLevel": demoCourse.level = extra.level; return { ok: true, ...(await demoCoursePayload()) };
+      case "courseTrack": demoCourse.track = extra.track; return { ok: true, ...(await demoCoursePayload()) };
       case "homework": return { ok: true, homework: demoHomework() };
       case "teacherStudents": return demoStudents();
       case "teacherStudent": { const st = demoStudents().students.find((x) => x.chatId === extra.chatId) || demoStudents().students[0]; const me = await demo("me", {}); const c = await demoCoursePayload(); const topics = c.levels.flatMap((l) => l.topics.filter((t) => t.kind === "topic").map((t) => ({ ...t, level: l.code }))).slice(2, 2 + st.topicsDone + st.topicsStarted).map((t, i) => ({ id: t.id, title: t.title, emoji: t.emoji, level: t.level, status: i < st.topicsDone ? "done" : "started", updatedAt: new Date(Date.now() - i * 2 * 864e5).toISOString() })); return { ok: true, profile: { ...me, user: { ...me.user, firstName: st.firstName, username: st.username, avatar: st.avatar, chatId: st.chatId }, xp: st.xp, streak: st.streak, xpWeek: st.xpWeek, vocabCount: st.vocabCount, answered: st.answered, correct: st.correct, level: { ...me.level, name: st.level } }, topics, courseLevel: st.courseLevel, courseDone: st.topicsDone, courseTotal: c.total, homework: demoHomework(), victories: ["reluctant", "endure", "stave off"] }; }
@@ -436,7 +449,7 @@
     return null;
   }
   function demo(action, extra) {
-    if (["course", "topic", "courseSet", "courseLevel", "notes", "noteAdd", "noteEdit", "noteDelete", "slang", "interests", "interestsSet", "feed", "interestsAddWords", "homework", "teacherStudents", "teacherStudent", "hwAssign", "hwRemove", "contentStatus", "contentRebuild", "contentReset"].includes(action)) return demoAsync(action, extra);
+    if (["course", "topic", "courseSet", "courseLevel", "courseTrack", "notes", "noteAdd", "noteEdit", "noteDelete", "slang", "interests", "interestsSet", "feed", "interestsAddWords", "homework", "teacherStudents", "teacherStudent", "hwAssign", "hwRemove", "contentStatus", "contentRebuild", "contentReset"].includes(action)) return demoAsync(action, extra);
     const today = new Date(); const days = [];
     for (let i = 13; i >= 0; i--) { const d = new Date(today.getTime() - i * 864e5); days.push({ date: d.toISOString().slice(0, 10), answers: [12, 20, 0, 15, 24, 18, 9, 30, 22, 0, 16, 25, 19, 7][13 - i] }); }
     const id = demoState.identity;
@@ -767,6 +780,8 @@
   const TOPIC_CACHE_MAX = 40;
   function cacheTopic(id, payload) {
     cacheSet(`topic:${id}`, payload);
+    // задания объемные: если в хранилище не поместилось — кладем тему без них (офлайн работают обычные упражнения)
+    if (!DEMO && !cached(`topic:${id}`) && payload && payload.topic && payload.topic.drills) cacheSet(`topic:${id}`, Object.assign({}, payload, { topic: Object.assign({}, payload.topic, { drills: undefined }) }));
     const list = lsGet(ck("topics"), []).filter((x) => x !== id); list.push(id);
     while (list.length > TOPIC_CACHE_MAX) { const old = list.shift(); try { localStorage.removeItem(ck(`topic:${old}`)); } catch (e) {} }
     lsSet(ck("topics"), list);
@@ -792,7 +807,7 @@
   function go(view, extra) { state.study = Object.assign({ view }, extra || {}); renderStudy(); window.scrollTo(0, 0); }
   function studyBack() {
     const v = state.study;
-    const map = { topics: () => go("home"), category: () => go("topics"), topic: () => go("category", { key: v.cat || categoryOfTopic(v.id) }), lesson: () => go("topic", { id: v.id }), exercises: () => go("topic", { id: v.id }), selfcheck: () => go("topic", { id: v.id }), tnotes: () => go("topic", { id: v.id }), notes: () => go("home"), nfolder: () => go("notes"), slang: () => go("home"), search: () => go("topics"), checkpoint: () => go("topics", { level: v.level }), interests: () => go("home"), ipick: () => go("interests"), iquiz: () => go("interests"), homework: () => go("home"), teacher: () => go("home"), tstudent: () => go("teacher"), hwassign: () => (v.chatId ? go("tstudent", { chatId: v.chatId }) : go("teacher")), content: () => go("teacher") };
+    const map = { topics: () => go("home"), category: () => go("topics"), topic: () => go("category", { key: v.cat || categoryOfTopic(v.id) }), lesson: () => go("topic", { id: v.id }), exercises: () => go("topic", { id: v.id }), selfcheck: () => go("topic", { id: v.id }), tnotes: () => go("topic", { id: v.id }), notes: () => go("home"), nfolder: () => go("notes"), slang: () => go("home"), search: () => go("topics"), checkpoint: () => go("topics", { level: v.level }), interests: () => go("home"), ipick: () => go("interests"), iquiz: () => go("interests"), homework: () => go("home"), teacher: () => go("home"), tstudent: () => go("teacher"), hwassign: () => (v.chatId ? go("tstudent", { chatId: v.chatId }) : go("teacher")), content: () => go("teacher"), train: () => go("topic", { id: v.id }) };
     if (map[v.view]) map[v.view](); else go("home");
   }
   function syncBackButton() { if (!tg || !tg.BackButton) return; try { if (state.study.view === "home") tg.BackButton.hide(); else tg.BackButton.show(); } catch (e) {} }
@@ -805,7 +820,7 @@
     try { renderStudyInner(root, v); } catch (e) { root.innerHTML = `<div class="notice">Ошибка на экране «${esc(v)}».<br><span class="muted">${esc(String(e && e.message || e))}</span><div style="margin-top:12px"><button class="btn" id="study-home">На главную</button></div></div>`; $("#study-home").addEventListener("click", () => go("home")); }
   }
   function renderStudyInner(root, v) {
-    const fn = { home: renderStudyHome, topics: renderTopics, category: renderCategory, topic: renderTopic, lesson: renderLesson, exercises: renderExercises, selfcheck: renderSelfcheck, tnotes: renderTopicNotes, notes: renderNotesFolders, nfolder: renderNotesFolder, slang: renderSlang, search: renderSearch, checkpoint: renderCheckpoint, interests: renderInterests, ipick: renderInterestPicker, iquiz: renderInterestQuiz, homework: renderHomework, teacher: renderTeacher, tstudent: renderTeacherStudent, hwassign: renderHwAssign, content: renderContent }[v] || renderStudyHome;
+    const fn = { home: renderStudyHome, topics: renderTopics, category: renderCategory, topic: renderTopic, lesson: renderLesson, exercises: renderExercises, selfcheck: renderSelfcheck, tnotes: renderTopicNotes, notes: renderNotesFolders, nfolder: renderNotesFolder, slang: renderSlang, search: renderSearch, checkpoint: renderCheckpoint, interests: renderInterests, ipick: renderInterestPicker, iquiz: renderInterestQuiz, homework: renderHomework, teacher: renderTeacher, tstudent: renderTeacherStudent, hwassign: renderHwAssign, content: renderContent, train: renderTraining }[v] || renderStudyHome;
     fn(root);
     if (state.offline && (v === "home" || v === "topic" || v === "lesson")) { const n = document.createElement("div"); n.className = "muted"; n.style.cssText = "font-size:12px;text-align:center;padding:6px 0 2px"; n.textContent = "📴 Нет связи — показана сохранённая копия"; n.style.padding = "10px 0 0"; const h = root.querySelector(".head"); if (h) h.after(n); else root.prepend(n); }
     const b = $("#study-back"); if (b) b.addEventListener("click", () => { haptic(); studyBack(); });
@@ -824,7 +839,8 @@
     const outline = c.categories.filter((x) => x.key !== "bridges").map((x, i) => `<div style="margin-bottom:14px"><div>${i + 1}. ${esc(x.title)}:</div><div class="muted" style="font-size:14px;line-height:1.35">${esc(x.outline)}</div></div>`).join("");
     root.innerHTML = `
       <div class="quote"><i>${esc(qe)} — ${esc(qr)}</i><span class="au">©${esc(qa)}</span></div>
-      <div style="text-align:center;margin-top:16px"><h1 style="font-weight:400;font-size:24px">Английский</h1><div class="muted" style="margin-top:6px;font-size:15px">Всего ${c.total} ${plural(c.total, ["тема", "темы", "тем"])}${c.done ? ` · пройдено ${c.done}` : ""}</div></div>
+      ${c.businessAvailable ? `<div class="seg track-seg" id="track" style="margin-top:14px;justify-content:center"><button data-track="general" class="${c.track !== "business" ? "on" : ""}">📘 Обычный</button><button data-track="business" class="${c.track === "business" ? "on" : ""}">💼 Для работы</button></div>` : ""}
+      <div style="text-align:center;margin-top:16px"><h1 style="font-weight:400;font-size:24px">${c.track === "business" ? "Английский для работы" : "Английский"}</h1><div class="muted" style="margin-top:6px;font-size:15px">Всего ${c.total} ${plural(c.total, ["тема", "темы", "тем"])}${c.done ? ` · пройдено ${c.done}` : ""}</div></div>
       <div class="bar" style="margin-top:14px"><i style="width:${Math.max(2, pct)}%"></i></div>
       ${hwCardHtml(c.homework)}
       ${state.me && state.me.isAdmin ? `<div class="card cream" style="margin-top:14px;cursor:pointer" id="go-teacher"><div class="row between"><div><div style="font-size:17px">👩‍🏫 Кабинет учителя</div><div class="muted" style="color:var(--text-2);opacity:.75;margin-top:2px">ученики, прогресс, домашка</div></div><button class="fab">${iconArrow()}</button></div></div>` : ""}
@@ -835,6 +851,14 @@
       <div class="row" style="margin-top:12px;gap:10px"><button class="btn" id="go-notes" style="flex:1">📝 Заметки</button><button class="btn" id="go-slang" style="flex:1">💬 Сленг</button></div>
       <div style="height:8px"></div>`;
     $("#go-interests").addEventListener("click", () => { haptic(); go("interests"); });
+    // «Обычный / Для работы»: та же грамматика, примеры и упражнения из рабочей среды; прогресс у каждой версии свой
+    root.querySelectorAll("[data-track]").forEach((b) => b.addEventListener("click", async () => {
+      const tr = b.dataset.track; if (tr === (c.track || "general")) return;
+      haptic(); root.querySelectorAll("[data-track]").forEach((x) => x.classList.toggle("on", x === b));
+      const r = await api("courseTrack", { track: tr });
+      if (r && r.ok) { state.course = r; cacheSet("course", r); toast(tr === "business" ? "Курс для работы: примеры из офиса, писем и созвонов" : "Обычный курс"); renderStudy(); }
+      else { toast("Не получилось переключить"); renderStudy(); }
+    }));
     const gh = $("#go-hw"); if (gh) gh.addEventListener("click", () => { haptic(); go("homework"); });
     const gt = $("#go-teacher"); if (gt) gt.addEventListener("click", () => { haptic(); go("teacher"); });
     $("#go-topics").addEventListener("click", () => { haptic(); go("topics"); });
@@ -928,7 +952,7 @@
     const d = st.data;
     const fmtAt = (iso) => (iso ? (iso.length > 10 ? `${iso.slice(8, 10)}.${iso.slice(5, 7)} ${iso.slice(11, 16)}` : fmtDay(iso)) : "—");
     const rb = d && d.rebuild; const running = rb && rb.status === "running";
-    const modeName = { course: "курс", grammar: "задания", seedGrammar: "база заданий" };
+    const modeName = { course: "курс", bizCourse: "курс для работы", grammar: "задания", seedGrammar: "база заданий" };
     root.innerHTML = `<div class="head cream"><div>${backLink("Кабинет")}<div class="ttl" style="margin-top:6px">🛠 Контент</div><div class="sub">курс и задания бота — правишь в Notion, здесь нажимаешь «Пересобрать»</div></div></div>
       ${st.loading || !d ? `<div class="notice" style="margin-top:14px">Загружаю…</div>` : `
       ${!d.notion ? `<div class="card" style="margin-top:12px;padding:14px 16px;border-left:3px solid var(--bad-line)"><b>Notion не подключён.</b><div class="muted" style="margin-top:6px;font-size:14px;line-height:1.4">Чтобы пересобирать без кода, один раз: 1) на notion.so/my-integrations создай внутреннюю интеграцию и скопируй её токен; 2) на странице плана «Твой путь в английский» → ⋯ → «Подключения» (Connections) → добавь эту интеграцию; 3) в Netlify → Site configuration → Environment variables добавь <code>NOTION_TOKEN</code> = токен и нажми Redeploy. Пока этого нет — работает встроенная версия контента.</div></div>` : ""}
@@ -938,6 +962,12 @@
         <div class="row" style="gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn small" data-rebuild="course" ${!d.notion || running ? "disabled" : ""}>↻ Пересобрать курс из Notion</button><a class="btn small" href="${esc(d.rootUrl)}" target="_blank" rel="noopener" style="text-decoration:none;text-align:center">Открыть план в Notion</a>${d.course.source === "notion" ? `<button class="btn small" data-reset="course" ${running ? "disabled" : ""}>Вернуть встроенную</button>` : ""}</div>
         <div class="muted" style="font-size:12px;margin-top:10px;line-height:1.4">Пересборка идёт по уровням, 5–15 минут. Берутся страницы A0–C1 под планом: заголовки «## Зачем эта тема», «## Теория» (подразделы ###), «## Подводные камни», «## Упражнения» (### Упражнение N + toggle «Ответы»), «## Самопроверка» (чекбоксы). Прогресс учеников не трогается.</div>
       </div>
+      ${d.biz ? `<h2 style="margin-top:18px">💼 Курс «для работы»</h2>
+      <div class="card" style="margin-top:8px;padding:14px 16px">
+        <div class="row between"><div><div style="font-size:15px">${d.biz.built ? "Собран из Notion" : "Еще не собран"}</div><div class="muted" style="font-size:13px;margin-top:2px">${d.biz.built ? `${d.biz.topics} тем · уровни ${esc(d.biz.levels.join(", "))} · собрано ${fmtAt(d.biz.builtAt)}` : "ученики увидят переключатель «Обычный / Для работы», как только курс будет собран"}</div></div><span class="tag ${d.biz.built ? "started" : "available"}">${d.biz.built ? "Notion" : "нет"}</span></div>
+        <div class="row" style="gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn small" data-rebuild="bizCourse" ${!d.notion || running ? "disabled" : ""}>↻ Собрать из Notion</button><a class="btn small" href="${esc(d.biz.rootUrl)}" target="_blank" rel="noopener" style="text-decoration:none;text-align:center">Открыть план в Notion</a>${d.biz.built ? `<button class="btn small" data-reset="bizCourse" ${running ? "disabled" : ""}>Убрать</button>` : ""}</div>
+        <div class="muted" style="font-size:12px;margin-top:10px;line-height:1.4">Перед первой сборкой: на странице «Бизнес-английский — самостоятельный план» → ⋯ → «Подключения» → добавь ту же интеграцию, что и для основного плана.</div>
+      </div>` : ""}
       <h2 style="margin-top:18px">🎯 Задания бота</h2>
       <div class="card" style="margin-top:8px;padding:14px 16px">
         <div class="row between"><div><div style="font-size:15px">${d.grammar.source === "notion" ? "Версия из Notion" : "Встроенная версия"}</div><div class="muted" style="font-size:13px;margin-top:2px">${Object.entries(d.grammar.counts).map(([k, n]) => `${GRAMMAR_LABELS[k] || k}: ${n}`).join(" · ")}${d.grammar.builtAt ? ` · собрано ${fmtAt(d.grammar.builtAt)}` : ""}</div></div><span class="tag ${d.grammar.source === "notion" ? "started" : "available"}">${d.grammar.source === "notion" ? "Notion" : "бандл"}</span></div>
@@ -951,7 +981,7 @@
       ${rb ? `<h2 style="margin-top:18px">Последняя пересборка</h2>
       <div class="card" style="margin-top:8px;padding:14px 16px">
         <div class="row between"><div style="font-size:15px">${running ? "⏳ Идёт" : rb.status === "done" ? "✅ Готово" : rb.status === "warning" ? "⚠️ Готово с замечаниями" : "❌ Ошибка"} · ${modeName[rb.mode] || rb.mode}</div><div class="muted" style="font-size:12px">${fmtAt(rb.startedAt)}</div></div>
-        ${rb.mode === "course" && rb.total ? `<div class="bar" style="margin-top:10px"><i style="width:${Math.max(3, Math.round(((rb.done || []).length / rb.total) * 100))}%"></i></div><div class="muted" style="font-size:12px;margin-top:4px">уровней: ${(rb.done || []).length} из ${rb.total}${rb.done && rb.done.length ? ` (${rb.done.join(", ")})` : ""}</div>` : ""}
+        ${(rb.mode === "course" || rb.mode === "bizCourse") && rb.total ? `<div class="bar" style="margin-top:10px"><i style="width:${Math.max(3, Math.round(((rb.done || []).length / rb.total) * 100))}%"></i></div><div class="muted" style="font-size:12px;margin-top:4px">уровней: ${(rb.done || []).length} из ${rb.total}${rb.done && rb.done.length ? ` (${rb.done.join(", ")})` : ""}</div>` : ""}
         ${rb.error ? `<div style="margin-top:8px;font-size:13px;color:var(--bad-fg)">${esc(rb.error)}</div>` : ""}
         ${rb.log && rb.log.length ? `<details style="margin-top:8px"><summary class="muted" style="font-size:13px;cursor:pointer">Журнал (${rb.log.length})</summary><div class="muted" style="font-size:12px;line-height:1.5;margin-top:6px;white-space:pre-wrap">${rb.log.slice(-25).map(esc).join("\n")}</div></details>` : ""}
       </div>` : ""}
@@ -959,7 +989,7 @@
     if (st.loading || !d) return;
     root.querySelectorAll("[data-rebuild]").forEach((b) => b.addEventListener("click", async () => {
       const what = b.dataset.rebuild;
-      const q = { course: "Пересобрать курс из Notion? Займёт 5–15 минут, прогресс учеников сохранится.", grammar: "Пересобрать задания бота из базы Notion?", seedGrammar: "Создать базу заданий в Notion и перенести туда встроенные задания?" }[what];
+      const q = { course: "Пересобрать курс из Notion? Займёт 5–15 минут, прогресс учеников сохранится.", bizCourse: "Собрать курс «для работы» из Notion? Займет 5–15 минут.", grammar: "Пересобрать задания бота из базы Notion?", seedGrammar: "Создать базу заданий в Notion и перенести туда встроенные задания?" }[what];
       if (!(await confirmSheetOk(q, "Запустить"))) return;
       b.disabled = true; const r = await api("contentRebuild", { what });
       if (!r || !r.ok) { b.disabled = false; return toast({ no_notion_token: "Сначала добавь NOTION_TOKEN в Netlify", already_running: "Пересборка уже идёт", no_url: "Нет адреса сайта (URL) в Netlify" }[r && r.error] || "Не удалось запустить"); }
@@ -967,7 +997,7 @@
     }));
     root.querySelectorAll("[data-reset]").forEach((b) => b.addEventListener("click", async () => {
       const what = b.dataset.reset;
-      if (!(await confirmSheet(what === "course" ? "Вернуть встроенную версию курса? Версия из Notion будет удалена (пересобрать можно снова)." : "Вернуть встроенные задания?", "Вернуть"))) return;
+      if (!(await confirmSheet(what === "course" ? "Вернуть встроенную версию курса? Версия из Notion будет удалена (пересобрать можно снова)." : what === "bizCourse" ? "Убрать курс «для работы»? Ученики снова увидят только обычный курс (собрать можно снова)." : "Вернуть встроенные задания?", "Вернуть"))) return;
       const r = await api("contentReset", { what }); if (r && r.ok) { st.data = r; toast("Готово"); renderStudy(); } else toast("Не получилось");
     }));
     clearTimeout(contentPoll);
@@ -1092,7 +1122,7 @@
     if (tenseInfo(t)) list.push({ kind: "algorithm", title: "Правила, показатели и алгоритм", icon: "🧭" });
     for (const k of ["native", "narrative", "examples", "pitfalls"]) if (sec(k)) list.push({ kind: k, title: SECTION_META[k][1], icon: SECTION_META[k][0] });
     for (const s of t.sections) if (s.key === "other") list.push({ kind: "other", title: strip(s.title), icon: "📄", sidx: t.sections.indexOf(s) });
-    if (t.exercises.length) list.push({ kind: "exercises", title: `Упражнения (${t.exercises.length})`, icon: "✍️" });
+    if (t.exercises.length) list.push({ kind: "exercises", title: `Упражнения (${t.exercises.length}${(t.drills || []).length ? ` · ${t.drills.length} ${plural(t.drills.length, ["задание", "задания", "заданий"])}` : ""})`, icon: "✍️" });
     if (sec("links")) list.push({ kind: "links", title: SECTION_META.links[1], icon: "🔗" });
     if (t.selfcheck.length) list.push({ kind: "selfcheck", title: "Самопроверка", icon: "✅" });
     return list;
@@ -1140,10 +1170,12 @@
       <div class="head"><div class="row between"><div>${backLink(catTitle)}<div class="ttl" style="margin-top:6px">${esc(t.emoji || "")} ${esc(t.title)}</div><div class="sub">${esc(catTitle)} · ${lv ? esc(lv.code) + " · " : ""}${lessons.length} ${plural(lessons.length, ["шаг", "шага", "шагов"])} · ${read.size} пройдено</div></div><button class="fab ghost" id="t-notes" title="Заметки" style="margin-top:22px">📝${state.topicNotes.length ? `<span class="pill" style="position:absolute;margin:-40px 0 0 30px;padding:1px 6px;font-size:11px">${state.topicNotes.length}</span>` : ""}</button></div>
         <div style="margin-top:10px"><span class="tag ${status}">${STATUS_LABEL[status] || "В процессе"}</span></div></div>
       ${t.intro ? `<div class="card content" style="font-size:14px">${t.intro}</div>` : ""}
+      ${(t.drills || []).length ? `<div class="card aqua train-card" id="t-train" style="margin-top:12px"><div><div style="font-size:17px">🎯 Тренировка</div><div class="muted" style="color:var(--text-2);opacity:.8;margin-top:2px">${t.drills.length} ${plural(t.drills.length, ["задание", "задания", "заданий"])} из ${t.exercises.length} ${plural(t.exercises.length, ["упражнения", "упражнений", "упражнений"])} · по 20 вперемешку</div></div><button class="fab">${iconArrow()}</button></div>` : ""}
       ${rows}
       <div class="navbtns"><button class="btn" id="t-start">${read.size ? "Продолжить" : "Начать"}</button>${status === "done" ? `<button class="btn" id="t-reset">Сбросить</button>` : `<button class="btn primary" id="t-done">Тема пройдена ✓</button>`}</div>
       <div style="height:16px"></div>`;
     root.querySelectorAll(".lesson").forEach((el) => el.addEventListener("click", () => { haptic(); openLesson(Number(el.dataset.i)); }));
+    const ttr = $("#t-train"); if (ttr) ttr.addEventListener("click", () => { haptic(); go("train", { id }); });
     $("#t-notes").addEventListener("click", () => go("tnotes", { id }));
     $("#t-start").addEventListener("click", () => { const i = lessons.findIndex((l) => !read.has(lessonKey(l))); openLesson(i < 0 ? 0 : i); });
     const td = $("#t-done"); if (td) td.addEventListener("click", () => markDone(id));
@@ -1218,6 +1250,8 @@
     const kw = new Map(); const add = (w, wt) => { w = String(w || "").toLowerCase().trim(); if (w && !STOP.test(w) && (w.length > 2 || /^-[a-z]+$/.test(w))) kw.set(w, Math.max(kw.get(w) || 0, wt)); };
     // 1) сам ответ и слово-подсказка — важнее всего
     const ans = cleanAns(it.a).toLowerCase(); for (const w of ans.split(" ")) add(w, 5);
+    // короткий ответ целиком («have to», «has», «the») — даже если состоит из служебных слов
+    if (ans && ans.length <= 24 && ans.split(" ").length <= 3 && ans.length > 1) kw.set(ans, Math.max(kw.get(ans) || 0, ans.includes(" ") ? 7 : 3));
     const hint = hintOf(it.q); if (hint && !hint.includes("/")) for (const w of hint.split(/\s+/)) add(w, 5);
     // 2) окончания из ответа: studies → ies, watches → -es, doesn't → doesn't
     for (const w of ans.split(" ")) { if (/ies$/.test(w)) { add("-ies", 4); add("ies", 4); } else if (/(s|sh|ch|x|o)es$/.test(w)) add("-es", 4); else if (/[^s]s$/.test(w) && w.length > 3) add("-s", 3); if (/ing$/.test(w)) add("-ing", 3); if (/ed$/.test(w)) add("-ed", 3); if (/n't$/.test(w)) { add(w, 4); add("отрицани", 2); } if (/^(do|does|did|is|are|was|were|am|will|would|can|could|should|must|have|has|had)$/.test(w)) add(w, 4); }
@@ -1403,6 +1437,132 @@
     if (distractors.length < minDistractors) return null;
     return seededShuffle([correct, ...distractors], seed + 1).map((v) => ({ text: v, ok: v === correct }));
   }
+  // ---------- интерактивные задания из упражнений Марго ----------
+  // Каждый пункт упражнения заранее превращен в задание (scripts/build-drills.mjs):
+  // choice — выбор из вариантов, build — собрать ответ из слов, recall — вспомнить и открыть ответ.
+  // Правильный ответ всегда из ключа Марго.
+  const isRecallMode = () => !!(state.me && state.me.recallMode);
+  const drillsOfEx = (t, n) => (t.drills || []).filter((d) => d.ex === n);
+  function seedOf(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+  function shuffled(arr, seed) { const a = arr.slice(); let x = seed || 1; for (let i = a.length - 1; i > 0; i--) { x = (Math.imul(x, 1103515245) + 12345) >>> 0; const j = x % (i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  const normAns = (x) => String(x || "").toLowerCase().replace(/[’‘]/g, "'").replace(/[.!?,;:"«»]+/g, "").replace(/\s+/g, " ").trim();
+  const DRILL_TASK = { fix: "Исправь ошибку — собери верное предложение", translate: "Переведи — собери из слов", transform: "Собери ответ из слов", fill: "Вставь пропуск — собери предложение" };
+  function drillReset(st) { st.picked = null; st.built = []; st.checked = false; st.shown = false; st.result = null; st.typed = ""; }
+  function drillPool(d) { return shuffled(d.tiles.concat(d.traps || []).map((w, k) => ({ w, k })), seedOf(d.id)); }
+  function drillCorrectText(d) { return d.type === "choice" ? d.options[d.correct] : d.type === "build" ? (d.full || d.answer) : d.type === "type" ? (d.full || d.accept.join(" / ")) : ""; }
+  function drillHtml(d, st, e, counter) {
+    if (DEMO) window.__curDrill = d;
+    const recall = d.type === "recall" || isRecallMode();
+    // название упражнения Марго — это и есть задание («Вставь should или shouldn't»), его не подменяем
+    const taskLine = d.task || (d.type === "build" ? (DRILL_TASK[d.mode] || "Собери из слов") : "");
+    const lead = ((state.topic && state.topic.drillLeads) || {})[d.ex];
+    const head = `<div class="card ex"><div class="muted" style="margin-bottom:6px">${esc(counter)} · ${esc(taskLine)}</div>${lead ? `<div class="content" style="font-size:14px;color:var(--text-2);margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--line)">${lead}</div>` : ""}<div class="content" style="font-size:18px">${d.q}</div></div>`;
+    const explain = () => { try { return explainHtml(e, { q: d.q, a: d.key }); } catch (err) { return ""; } };
+    const note = d.note ? `<div class="muted" style="margin-top:6px;font-size:14px">💡 ${esc(d.note)}</div>` : "";
+    // режим «вспоминаю сама» и задания без вариантов
+    if (recall && st.result === null) {
+      // открытое задание (о себе, творческое): ответ у каждого свой — показываем пример Марго
+      if (d.open) {
+        if (!st.shown) return `${head}<div class="muted" style="margin-top:12px;font-size:14px">Ответ у каждого свой: скажи или напиши его сам${gend("", "а")}, потом сравни с примером.</div><div style="margin-top:12px"><button class="btn primary" id="dr-show">👀 Показать пример</button></div>`;
+        return `${head}<div class="muted" style="margin-top:12px;font-size:13px">Пример ответа</div><div class="card content" style="margin-top:6px;background:var(--soft);font-size:16px">${d.key}</div>${note}
+          <div class="navbtns"><button class="btn primary" id="dr-yes">Дальше</button></div>`;
+      }
+      if (!st.shown) return `${head}<div style="margin-top:14px"><button class="btn primary" id="dr-show">🔎 Показать ответ</button></div>`;
+      return `${head}<div class="card content" style="margin-top:12px;background:var(--soft);font-size:16px">${d.key}</div>${note}${explain()}
+        <div class="navbtns"><button class="btn danger" id="dr-no">Не знал${gend("", "а")} ✗</button><button class="btn primary" id="dr-yes">Знал${gend("", "а")} ✓</button></div>`;
+    }
+    let body = "";
+    if (d.type === "type") {
+      body = `<input class="tl-input" id="dr-input" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Твой ответ" value="${esc(st.typed)}" ${st.checked ? "disabled" : ""}>
+        ${!st.checked ? `<div class="navbtns"><button class="btn" id="dr-giveup">Не знаю</button><button class="btn primary" id="dr-tcheck">Проверить</button></div>` : ""}`;
+    } else if (d.type === "choice") {
+      const order = shuffled(d.options.map((_, k) => k), seedOf(d.id));
+      const answered = st.picked !== null;
+      body = order.map((k) => `<button class="opt ${answered ? (k === d.correct ? "ok" : k === st.picked ? "bad" : "dim") : ""}" data-k="${k}" ${answered ? "disabled" : ""}>${esc(d.options[k])}</button>`).join("");
+    } else if (d.type === "build") {
+      const pool = drillPool(d); const used = new Set(st.built);
+      const ans = st.built.map((k) => { const tile = pool.find((x) => x.k === k); return `<button class="tl on" data-on="${k}" ${st.checked ? "disabled" : ""}>${esc(tile.w)}</button>`; }).join("");
+      body = `<div class="tl-ans ${st.checked ? (st.result ? "ok" : "bad") : ""}">${ans || `<span class="muted" style="font-size:14px">${d.mode === "fill" ? "Собери пропущенное — нажимай на слова по порядку" : "Нажимай на слова по порядку"}</span>`}${d.end && st.built.length ? `<span class="tl-end">${esc(d.end)}</span>` : ""}</div>
+        <div class="tl-pool">${pool.map((x) => `<button class="tl ${used.has(x.k) ? "used" : ""}" data-k="${x.k}" ${used.has(x.k) || st.checked ? "disabled" : ""}>${esc(x.w)}</button>`).join("")}</div>
+        ${!st.checked ? `<div class="navbtns"><button class="btn" id="dr-clear" ${st.built.length ? "" : "disabled"}>Сбросить</button><button class="btn primary" id="dr-check" ${st.built.length ? "" : "disabled"}>Проверить</button></div>` : ""}`;
+    }
+    let fb = "";
+    if (st.result !== null && d.type !== "recall" && !isRecallMode()) {
+      const ok = st.result;
+      // свой вариант не совпал с ключом: показываем ключ и даем засчитать, если по смыслу то же самое
+      const own = d.type === "type" && !ok && st.typed.trim() && !st.overruled;
+      fb = `<div class="card" style="margin-top:14px;background:${ok ? "var(--ok-bg)" : "var(--bad-bg)"}"><div style="font-size:15px;font-weight:500;color:${ok ? "var(--ok-fg)" : "var(--bad-fg)"}">${ok ? "Верно!" : own ? "Сверь с ключом" : "Не совсем"}</div>
+        ${!ok || d.type === "build" || (d.type === "type" && d.full) ? `<div style="margin-top:6px;font-size:16px">Правильно: <b>${esc(drillCorrectText(d))}</b></div>` : ""}
+        ${d.type === "type" && d.full && !ok ? `<div class="muted" style="margin-top:4px;font-size:14px">В пропуск: ${esc(d.accept.join(" / "))}</div>` : ""}${note}</div>${explain()}
+        <div class="navbtns">${own ? `<button class="btn" id="dr-own">У меня то же самое ✓</button>` : ""}<button class="btn primary" id="dr-next">Дальше</button></div>`;
+    }
+    return head + body + fb;
+  }
+  function bindDrill(root, d, st, onDone) {
+    const finish = (ok) => { st.result = ok; if (ok) haptic("medium"); else { try { tg && tg.HapticFeedback && tg.HapticFeedback.notificationOccurred("error"); } catch (err) {} } };
+    const sh = root.querySelector("#dr-show"); if (sh) sh.addEventListener("click", () => { haptic(); st.shown = true; renderStudy(); });
+    const y = root.querySelector("#dr-yes"); if (y) y.addEventListener("click", () => { haptic("medium"); onDone(true); });
+    const nn = root.querySelector("#dr-no"); if (nn) nn.addEventListener("click", () => { haptic(); onDone(false); });
+    root.querySelectorAll(".opt[data-k]").forEach((b) => b.addEventListener("click", () => { if (st.picked !== null) return; st.picked = Number(b.dataset.k); finish(st.picked === d.correct); renderStudy(); }));
+    root.querySelectorAll(".tl[data-k]").forEach((b) => b.addEventListener("click", () => { haptic(); st.built.push(Number(b.dataset.k)); renderStudy(); }));
+    root.querySelectorAll(".tl[data-on]").forEach((b) => b.addEventListener("click", () => { haptic(); const k = Number(b.dataset.on); st.built = st.built.filter((x) => x !== k); renderStudy(); }));
+    const cl = root.querySelector("#dr-clear"); if (cl) cl.addEventListener("click", () => { st.built = []; renderStudy(); });
+    const ch = root.querySelector("#dr-check"); if (ch) ch.addEventListener("click", () => {
+      const pool = drillPool(d); const said = st.built.map((k) => pool.find((x) => x.k === k).w).join(" ");
+      const okSet = new Set([d.answer, ...(d.accept || [])].map(normAns));
+      st.checked = true; finish(okSet.has(normAns(said))); renderStudy();
+    });
+    const inp = root.querySelector("#dr-input");
+    const tcheck = () => { st.typed = inp.value; if (!st.typed.trim()) { inp.focus(); return; } st.checked = true; finish(d.accept.map(normAns).includes(normAns(st.typed))); renderStudy(); };
+    if (inp) { inp.addEventListener("input", () => { st.typed = inp.value; }); inp.addEventListener("keydown", (ev) => { if (ev.key === "Enter") { ev.preventDefault(); tcheck(); } }); if (!st.checked) setTimeout(() => { try { inp.focus({ preventScroll: true }); } catch (err) {} }, 50); }
+    const tc = root.querySelector("#dr-tcheck"); if (tc) tc.addEventListener("click", tcheck);
+    const gu = root.querySelector("#dr-giveup"); if (gu) gu.addEventListener("click", () => { st.typed = ""; st.checked = true; finish(false); renderStudy(); });
+    const own = root.querySelector("#dr-own"); if (own) own.addEventListener("click", () => { haptic("medium"); onDone(true); });
+    const nx = root.querySelector("#dr-next"); if (nx) nx.addEventListener("click", () => { haptic(); onDone(!!st.result); });
+  }
+  function renderExerciseDrills(root, t, e, list, hdr, exBar, title, total) {
+    const st = state.study; const n = list.length;
+    if (st.item >= n) {
+      lsSet(exKey(t.id, e.n), { ok: st.score, total: n });
+      root.innerHTML = `${hdr}${exBar}<h2 style="margin-top:0">${esc(title)}</h2><div class="card aqua" style="text-align:center"><div class="big">${st.score}<span style="font-size:20px;color:var(--muted)"> / ${n}</span></div><div style="margin-top:6px">${st.score === n ? "Без ошибок!" : st.score >= n * 0.7 ? "Хорошо!" : "Стоит повторить"}</div></div>
+        <div class="navbtns"><button class="btn" id="ex-retry">Ещё раз</button><button class="btn primary" id="ex-next">${st.ex + 1 >= total ? "Готово" : "Следующее упражнение"}</button></div>`;
+      $("#ex-retry").addEventListener("click", () => { st.item = 0; st.score = 0; drillReset(st); renderStudy(); });
+      return;
+    }
+    const d = list[st.item]; if (st.dk !== d.id) { drillReset(st); st.dk = d.id; }
+    root.innerHTML = `${hdr}${exBar}<h2 style="margin-top:0">${esc(title)}</h2><div class="bar" style="margin:6px 0 12px"><i style="width:${Math.round((st.item / n) * 100)}%"></i></div>
+      ${drillHtml(d, st, e, `Задание ${st.item + 1} из ${n}`)}
+      <div class="navbtns" style="margin-top:10px"><button class="btn" id="ex-prev" ${st.item === 0 && st.ex === 0 ? "disabled" : ""}>Назад</button><button class="btn" id="ex-skip">Пропустить</button></div><div style="height:16px"></div>`;
+    bindDrill(root, d, st, (ok) => { if (ok) st.score++; st.item++; drillReset(st); renderStudy(); window.scrollTo(0, 0); });
+    $("#ex-skip").addEventListener("click", () => { st.item++; drillReset(st); renderStudy(); });
+  }
+  // «Тренировка темы»: 20 заданий вперемешку из всех упражнений; ошибки возвращаются в конец один раз
+  function renderTraining(root) {
+    const t = state.topic; if (!t || t.id !== state.study.id) return openTopic(state.study.id);
+    const st = state.study; const byId = new Map((t.drills || []).map((d) => [d.id, d]));
+    if (!st.queue) {
+      const pool = (t.drills || []).filter((d) => d.type !== "recall");
+      st.queue = shuffled(pool.map((d) => d.id), (Date.now() >>> 0) || 7).slice(0, 20); st.pos = 0; st.score = 0; st.firstTotal = st.queue.length; st.requeued = []; drillReset(st);
+    }
+    const head = `<div class="head aqua"><div>${backLink(t.title.length > 24 ? t.title.slice(0, 24) + "…" : t.title)}<div class="ttl" style="margin-top:6px">🎯 Тренировка</div><div class="sub">задания из всех упражнений темы вперемешку</div></div></div>`;
+    if (st.pos >= st.queue.length) {
+      root.innerHTML = `${head}<div class="card cream" style="text-align:center;margin-top:14px"><div class="big">${st.score}<span style="font-size:20px;color:var(--muted)"> / ${st.firstTotal}</span></div><div style="margin-top:6px">${st.score >= st.firstTotal ? "Без ошибок!" : "Ошибки повторились в конце — так они лучше запоминаются"}</div></div>
+        <div class="navbtns"><button class="btn" id="tr-topic">К теме</button><button class="btn primary" id="tr-more">Ещё 20</button></div>`;
+      $("#tr-topic").addEventListener("click", () => go("topic", { id: t.id }));
+      $("#tr-more").addEventListener("click", () => { st.queue = null; renderStudy(); });
+      return;
+    }
+    const d = byId.get(st.queue[st.pos]); const e = t.exercises.find((x) => x.n === d.ex) || {};
+    if (st.dk !== d.id) { drillReset(st); st.dk = d.id; }
+    const repeat = st.pos >= st.firstTotal;
+    root.innerHTML = `${head}<div class="bar" style="margin:12px 0"><i style="width:${Math.round((Math.min(st.pos, st.firstTotal) / st.firstTotal) * 100)}%"></i></div>
+      ${drillHtml(d, st, e, repeat ? "Повторяем ошибку" : `${st.pos + 1} из ${st.firstTotal} · упр. ${d.ex}`)}<div style="height:16px"></div>`;
+    bindDrill(root, d, st, (ok) => {
+      if (!repeat && ok) st.score++;
+      if (!ok && !st.requeued.includes(d.id)) { st.requeued.push(d.id); st.queue.push(d.id); }
+      st.pos++; drillReset(st); renderStudy(); window.scrollTo(0, 0);
+    });
+  }
   function renderExercises(root) {
     const t = state.topic; if (!t || t.id !== state.study.id) return openTopic(state.study.id);
     const lessons = lessonsOf(t); const i = state.study.i; const l = lessons[i]; markRead(t.id, l);
@@ -1421,6 +1581,14 @@
     const p = exItems(e);
     const title = `Упражнение ${e.n}${e.title ? `. ${e.title}` : ""}`;
     const exBar = `<div class="row between" style="margin:4px 0 8px"><div class="muted">${st.ex + 1} из ${total}</div><button class="back" id="ex-list">все упражнения</button></div>`;
+    const dl = drillsOfEx(t, e.n);
+    if (dl.length) {
+      renderExerciseDrills(root, t, e, dl, hdr, exBar, title, total);
+      $("#ex-list").addEventListener("click", () => openExerciseList());
+      const prev2 = $("#ex-prev"); if (prev2) prev2.addEventListener("click", () => { if (st.item > 0) { st.item--; drillReset(st); } else if (st.ex > 0) { st.ex--; st.item = 0; st.score = 0; drillReset(st); } renderStudy(); });
+      const next2 = $("#ex-next"); if (next2) next2.addEventListener("click", () => { haptic(); st.ex++; st.item = 0; st.score = 0; drillReset(st); renderStudy(); window.scrollTo(0, 0); });
+      return;
+    }
     if (p.mode === "whole") {
       root.innerHTML = `${hdr}${exBar}<h2 style="margin-top:0">${esc(title)}</h2><div class="card ex"><div class="content">${e.html}</div>${e.answers ? `<details class="ans" ${st.shown ? "open" : ""}><summary>Показать ответ</summary><div class="content">${e.answers}</div></details>` : ""}</div>
         <div class="navbtns"><button class="btn" id="ex-prev" ${st.ex === 0 ? "disabled" : ""}>Назад</button><button class="btn primary" id="ex-next">${st.ex + 1 >= total ? "Готово" : "Следующее"}</button></div><div style="height:16px"></div>`;
@@ -1627,7 +1795,7 @@
     bindStart(root);
   }
 
-  if (DEMO) window.__dbg = { demo, buildOptions, exItems, parseItems, cleanAns, mutate, topicAnswerPool, explainHtml, setTopic: (t) => { state.topic = t; } };
+  if (DEMO) window.__dbg = { go, openTopic, demo, buildOptions, exItems, parseItems, cleanAns, mutate, topicAnswerPool, explainHtml, setTopic: (t) => { state.topic = t; } };
   // ---------- Навигация ----------
   async function showPage(name) {
     document.querySelectorAll(".page").forEach((p) => p.classList.toggle("active", p.id === "page-" + name));

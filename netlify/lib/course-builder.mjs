@@ -159,19 +159,21 @@ function parseExercises(linesIn, fallbackTitle = "") {
     const [rest, ans] = extractAnswers(lines); const html = parseBlocks(rest);
     return stripTags(html).trim() ? [{ n: 1, title: inline(fallbackTitle), html, answers: ans }] : [];
   }
-  const ex = []; let cur = null, depth = 0, buf = [];
-  const close = () => { if (cur) { const [rest, ans] = extractAnswers(buf.slice()); cur.html = parseBlocks(rest); cur.answers = ans; ex.push(cur); } };
+  const ex = []; let cur = null, depth = 0, buf = [], abuf = null;
+  const close = () => { if (cur) { const [rest, ans] = extractAnswers(buf.slice()); cur.html = parseBlocks(rest); cur.answers = ans + (abuf && abuf.length ? parseBlocks(abuf) : ""); ex.push(cur); } abuf = null; };
   for (const ln of lines) {
     const st = ln.trim(); const m = st.match(/^### (.*)$/);
+    // «### Ответы к упражнению 1 {toggle="true"}» обычным заголовком (бизнес-план): ответы — блоки после него
+    if (m && depth === 0 && cur && /^Ответы\s+к\s+упражнени/i.test(stripTags(m[1]).trim())) { abuf = []; continue; }
     if (m && depth === 0) {
       close(); buf = [];
-      const title = m[1].trim(); const mm = stripTags(title).match(/Упражнение\s+(\d+)\.?\s*(.*)/);
+      const title = m[1].replace(/\s*\\?\{toggle=[^}]*\\?\}\s*$/, "").trim(); const mm = stripTags(title).match(/Упражнение\s+(\d+)\.?\s*(.*)/);
       cur = { n: mm ? Number(mm[1]) : ex.length + 1, title: inline(mm ? mm[2] : title) };
       continue;
     }
     if (st.startsWith("<toggle") || st.startsWith("<callout")) depth += 1;
     else if (st === "</toggle>" || st === "</callout>") depth -= 1;
-    if (cur) buf.push(ln);
+    if (cur) (abuf || buf).push(ln);
   }
   close();
   return ex;
