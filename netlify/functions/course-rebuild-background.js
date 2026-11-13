@@ -142,6 +142,28 @@ async function rebuildLevel(levelRef) {
   for (const [id, tp] of built.topics) if (!tp.sections.length && tp.kind === "topic") built.log.push(`тема «${tp.title}» без разделов (## …) — проверь структуру страницы`);
   return built;
 }
+// Сквозные бизнес-блоки: дочерние страницы корня бизнес-плана, кроме страниц уровней → «уровень» BIZ
+async function discoverBlocks(rootId) {
+  const blocks = await allChildren(rootId);
+  return blocks.filter((b) => b.type === "child_page").map((b) => ({ id: nid(b.id), title: ((b.child_page && b.child_page.title) || "").trim() }))
+    .filter((p) => p.title && !/^\s*[ABC][0-2]\s*[—–-]/.test(p.title) && !/\(1\)$/.test(p.title));
+}
+async function rebuildBlocks(rootId) {
+  const pages = await discoverBlocks(rootId);
+  const topics = []; const bodies = new Map();
+  for (const [i, cp] of pages.entries()) {
+    const p = await notion(`/pages/${cp.id}`);
+    const pt = pageTitle(p);
+    let title = pt.title || cp.title; let emoji = pt.emoji || "";
+    const em = title.match(/^(\p{Extended_Pictographic}(?:️|‍\p{Extended_Pictographic})*)\s+/u);
+    if (em) { emoji = emoji || em[1]; title = title.slice(em[0].length).trim(); }
+    const tTree = await blockTree(cp.id);
+    const tt = new Map(); const w2 = (bs) => { for (const b of bs) { if (b.type === "child_page") tt.set(nid(b.id), { title: b.child_page.title, emoji: "" }); if (b.children) w2(b.children); } }; w2(tTree);
+    bodies.set(cp.id, blocksToMarkdown(tTree, tt));
+    topics.push({ n: i + 1, id: cp.id, emoji, title, description: "", contains: "", kind: "topic", category: "business" });
+  }
+  return buildLevel({ code: "BIZ", title: "Бизнес-блоки", emoji: "💼", intro: "Их не нужно проходить по порядку — открывай тот, который нужен на этой неделе.", checkpoint: [], topics }, bodies);
+}
 async function writeLevel(built, track) {
   for (const [id, tp] of built.topics) await store().setJSON(`${PFX(track)}:topic:${id}`, tp);
   await store().setJSON(`${PFX(track)}:level:${built.record.code}`, built.record);
@@ -149,7 +171,7 @@ async function writeLevel(built, track) {
 async function publishIndex(bundledIndex, track) {
   const pfx = PFX(track);
   // собираем индекс из уровней в Blobs; для уровней, которых там нет, берём встроенные
-  const codes = ["A0", "A1", "A2", "B1", "B2", "C1"];
+  const codes = ["A0", "A1", "A2", "B1", "B2", "C1", ...(track === "business" ? ["BIZ"] : [])];
   const records = []; const sources = {};
   for (const c of codes) {
     const rec = await store().get(`${pfx}:level:${c}`, { type: "json" });
@@ -173,13 +195,14 @@ async function runCourse(body) {
     if (!levels.length) throw new Error("не нашла страницы уровней (A0 — …, A1 — …) под корневой страницей. Проверь, что интеграции открыт доступ к странице плана.");
     await appendLog(`уровни: ${levels.map((l) => l.code).join(", ")}`);
     queue = levels.map((l) => `${l.code}:${l.id}`);
+    if (track === "business") queue.push(`BIZ:${rootId}`);
     await setStatus({ total: queue.length, queue });
   }
   const [code, id] = queue[0].split(":");
   await appendLog(`уровень ${code}: читаю страницы…`);
   let failed = false;
   try {
-    const built = await rebuildLevel({ code, id });
+    const built = code === "BIZ" ? await rebuildBlocks(id) : await rebuildLevel({ code, id });
     await writeLevel(built, track);
     for (const l of built.log) await appendLog(`${code}: ${l}`);
     await appendLog(`уровень ${code}: ${built.record.topics.length} тем записано`);

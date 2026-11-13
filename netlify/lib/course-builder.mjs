@@ -99,7 +99,7 @@ export function parseBlocks(lines) {
 const SECTION_KEYS = [
   ["why", /Зачем эт/], ["theory", /Теория/], ["native", /Как это видит носитель/], ["narrative", /Нарративные приемы/],
   ["examples", /Примеры с разбором/], ["pitfalls", /Подводные камни/], ["exercises", /Упражнения/],
-  ["extra", /Дополнительные \d+ упражнени/], ["links", /Дополнительная практика/], ["selfcheck", /Самопроверка/],
+  ["extra", /Дополнительные \d+ упражнени/], ["links", /Дополнительная практика/], ["selfcheck", /Самопроверка|Как это закрепить/],
 ];
 export function sectionKey(title) { const t = stripTags(title); for (const [k, rx] of SECTION_KEYS) if (rx.test(t)) return k; return "other"; }
 const ANSWER_RX = /Ответ|ответ|Answer|Ключ|Решени|Вариант/;
@@ -185,8 +185,24 @@ function parseSelfcheck(lines) {
 }
 
 // meta: { id, level, n, emoji, title, kind, description, contains }; body — markdown между <content> и </content>
+// Разделы-тогглы верхнего уровня (<toggle heading="h2">) — такие же разделы, как «## …»
+// (так устроены бизнес-блоки: «🤝 Продажи и клиенты», «📣 Маркетинг и продукт» …)
+function flattenH2Toggles(lines) {
+  const out = []; let depth = 0; const stack = [];
+  for (let i = 0; i < lines.length; i++) {
+    const st = lines[i].trim();
+    if (st === '<toggle heading="h2">' && depth === 0) {
+      let k = i + 1; while (k < lines.length && !lines[k].trim()) k += 1;
+      out.push("## " + (lines[k] || "").trim()); stack.push(true); i = k; depth += 1; continue;
+    }
+    if (st.startsWith("<toggle") || st.startsWith("<callout")) { depth += 1; stack.push(false); }
+    else if ((st === "</toggle>" || st === "</callout>") && stack.length) { depth -= 1; if (stack.pop()) continue; }
+    out.push(lines[i]);
+  }
+  return out;
+}
 export function buildTopic(meta, body) {
-  const lines = body.split("\n");
+  const lines = flattenH2Toggles(body.split("\n"));
   let k = 0; const pre = [];
   while (k < lines.length && !/^## /.test(lines[k].trim())) { pre.push(lines[k]); k += 1; }
   const intro = parseBlocks(pre.filter((l) => !/^\[← /.test(l.trim()) && l.trim() !== "---"));
@@ -240,6 +256,7 @@ export const CATEGORIES = [
   ["verbals", "Герундий и инфинитив", "gerund vs infinitive, инфинитивные конструкции", [/Gerund/i, /Инфинитивные/i]],
   ["syntax", "Строение предложения", "повелительное наклонение, relative clauses, инверсия, cleft, причастные обороты", [/Повелительное/i, /Relative clauses/i, /Инверсия/i, /Cleft/i, /Participle/i, /Nominalisation/i, /Subjunctive/i, /Correlative/i]],
   ["vocab", "Лексика и стиль", "фразовые глаголы, словообразование, идиомы, linking words, регистр", [/Фразовые/i, /Phrasal/i, /Словообразование/i, /Idioms/i, /Linking words/i, /Discourse markers/i, /Hedging/i, /Register/i, /Лексика высокого/i, /Профессиональное/i, /аргументация/i]],
+  ["business", "Бизнес-блоки", "смягчение, филлеры, деловая переписка, встречи, переговоры, словари по направлениям", []],
   ["bridges", "Мосты и экзамены", "переход между уровнями, экзамен-чекпоинты B2 и C1", []],
 ];
 export function categoryOf(meta) {
@@ -256,7 +273,7 @@ export function buildLevel(lv, bodies) {
   for (const t0 of lv.topics) {
     const t = { ...t0, level: lv.code };
     if (HIDDEN.some((h) => h.test(t.title))) continue;
-    t.category = categoryOf(t);
+    t.category = t0.category || categoryOf(t);
     const body = bodies.get(t.id);
     if (body == null) { log.push(`нет текста темы ${lv.code}-${t.n} «${t.title}»`); continue; }
     const tp = buildTopic(t, body);

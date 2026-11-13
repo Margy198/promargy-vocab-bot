@@ -794,6 +794,8 @@
     else state.courseError = DEMO ? `Это просмотр в обычном браузере — курс открывается только внутри Telegram, из бота. (${tgDiag()})` : (c && c.error ? c.error : "unknown") + (c && c.detail ? ": " + c.detail : "");
     return state.course;
   }
+  // сквозные бизнес-блоки лежат в «уровне» BIZ
+  const lvName = (code) => (code === "BIZ" ? "💼 Блоки" : code || "");
   function findTopicMeta(id) { for (const l of state.course.levels) for (const t of l.topics) if (t.id === id) return { level: l, meta: t }; return null; }
   function categoryOfTopic(id) { for (const c of state.course.categories) if (c.topics.some((t) => t.id === id)) return c.key; return null; }
   function findCategory(key) { return state.course.categories.find((c) => c.key === key) || null; }
@@ -846,7 +848,7 @@
       ${state.me && state.me.isAdmin ? `<div class="card cream" style="margin-top:14px;cursor:pointer" id="go-teacher"><div class="row between"><div><div style="font-size:17px">👩‍🏫 Кабинет учителя</div><div class="muted" style="color:var(--text-2);opacity:.75;margin-top:2px">ученики, прогресс, домашка</div></div><button class="fab">${iconArrow()}</button></div></div>` : ""}
       <div class="card outline" style="margin-top:18px">${outline}</div>
       <div style="margin-top:18px"><button class="btn" id="go-topics" style="background:var(--g-aqua);font-size:15px">Далее</button></div>
-      ${cont ? `<div class="card aqua" style="margin-top:14px;cursor:pointer" id="continue"><div class="row between"><div><div class="muted" style="color:var(--text-2);opacity:.7">Продолжить · ${esc(cont.t.level || "")}</div><div style="font-size:17px;margin-top:2px">${esc(cont.t.emoji || "")} ${esc(cont.t.title)}</div></div><button class="fab">${iconArrow()}</button></div></div>` : ""}
+      ${cont ? `<div class="card aqua" style="margin-top:14px;cursor:pointer" id="continue"><div class="row between"><div><div class="muted" style="color:var(--text-2);opacity:.7">Продолжить · ${esc(lvName(cont.t.level || ""))}</div><div style="font-size:17px;margin-top:2px">${esc(cont.t.emoji || "")} ${esc(cont.t.title)}</div></div><button class="fab">${iconArrow()}</button></div></div>` : ""}
       <div class="card lavender" style="margin-top:14px;cursor:pointer" id="go-interests"><div class="row between"><div><div style="font-size:17px">🎯 Мои темы</div><div class="muted" style="color:var(--text-2);opacity:.75;margin-top:2px">предложения и слова по тому, что интересно именно тебе</div></div><button class="fab">${iconArrow()}</button></div></div>
       <div class="row" style="margin-top:12px;gap:10px"><button class="btn" id="go-notes" style="flex:1">📝 Заметки</button><button class="btn" id="go-slang" style="flex:1">💬 Сленг</button></div>
       <div style="height:8px"></div>`;
@@ -934,7 +936,7 @@
       ${open.length ? open.map((i) => hwRowHtml(i, `<button class="btn small" data-rm="${i.id}" style="flex:none;padding:6px 9px;font-size:12px">✕</button>`)).join("") : `<div class="muted" style="margin-top:8px">Открытых заданий нет.</div>`}
       ${done.length ? `<div class="muted" style="margin-top:10px;font-size:13px">Сдано: ${done.map((i) => `${esc(i.title)} (${fmtDay((i.doneAt || "").slice(0, 10))})`).join(", ")}</div>` : ""}
       <h2 style="margin-top:18px">Темы курса</h2>
-      ${d.topics.length ? d.topics.slice(0, 12).map((t) => `<div class="fold" style="padding:10px 14px"><span style="font-size:14px">${esc(t.emoji || "")} ${esc(t.title)} <span class="muted">· ${esc(t.level)}</span></span><span class="tag ${t.status}">${STATUS_LABEL[t.status]}</span></div>`).join("") : `<div class="muted" style="margin-top:8px">Ещё не открывал(а) темы в приложении.</div>`}
+      ${d.topics.length ? d.topics.slice(0, 12).map((t) => `<div class="fold" style="padding:10px 14px"><span style="font-size:14px">${esc(t.emoji || "")} ${esc(t.title)} <span class="muted">· ${esc(lvName(t.level))}</span></span><span class="tag ${t.status}">${STATUS_LABEL[t.status]}</span></div>`).join("") : `<div class="muted" style="margin-top:8px">Ещё не открывал(а) темы в приложении.</div>`}
       <h2 style="margin-top:18px">Частые ошибки в словаре</h2><div class="card" style="margin-top:8px;padding:4px 16px">${wrong}</div>
       ${d.victories && d.victories.length ? `<div class="muted" style="margin-top:10px;font-size:13px">🏆 Победил(а): ${d.victories.map((v) => esc(typeof v === "string" ? v : v.en || "")).join(", ")}</div>` : ""}
       <div style="margin-top:16px"><button class="btn" id="t-chat">Написать в Telegram</button></div><div style="height:16px"></div>`;
@@ -1058,7 +1060,7 @@
     const lv = lvl ? c.levels.find((l) => l.code === lvl) : null;
     root.innerHTML = `
       <div class="row between" style="margin-bottom:12px"><div>${backLink("Список тем")}<h1 style="margin-top:6px;font-weight:500">Все темы</h1></div><button class="fab ghost" id="go-search" title="Поиск"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button></div>
-      <div class="seg" id="lv-filter"><button data-l="" class="${lvl ? "" : "on"}">Все</button>${c.levels.map((l) => `<button data-l="${l.code}" class="${lvl === l.code ? "on" : ""}">${l.code}</button>`).join("")}</div>
+      <div class="seg" id="lv-filter"><button data-l="" class="${lvl ? "" : "on"}">Все</button>${c.levels.map((l) => `<button data-l="${l.code}" class="${lvl === l.code ? "on" : ""}">${esc(lvName(l.code))}</button>`).join("")}</div>
       ${lv && lv.intro ? `<details class="card" style="padding:12px 16px;margin-top:12px"><summary style="cursor:pointer;color:var(--accent)">${LEVEL_EMOJI[lv.code] || ""} ${esc(lv.title)} — о чём уровень</summary><div class="content" style="margin-top:8px;font-size:14px">${lv.intro}</div></details>` : ""}
       ${cards}
       ${lv && lv.checkpoint && lv.checkpoint.length ? `<div class="fold" style="margin-top:14px" id="checkpoint"><span>📝 Контрольная точка ${esc(lv.code)}</span><span class="n">${lv.checkpoint.length}</span></div>` : ""}
@@ -1074,7 +1076,7 @@
     const cat = findCategory(state.study.key); if (!cat) return go("topics");
     const lvl = state.study.level || "";
     const topics = lvl ? cat.topics.filter((t) => t.level === lvl) : cat.topics;
-    const rows = cat.topics.map((t, i) => (lvl && t.level !== lvl) ? "" : `<div class="lesson ${t.status === "done" ? "read" : ""} ${t.status === "locked" ? "locked" : ""}" data-id="${t.id}"><div class="ic">${esc(t.emoji || "📘")}</div><div style="flex:1"><div class="k">Урок ${i + 1} · ${esc(t.level)}${t.status === "started" ? " · в процессе" : t.status === "done" ? " · завершено" : t.status === "locked" ? " · недоступно" : ""}</div><div class="t">${esc(t.title)}</div></div><div class="ln"></div></div>`).join("");
+    const rows = cat.topics.map((t, i) => (lvl && t.level !== lvl) ? "" : `<div class="lesson ${t.status === "done" ? "read" : ""} ${t.status === "locked" ? "locked" : ""}" data-id="${t.id}"><div class="ic">${esc(t.emoji || "📘")}</div><div style="flex:1"><div class="k">Урок ${i + 1} · ${esc(lvName(t.level))}${t.status === "started" ? " · в процессе" : t.status === "done" ? " · завершено" : t.status === "locked" ? " · недоступно" : ""}</div><div class="t">${esc(t.title)}</div></div><div class="ln"></div></div>`).join("");
     root.innerHTML = `
       <div class="head"><div class="row between"><div>${backLink("Все темы")}<div class="ttl" style="margin-top:6px">${esc(cat.title)}</div><div class="sub">${esc(cat.outline)}</div></div></div><div style="margin-top:10px"><span class="tag ${cat.status}">${STATUS_LABEL[cat.status]}</span> <span class="tag">${topics.length} ${plural(topics.length, ["урок", "урока", "уроков"])}${cat.done ? ` · ${cat.done} ✓` : ""}</span></div></div>
       ${rows}
@@ -1167,7 +1169,7 @@
     const status = meta ? meta.status : "started";
     const rows = lessons.map((l, i) => `<div class="lesson ${read.has(lessonKey(l)) ? "read" : ""}" data-i="${i}"><div class="ic">${l.icon}</div><div><div class="k">Шаг ${i + 1}</div><div class="t">${esc(l.title)}</div></div><div class="ln"></div></div>`).join("");
     root.innerHTML = `
-      <div class="head"><div class="row between"><div>${backLink(catTitle)}<div class="ttl" style="margin-top:6px">${esc(t.emoji || "")} ${esc(t.title)}</div><div class="sub">${esc(catTitle)} · ${lv ? esc(lv.code) + " · " : ""}${lessons.length} ${plural(lessons.length, ["шаг", "шага", "шагов"])} · ${read.size} пройдено</div></div><button class="fab ghost" id="t-notes" title="Заметки" style="margin-top:22px">📝${state.topicNotes.length ? `<span class="pill" style="position:absolute;margin:-40px 0 0 30px;padding:1px 6px;font-size:11px">${state.topicNotes.length}</span>` : ""}</button></div>
+      <div class="head"><div class="row between"><div>${backLink(catTitle)}<div class="ttl" style="margin-top:6px">${esc(t.emoji || "")} ${esc(t.title)}</div><div class="sub">${esc(catTitle)} · ${lv ? esc(lvName(lv.code)) + " · " : ""}${lessons.length} ${plural(lessons.length, ["шаг", "шага", "шагов"])} · ${read.size} пройдено</div></div><button class="fab ghost" id="t-notes" title="Заметки" style="margin-top:22px">📝${state.topicNotes.length ? `<span class="pill" style="position:absolute;margin:-40px 0 0 30px;padding:1px 6px;font-size:11px">${state.topicNotes.length}</span>` : ""}</button></div>
         <div style="margin-top:10px"><span class="tag ${status}">${STATUS_LABEL[status] || "В процессе"}</span></div></div>
       ${t.intro ? `<div class="card content" style="font-size:14px">${t.intro}</div>` : ""}
       ${(t.drills || []).length ? `<div class="card aqua train-card" id="t-train" style="margin-top:12px"><div><div style="font-size:17px">🎯 Тренировка</div><div class="muted" style="color:var(--text-2);opacity:.8;margin-top:2px">${t.drills.length} ${plural(t.drills.length, ["задание", "задания", "заданий"])} из ${t.exercises.length} ${plural(t.exercises.length, ["упражнения", "упражнений", "упражнений"])} · по 20 вперемешку</div></div><button class="fab">${iconArrow()}</button></div>` : ""}
@@ -1202,7 +1204,7 @@
   }
   function lessonHeader(t, l, i, total, extraClass) {
     const lv = levelOfTopic(t.id);
-    return `<div class="head ${extraClass || ""}"><div class="row between"><div>${backLink(t.title.length > 24 ? t.title.slice(0, 24) + "…" : t.title)}<div class="ttl" style="margin-top:6px">${esc(t.title)}</div><div class="sub">Шаг ${i + 1} из ${total}${lv ? ` · ${esc(lv.code)}` : ""}</div></div><span class="tag" style="margin-top:28px">${esc(lv ? lv.code : "")}</span></div></div>`;
+    return `<div class="head ${extraClass || ""}"><div class="row between"><div>${backLink(t.title.length > 24 ? t.title.slice(0, 24) + "…" : t.title)}<div class="ttl" style="margin-top:6px">${esc(t.title)}</div><div class="sub">Шаг ${i + 1} из ${total}${lv ? ` · ${esc(lvName(lv.code))}` : ""}</div></div><span class="tag" style="margin-top:28px">${esc(lv ? lvName(lv.code) : "")}</span></div></div>`;
   }
   function navButtons(i, total) {
     return `<div class="navbtns"><button class="btn" id="l-prev" ${i <= 0 ? "disabled" : ""}>Назад</button><button class="btn" id="l-next">${i >= total - 1 ? "К теме" : "Далее"}</button></div>`;
