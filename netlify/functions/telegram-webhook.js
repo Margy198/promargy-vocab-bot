@@ -11687,7 +11687,7 @@ async function appCoursePayload(chatId) {
   const homework = await appHomeworkPayload(chatId);
   // в бизнес-версии нет A0 — свой уровень хранится отдельно (bizLevel)
   const lvl = track === "business" ? (progress.bizLevel || (progress.level && progress.level !== "A0" ? progress.level : null)) : progress.level;
-  return { ok: true, track, businessAvailable: !!biz, levels, categories, level: levels.some((l) => l.code === lvl) ? lvl : null, total: all.length, done: all.filter((t) => t.status === "done").length, builtAt: index.builtAt || null, homework };
+  return { ok: true, track, businessAvailable: !!biz, plan: progress.plan || {}, levels, categories, level: levels.some((l) => l.code === lvl) ? lvl : null, total: all.length, done: all.filter((t) => t.status === "done").length, builtAt: index.builtAt || null, homework };
 }
 async function setCourseTopicStatus(chatId, topicId, status) {
   const index = await readCourseIndex();
@@ -12121,6 +12121,21 @@ async function handleAppApi(body) {
         const r = await setCourseTopicStatus(chatId, String(body.id || ""), status);
         if (!r.ok) return appJson(r, 400);
         return appJson({ ...r, ...(await appCoursePayload(chatId)) });
+      }
+      // «Мой план»: отметки «теория» / «практика» по 38 темам плана Маргариты (номер темы 1–60)
+      case "planMark": {
+        const n = Number(body.n); const kind = String(body.kind || ""); const on = !!body.on;
+        if (!Number.isInteger(n) || n < 1 || n > 60 || !["theory", "practice"].includes(kind)) return appJson({ ok: false, error: "bad_mark" }, 400);
+        let plan = {};
+        await withOptimisticUpdate(courseStore(), `progress:${chatId}`, emptyCourseProgress, (current) => {
+          const next = { ...emptyCourseProgress(), ...current, plan: { ...(current.plan || {}) } };
+          const it = { ...(next.plan[n] || {}) };
+          if (on) it[kind] = it[kind] || new Date().toISOString(); else delete it[kind];
+          if (Object.keys(it).length) next.plan[n] = it; else delete next.plan[n];
+          next.updatedAt = new Date().toISOString(); plan = next.plan;
+          return next;
+        });
+        return appJson({ ok: true, plan });
       }
       case "courseTrack": {
         const r = await setCourseTrack(chatId, String(body.track || ""));

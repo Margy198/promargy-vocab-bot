@@ -186,6 +186,11 @@
   .folder .t { font-size: 18px; color: var(--text-2); } .folder .pills { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
   .seg { display: flex; gap: 6px; flex-wrap: wrap; }
   .track-seg button { flex: 1; max-width: 180px; }
+  .plan-row { margin-top: 10px; padding: 14px 14px; } .plan-row.done { opacity: .7; }
+  .pn { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; background: var(--accent-soft); color: var(--text-2); }
+  .plink { display: block; width: 100%; text-align: left; margin-top: 8px; padding: 8px 10px; border-radius: 10px; border: none; background: var(--soft); color: var(--text); font: inherit; font-size: 14px; cursor: pointer; }
+  .pchip { font: inherit; font-size: 13px; padding: 7px 12px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--card); color: var(--text-2); cursor: pointer; }
+  .pchip.on { background: var(--ok-bg); border-color: var(--ok-line); color: var(--ok-fg); }
   .seg button { font: inherit; font-size: 13px; padding: 8px 12px; border-radius: 10px; border: 1.5px solid var(--accent-soft); background: var(--card); color: var(--text-2); cursor: pointer; }
   .seg button.on { background: var(--g-accent); border-color: transparent; box-shadow: 0 4px 14px var(--glow); }
   .avatars { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
@@ -419,7 +424,7 @@
     const categories = idx.categories.map((c) => { const topics = c.topics.map((id) => byId.get(id)).filter(Boolean).map(ws); const status = topics.every((t) => t.status === "done") ? "done" : topics.some((t) => t.status === "done" || t.status === "started") ? "started" : topics.some((t) => t.status === "available") ? "available" : "locked"; return { key: c.key, title: c.title, outline: c.outline, topics, total: topics.length, done: topics.filter((t) => t.status === "done").length, status }; });
     const all = levels.flatMap((l) => l.topics.filter((t) => t.kind === "topic"));
     demoHomework(); for (const h of demoCourse.hw) if (!h.topicId) { const t = all.find((x) => x.title === h.title) || all[0]; h.topicId = t.id; }
-    return { ok: true, track: demoCourse.track || "general", businessAvailable: true, levels, categories, level: demoCourse.level, total: all.length, done: all.filter((t) => t.status === "done").length, homework: demoHomework() };
+    return { ok: true, track: demoCourse.track || "general", businessAvailable: true, plan: demoCourse.plan || { 1: { theory: "2026-07-05T10:00:00Z", practice: "2026-07-06T10:00:00Z" }, 3: { theory: "2026-07-05T10:00:00Z" } }, levels, categories, level: demoCourse.level, total: all.length, done: all.filter((t) => t.status === "done").length, homework: demoHomework() };
   }
   async function demoAsync(action, extra) {
     switch (action) {
@@ -428,6 +433,7 @@
       case "courseSet": { if (extra.status === "done" && demoCourse.hw) for (const h of demoCourse.hw) if (h.topicId === extra.id && !h.doneAt) h.doneAt = new Date().toISOString(); const prev = demoCourse.progress[extra.id]; let awardedXp = 0; if (extra.status === "reset") delete demoCourse.progress[extra.id]; else if (!(extra.status === "started" && prev && prev.status === "done")) { if (extra.status === "done" && !(prev && prev.status === "done")) awardedXp = 50; demoCourse.progress[extra.id] = { status: extra.status, updatedAt: new Date().toISOString() }; } return { ok: true, awardedXp, ...(await demoCoursePayload()) }; }
       case "courseLevel": demoCourse.level = extra.level; return { ok: true, ...(await demoCoursePayload()) };
       case "courseTrack": demoCourse.track = extra.track; return { ok: true, ...(await demoCoursePayload()) };
+      case "planMark": { demoCourse.plan = demoCourse.plan || { 1: { theory: "2026-07-05T10:00:00Z", practice: "2026-07-06T10:00:00Z" }, 3: { theory: "2026-07-05T10:00:00Z" } }; const c = { ...(demoCourse.plan[extra.n] || {}) }; if (extra.on) c[extra.kind] = new Date().toISOString(); else delete c[extra.kind]; demoCourse.plan[extra.n] = c; return { ok: true, plan: demoCourse.plan }; }
       case "homework": return { ok: true, homework: demoHomework() };
       case "teacherStudents": return demoStudents();
       case "teacherStudent": { const st = demoStudents().students.find((x) => x.chatId === extra.chatId) || demoStudents().students[0]; const me = await demo("me", {}); const c = await demoCoursePayload(); const topics = c.levels.flatMap((l) => l.topics.filter((t) => t.kind === "topic").map((t) => ({ ...t, level: l.code }))).slice(2, 2 + st.topicsDone + st.topicsStarted).map((t, i) => ({ id: t.id, title: t.title, emoji: t.emoji, level: t.level, status: i < st.topicsDone ? "done" : "started", updatedAt: new Date(Date.now() - i * 2 * 864e5).toISOString() })); return { ok: true, profile: { ...me, user: { ...me.user, firstName: st.firstName, username: st.username, avatar: st.avatar, chatId: st.chatId }, xp: st.xp, streak: st.streak, xpWeek: st.xpWeek, vocabCount: st.vocabCount, answered: st.answered, correct: st.correct, level: { ...me.level, name: st.level } }, topics, courseLevel: st.courseLevel, courseDone: st.topicsDone, courseTotal: c.total, homework: demoHomework(), victories: ["reluctant", "endure", "stave off"] }; }
@@ -449,7 +455,7 @@
     return null;
   }
   function demo(action, extra) {
-    if (["course", "topic", "courseSet", "courseLevel", "courseTrack", "notes", "noteAdd", "noteEdit", "noteDelete", "slang", "interests", "interestsSet", "feed", "interestsAddWords", "homework", "teacherStudents", "teacherStudent", "hwAssign", "hwRemove", "contentStatus", "contentRebuild", "contentReset"].includes(action)) return demoAsync(action, extra);
+    if (["course", "topic", "courseSet", "courseLevel", "courseTrack", "planMark", "notes", "noteAdd", "noteEdit", "noteDelete", "slang", "interests", "interestsSet", "feed", "interestsAddWords", "homework", "teacherStudents", "teacherStudent", "hwAssign", "hwRemove", "contentStatus", "contentRebuild", "contentReset"].includes(action)) return demoAsync(action, extra);
     const today = new Date(); const days = [];
     for (let i = 13; i >= 0; i--) { const d = new Date(today.getTime() - i * 864e5); days.push({ date: d.toISOString().slice(0, 10), answers: [12, 20, 0, 15, 24, 18, 9, 30, 22, 0, 16, 25, 19, 7][13 - i] }); }
     const id = demoState.identity;
@@ -794,6 +800,40 @@
     else state.courseError = DEMO ? `Это просмотр в обычном браузере — курс открывается только внутри Telegram, из бота. (${tgDiag()})` : (c && c.error ? c.error : "unknown") + (c && c.detail ? ": " + c.detail : "");
     return state.course;
   }
+  // «Мой план» — 38 тем со страницы Маргариты «Написать план по изучению языка по темам» (Notion),
+  // b — Beginner, i — Intermediate; m — названия тем курса, к которым ведет пункт
+  const STUDY_PLAN = [{"n": 1, "t": "Личные местоимения I, we, you, they, he, she, it", "lv": "b", "m": ["^To be — глагол «быть» и личные местоимения"]}, {"n": 2, "t": "Притяжательные местоимения my, our, your, his, her, its", "lv": "b", "m": ["Притяжательный падеж"]}, {"n": 3, "t": "Указательные местоимения this / that / these / those", "lv": "b", "m": ["^This / that"]}, {"n": 4, "t": "Единственное и множественное число существительных (-s, -es)", "lv": "b", "m": ["Множественное число"]}, {"n": 5, "t": "Порядок слов", "lv": "b", "m": ["^Порядок слов"]}, {"n": 6, "t": "Глагол to be", "lv": "b", "m": ["^To be"]}, {"n": 7, "t": "There is / there are", "lv": "b", "m": ["^There is"]}, {"n": 8, "t": "Исчисляемые и неисчисляемые существительные (some, any, many, much, a lot)", "lv": "b", "m": ["^Some / any и исчисляемые", "^Исчисляемые и неисчисляемые"]}, {"n": 9, "t": "Неопределенные местоимения some / any", "lv": "b", "m": ["^Some / any"]}, {"n": 10, "t": "Вопросы с what, who, where, when, why, how, how much (many)", "lv": "b", "m": ["^Вопросительные слова"]}, {"n": 11, "t": "Present Simple, Past Simple, Future Simple", "lv": "b", "m": ["^Present Simple$", "^Past Simple — ", "^Будущее: will"]}, {"n": 12, "t": "Артикли a / an, the", "lv": "b", "m": ["^Артикли a / an"]}, {"n": 13, "t": "Present Continuous (для действий, которые происходят сейчас)", "lv": "i", "m": ["^Present Continuous"]}, {"n": 14, "t": "Притяжательные местоимения mine, yours, ours, theirs, his, hers, its", "lv": "i", "m": ["Притяжательный падеж"]}, {"n": 15, "t": "Предлоги времени in, on, at", "lv": "b", "m": ["предлоги места и времени"]}, {"n": 16, "t": "Сравнительная и превосходная степень прилагательных", "lv": "b", "m": ["^Степени сравнения прилагательных"]}, {"n": 17, "t": "Модальный глагол can / can't", "lv": "i", "m": ["^Can / can't"]}, {"n": 18, "t": "Модальный глагол could / couldn't", "lv": "i", "m": ["^Could / couldn't"]}, {"n": 19, "t": "Конструкция to be going to", "lv": "i", "m": ["be going to"]}, {"n": 20, "t": "Конструкция would like", "lv": "i", "m": ["^Would like"]}, {"n": 21, "t": "Наречия с -ly, -ily", "lv": "i", "m": ["^Наречия образа действия"]}, {"n": 22, "t": "Условные предложения нулевого типа", "lv": "i", "m": ["^Zero Conditional"]}, {"n": 23, "t": "Present Perfect", "lv": "i", "m": ["^Present Perfect — введение", "^Present Perfect vs Past Simple"]}, {"n": 24, "t": "Глаголы состояния", "lv": "b", "m": ["^Stative и dynamic"]}, {"n": 25, "t": "Определительные придаточные с that, who, which, where", "lv": "i", "m": ["^Relative clauses \\(who"]}, {"n": 26, "t": "Герундий", "lv": "i", "m": ["^Gerund vs Infinitive$"]}, {"n": 27, "t": "Модальные глаголы have to, don't have to, must, mustn't, should, shouldn't, may, might, might not", "lv": "i", "m": ["should, must, have to", "may / might / could"]}, {"n": 28, "t": "Условные предложения первого, второго и третьего типа", "lv": "i", "m": ["^First Conditional", "^Second Conditional", "^Third Conditional"]}, {"n": 29, "t": "Пассивный залог", "lv": "i", "m": ["^Passive Voice — введение"]}, {"n": 30, "t": "Конструкция used to / didn't use to", "lv": "i", "m": ["^Used to"]}, {"n": 31, "t": "Косвенная речь, разница между say и tell", "lv": "i", "m": ["^Reported Speech \\(", "^Say или tell"]}, {"n": 32, "t": "Квантификаторы too much, too many, enough", "lv": "i", "m": ["^Too much"]}, {"n": 33, "t": "Фразовые глаголы", "lv": "i", "m": ["^Фразовые глаголы", "^Phrasal verbs — расширение"]}, {"n": 34, "t": "Обороты с наречиями so, neither, nor", "lv": "i", "m": ["^So / neither"]}, {"n": 35, "t": "Союзы because, so, but, although", "lv": "b", "m": ["^Союзы because"]}, {"n": 36, "t": "Наречия частотности always, often, never", "lv": "b", "m": ["^Present Simple$"]}, {"n": 37, "t": "Разделительные вопросы", "lv": "i", "m": ["^Разделительные вопросы"]}, {"n": 38, "t": "Past Continuous, Present Perfect Continuous", "lv": "i", "m": ["^Past Continuous и Past Simple", "^Present Perfect Continuous"]}];
+  function planTopics(item) {
+    const all = []; for (const l of (state.course && state.course.levels) || []) for (const t of l.topics) if (t.kind === "topic") all.push({ ...t, level: l.code });
+    const out = []; for (const rx of item.m) { const r = new RegExp(rx, "i"); for (const t of all) if (r.test(t.title) && !out.some((x) => x.id === t.id)) out.push(t); }
+    return out;
+  }
+  function planDone(item) { const p = (state.course && state.course.plan && state.course.plan[item.n]) || {}; return p; }
+  function renderPlan(root) {
+    const st = state.study; st.pf = st.pf || "b";
+    const items = STUDY_PLAN.filter((x) => st.pf === "all" || x.lv === st.pf);
+    const done = STUDY_PLAN.filter((x) => planDone(x).theory && planDone(x).practice).length;
+    const fmt = (iso) => (iso ? `${iso.slice(8, 10)}.${iso.slice(5, 7)}` : "");
+    const rows = items.map((x) => {
+      const p = planDone(x); const ts = planTopics(x);
+      const chip = (kind, label) => `<button class="pchip ${p[kind] ? "on" : ""}" data-n="${x.n}" data-kind="${kind}">${p[kind] ? "✓ " : ""}${label}${p[kind] ? ` · ${fmt(p[kind])}` : ""}</button>`;
+      const links = ts.length ? ts.map((t) => `<button class="plink" data-id="${t.id}">${esc(t.emoji || "📘")} ${esc(t.title)} <span class="muted">· ${esc(lvName(t.level))}</span></button>`).join("") : `<div class="muted" style="font-size:13px;margin-top:6px">тема скоро появится в курсе</div>`;
+      return `<div class="card plan-row ${p.theory && p.practice ? "done" : ""}"><div class="row" style="gap:10px;align-items:flex-start"><div class="pn">${x.n}</div><div style="flex:1;min-width:0"><div style="font-size:15px;line-height:1.35">${esc(x.t)}</div>${links}<div class="row" style="gap:8px;margin-top:10px;flex-wrap:wrap">${chip("theory", "Теория")}${chip("practice", "Практика")}</div></div></div></div>`;
+    }).join("");
+    root.innerHTML = `<div class="head lavender"><div>${backLink("Учеба")}<div class="ttl" style="margin-top:6px">🗺 Мой план</div><div class="sub">${STUDY_PLAN.length} тем по порядку · пройдено ${done} · отмечай теорию и практику</div></div></div>
+      <div class="seg" id="plan-filter" style="margin-top:14px"><button data-f="b" class="${st.pf === "b" ? "on" : ""}">Beginner</button><button data-f="i" class="${st.pf === "i" ? "on" : ""}">Intermediate</button><button data-f="all" class="${st.pf === "all" ? "on" : ""}">Все</button></div>
+      <div class="muted" style="font-size:13px;margin:10px 2px 0;line-height:1.4">${st.pf === "b" ? "Beginner — основа: местоимения, to be, порядок слов, вопросы, простые времена, артикли, базовые предлоги." : st.pf === "i" ? "Intermediate — строится на основе: Continuous и Perfect, модальные, условные, пассив, косвенная речь, фразовые глаголы." : "Все темы плана по порядку."}</div>
+      <div style="margin-top:6px">${rows}</div><div style="height:16px"></div>`;
+    root.querySelectorAll("[data-f]").forEach((b) => b.addEventListener("click", () => { haptic(); st.pf = b.dataset.f; renderStudy(); }));
+    root.querySelectorAll(".plink").forEach((b) => b.addEventListener("click", () => { haptic(); openTopic(b.dataset.id); }));
+    root.querySelectorAll(".pchip").forEach((b) => b.addEventListener("click", async () => {
+      haptic("medium"); const n = Number(b.dataset.n), kind = b.dataset.kind; const on = !b.classList.contains("on");
+      state.course.plan = state.course.plan || {}; const cur = { ...(state.course.plan[n] || {}) };
+      if (on) cur[kind] = new Date().toISOString(); else delete cur[kind]; state.course.plan[n] = cur; renderStudy();
+      const r = await api("planMark", { n, kind, on });
+      if (r && r.ok) { state.course.plan = r.plan; cacheSet("course", state.course); } else toast("Не сохранилось — проверь интернет");
+    }));
+  }
   // сквозные бизнес-блоки лежат в «уровне» BIZ
   const lvName = (code) => (code === "BIZ" ? "💼 Блоки" : code || "");
   function findTopicMeta(id) { for (const l of state.course.levels) for (const t of l.topics) if (t.id === id) return { level: l, meta: t }; return null; }
@@ -809,7 +849,7 @@
   function go(view, extra) { state.study = Object.assign({ view }, extra || {}); renderStudy(); window.scrollTo(0, 0); }
   function studyBack() {
     const v = state.study;
-    const map = { topics: () => go("home"), category: () => go("topics"), topic: () => go("category", { key: v.cat || categoryOfTopic(v.id) }), lesson: () => go("topic", { id: v.id }), exercises: () => go("topic", { id: v.id }), selfcheck: () => go("topic", { id: v.id }), tnotes: () => go("topic", { id: v.id }), notes: () => go("home"), nfolder: () => go("notes"), slang: () => go("home"), search: () => go("topics"), checkpoint: () => go("topics", { level: v.level }), interests: () => go("home"), ipick: () => go("interests"), iquiz: () => go("interests"), homework: () => go("home"), teacher: () => go("home"), tstudent: () => go("teacher"), hwassign: () => (v.chatId ? go("tstudent", { chatId: v.chatId }) : go("teacher")), content: () => go("teacher"), train: () => go("topic", { id: v.id }) };
+    const map = { topics: () => go("home"), category: () => go("topics"), topic: () => go("category", { key: v.cat || categoryOfTopic(v.id) }), lesson: () => go("topic", { id: v.id }), exercises: () => go("topic", { id: v.id }), selfcheck: () => go("topic", { id: v.id }), tnotes: () => go("topic", { id: v.id }), notes: () => go("home"), nfolder: () => go("notes"), slang: () => go("home"), search: () => go("topics"), checkpoint: () => go("topics", { level: v.level }), interests: () => go("home"), ipick: () => go("interests"), iquiz: () => go("interests"), homework: () => go("home"), teacher: () => go("home"), tstudent: () => go("teacher"), hwassign: () => (v.chatId ? go("tstudent", { chatId: v.chatId }) : go("teacher")), content: () => go("teacher"), train: () => go("topic", { id: v.id }), plan: () => go("home") };
     if (map[v.view]) map[v.view](); else go("home");
   }
   function syncBackButton() { if (!tg || !tg.BackButton) return; try { if (state.study.view === "home") tg.BackButton.hide(); else tg.BackButton.show(); } catch (e) {} }
@@ -822,7 +862,7 @@
     try { renderStudyInner(root, v); } catch (e) { root.innerHTML = `<div class="notice">Ошибка на экране «${esc(v)}».<br><span class="muted">${esc(String(e && e.message || e))}</span><div style="margin-top:12px"><button class="btn" id="study-home">На главную</button></div></div>`; $("#study-home").addEventListener("click", () => go("home")); }
   }
   function renderStudyInner(root, v) {
-    const fn = { home: renderStudyHome, topics: renderTopics, category: renderCategory, topic: renderTopic, lesson: renderLesson, exercises: renderExercises, selfcheck: renderSelfcheck, tnotes: renderTopicNotes, notes: renderNotesFolders, nfolder: renderNotesFolder, slang: renderSlang, search: renderSearch, checkpoint: renderCheckpoint, interests: renderInterests, ipick: renderInterestPicker, iquiz: renderInterestQuiz, homework: renderHomework, teacher: renderTeacher, tstudent: renderTeacherStudent, hwassign: renderHwAssign, content: renderContent, train: renderTraining }[v] || renderStudyHome;
+    const fn = { home: renderStudyHome, topics: renderTopics, category: renderCategory, topic: renderTopic, lesson: renderLesson, exercises: renderExercises, selfcheck: renderSelfcheck, tnotes: renderTopicNotes, notes: renderNotesFolders, nfolder: renderNotesFolder, slang: renderSlang, search: renderSearch, checkpoint: renderCheckpoint, interests: renderInterests, ipick: renderInterestPicker, iquiz: renderInterestQuiz, homework: renderHomework, teacher: renderTeacher, tstudent: renderTeacherStudent, hwassign: renderHwAssign, content: renderContent, train: renderTraining, plan: renderPlan }[v] || renderStudyHome;
     fn(root);
     if (state.offline && (v === "home" || v === "topic" || v === "lesson")) { const n = document.createElement("div"); n.className = "muted"; n.style.cssText = "font-size:12px;text-align:center;padding:6px 0 2px"; n.textContent = "📴 Нет связи — показана сохранённая копия"; n.style.padding = "10px 0 0"; const h = root.querySelector(".head"); if (h) h.after(n); else root.prepend(n); }
     const b = $("#study-back"); if (b) b.addEventListener("click", () => { haptic(); studyBack(); });
@@ -849,10 +889,12 @@
       <div class="card outline" style="margin-top:18px">${outline}</div>
       <div style="margin-top:18px"><button class="btn" id="go-topics" style="background:var(--g-aqua);font-size:15px">Далее</button></div>
       ${cont ? `<div class="card aqua" style="margin-top:14px;cursor:pointer" id="continue"><div class="row between"><div><div class="muted" style="color:var(--text-2);opacity:.7">Продолжить · ${esc(lvName(cont.t.level || ""))}</div><div style="font-size:17px;margin-top:2px">${esc(cont.t.emoji || "")} ${esc(cont.t.title)}</div></div><button class="fab">${iconArrow()}</button></div></div>` : ""}
+      ${c.track !== "business" ? `<div class="card aqua" style="margin-top:14px;cursor:pointer" id="go-plan"><div class="row between"><div><div style="font-size:17px">🗺 Мой план</div><div class="muted" style="color:var(--text-2);opacity:.75;margin-top:2px">${STUDY_PLAN.length} тем по порядку · отмечено ${STUDY_PLAN.filter((x) => planDone(x).theory && planDone(x).practice).length}</div></div><button class="fab">${iconArrow()}</button></div></div>` : ""}
       <div class="card lavender" style="margin-top:14px;cursor:pointer" id="go-interests"><div class="row between"><div><div style="font-size:17px">🎯 Мои темы</div><div class="muted" style="color:var(--text-2);opacity:.75;margin-top:2px">предложения и слова по тому, что интересно именно тебе</div></div><button class="fab">${iconArrow()}</button></div></div>
       <div class="row" style="margin-top:12px;gap:10px"><button class="btn" id="go-notes" style="flex:1">📝 Заметки</button><button class="btn" id="go-slang" style="flex:1">💬 Сленг</button></div>
       <div style="height:8px"></div>`;
     $("#go-interests").addEventListener("click", () => { haptic(); go("interests"); });
+    const gp = $("#go-plan"); if (gp) gp.addEventListener("click", () => { haptic(); go("plan"); });
     // «Обычный / Для работы»: та же грамматика, примеры и упражнения из рабочей среды; прогресс у каждой версии свой
     root.querySelectorAll("[data-track]").forEach((b) => b.addEventListener("click", async () => {
       const tr = b.dataset.track; if (tr === (c.track || "general")) return;
