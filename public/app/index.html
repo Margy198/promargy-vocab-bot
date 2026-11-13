@@ -1489,7 +1489,7 @@
   const drillsOfEx = (t, n) => (t.drills || []).filter((d) => d.ex === n);
   function seedOf(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
   function shuffled(arr, seed) { const a = arr.slice(); let x = seed || 1; for (let i = a.length - 1; i > 0; i--) { x = (Math.imul(x, 1103515245) + 12345) >>> 0; const j = x % (i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
-  const normAns = (x) => String(x || "").toLowerCase().replace(/[’‘]/g, "'").replace(/[.!?,;:"«»]+/g, "").replace(/\s+/g, " ").trim();
+  const normAns = (x) => String(x || "").toLowerCase().replace(/[’‘]/g, "'").replace(/[.!?,;:"«»—–]+/g, " ").replace(/\s+/g, " ").trim();
   const DRILL_TASK = { fix: "Исправь ошибку — собери верное предложение", translate: "Переведи — собери из слов", transform: "Собери ответ из слов", fill: "Вставь пропуск — собери предложение" };
   function drillReset(st) { st.picked = null; st.built = []; st.checked = false; st.shown = false; st.result = null; st.typed = ""; }
   function drillPool(d) { return shuffled(d.tiles.concat(d.traps || []).map((w, k) => ({ w, k })), seedOf(d.id)); }

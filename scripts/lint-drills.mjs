@@ -56,7 +56,7 @@ for (const f of files) {
       if (opts.length < 2) A.push(`${where(d)}: меньше двух вариантов`);
       if (d.correct == null || d.correct < 0 || d.correct >= opts.length) A.push(`${where(d)}: нет правильного варианта`);
       if (new Set(opts.map((o) => o.toLowerCase().trim())).size !== opts.length) A.push(`${where(d)}: повторяющиеся варианты [${opts.join(" / ")}]`);
-      if (d.src !== "legend" && opts.some((o) => RU.test(o.replace(/без артикля/g, "")))) A.push(`${where(d)}: русский текст в варианте [${opts.join(" / ")}]`);
+      if (d.src !== "legend" && opts.some((o) => RU.test(o.replace(/без артикля|ничего не нужно/g, "")))) A.push(`${where(d)}: русский текст в варианте [${opts.join(" / ")}]`);
       if (d.src === "gen") {
         const key = parseKey(d.key);
         const ok = new Set([key.main, ...(key.alts || []), ...String(key.main || "").split(/\s*\/\s*/)].map(low));
@@ -80,7 +80,8 @@ for (const f of files) {
     }
     if (d.type === "build") {
       const body = (d.tiles || []).join(" ");
-      if (low(body + (d.end || "")) !== low(d.answer)) A.push(`${where(d)}: плитки не складываются в ответ («${body}» ≠ «${d.answer}»)`);
+      const nd = (x) => low(x).replace(/[—–.!?]/g, " ").replace(/\s+/g, " ").trim();
+      if (nd(body + (d.end || "")) !== nd(d.answer)) A.push(`${where(d)}: плитки не складываются в ответ («${body}» ≠ «${d.answer}»)`);
       if (RU.test(d.answer)) A.push(`${where(d)}: русский текст в ответе «${d.answer}»`);
       const tl = new Set((d.tiles || []).map((t) => t.toLowerCase().replace(/[,;:]$/, "")));
       for (const t of d.traps || []) if (tl.has(t.toLowerCase())) A.push(`${where(d)}: ловушка «${t}» есть в ответе`);
