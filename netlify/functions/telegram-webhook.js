@@ -8253,15 +8253,50 @@ function getDistinctTopics(vocab) {
   return [...new Set(vocab.map((w) => w.topic || GENERAL_TOPIC))];
 }
 
+// «Слова с урока»: урок = день, когда слова добавили (addedAt, мск). Ключ урока
+// живет там же, где ключ папки (pending.topic): "@lesson:2026-11-12",
+// для слов без даты — "@lesson:none".
+const LESSON_PREFIX = "@lesson:";
+const LESSON_NONE = "none";
+const isLessonKey = (topic) => typeof topic === "string" && topic.startsWith(LESSON_PREFIX);
+const lessonKey = (date) => `${LESSON_PREFIX}${date || LESSON_NONE}`;
+const lessonDateRu = (date) => (/^\d{4}-\d{2}-\d{2}$/.test(date) ? `${date.slice(8, 10)}.${date.slice(5, 7)}.${date.slice(0, 4)}` : "");
+// Уроки по убыванию даты; слова без даты — отдельной строкой в конце.
+function lessonList(vocab) {
+  const counts = new Map();
+  for (const w of vocab) { const d = w.addedAt || LESSON_NONE; counts.set(d, (counts.get(d) || 0) + 1); }
+  const dated = [...counts.keys()].filter((d) => d !== LESSON_NONE).sort().reverse().map((d) => ({ date: d, count: counts.get(d) }));
+  if (counts.has(LESSON_NONE)) dated.push({ date: LESSON_NONE, count: counts.get(LESSON_NONE) });
+  return dated;
+}
+
 function filterByTopic(vocab, topic) {
   if (!topic) return vocab;
+  if (isLessonKey(topic)) { const d = topic.slice(LESSON_PREFIX.length); return vocab.filter((w) => (w.addedAt || LESSON_NONE) === d); }
   if (topic === GENERAL_TOPIC) return vocab.filter((w) => !w.topic);
   return vocab.filter((w) => w.topic === topic);
 }
 
 function topicLabel(topic) {
   if (!topic || topic === GENERAL_TOPIC) return "Общие слова";
+  if (isLessonKey(topic)) { const d = lessonDateRu(topic.slice(LESSON_PREFIX.length)); return d ? `урок ${d}` : "слова без даты урока"; }
   return topic;
+}
+
+// Запуск лексики по словам одного урока — из приложения и из кнопки в чате.
+async function startLessonPractice(chatId, date) {
+  const [vocab, stats] = await Promise.all([getVocab(chatId), getStats(chatId)]);
+  const key = lessonKey(date);
+  if (!filterByTopic(vocab, key).length) return false;
+  await sendQuestion(chatId, stats, `📚 Режим: Лексика — ${mdEscape(topicLabel(key))}`, "vocab", undefined, undefined, key, null);
+  return true;
+}
+const LESSON_BUTTONS = 12;
+async function sendLessonPicker(chatId) {
+  const lessons = lessonList(await getVocab(chatId));
+  if (!lessons.length) { await tg("sendMessage", { chat_id: chatId, text: "Словарь пока пуст." }); return; }
+  const rows = lessons.slice(0, LESSON_BUTTONS).map((l) => [{ text: `🗓 ${l.date === LESSON_NONE ? "Без даты" : lessonDateRu(l.date)} · ${l.count} сл.`, callback_data: `vlesson:${l.date}` }]);
+  await tg("sendMessage", { chat_id: chatId, text: "Слова с какого урока отработать?", reply_markup: { inline_keyboard: rows } });
 }
 
 async function sendQuestion(chatId, stats, prefix, modeOverride, levelOverride, exerciseTypeOverride, topicOverride, sharedOverride) {
@@ -8333,7 +8368,7 @@ async function sendQuestion(chatId, stats, prefix, modeOverride, levelOverride, 
       text: shared
         ? "В этой теме общей библиотеки пока нет слов."
         : fullVocab.length
-        ? `В теме «${topicLabel(topic)}» пока нет слов.`
+        ? (isLessonKey(topic) ? "В этом уроке слов уже нет." : `В теме «${topicLabel(topic)}» пока нет слов.`)
         : "Словарь сейчас пуст. Вставь сюда слова в формате «English . перевод», и я начну спрашивать.",
     });
     return;
@@ -8714,17 +8749,19 @@ function buildIdiomTranslatePicked(prefix, forbiddenText) {
 async function handleModeVocabPersonal(chatId) {
   const [vocab, stats] = await Promise.all([getVocab(chatId), getStats(chatId)]);
   const topics = getDistinctTopics(vocab);
-  if (topics.length <= 1) {
+  const lessons = lessonList(vocab).filter((l) => l.date !== LESSON_NONE);
+  if (topics.length <= 1 && !lessons.length) {
     await sendQuestion(chatId, stats, "📚 Режим: Лексика", "vocab", undefined, undefined, null, null);
     return;
   }
   await tg("sendMessage", {
     chat_id: chatId,
-    text: "По какой теме?",
+    text: topics.length > 1 ? "По какой теме?" : "Какие слова отработать?",
     reply_markup: {
       inline_keyboard: [
-        ...topics.map((t, i) => [{ text: `📌 ${topicLabel(t)}`, callback_data: `vtopic:${i}` }]),
-        [{ text: "🔀 Все темы вместе", callback_data: "vtopic:all" }],
+        ...(topics.length > 1 ? topics.map((t, i) => [{ text: `📌 ${topicLabel(t)}`, callback_data: `vtopic:${i}` }]) : []),
+        ...(lessons.length ? [[{ text: "🗓 Слова с урока", callback_data: "vlessons" }]] : []),
+        [{ text: topics.length > 1 ? "🔀 Все темы вместе" : "🔀 Весь словарь", callback_data: "vtopic:all" }],
       ],
     },
   });
@@ -10015,6 +10052,17 @@ async function handleCallback(callbackQuery) {
     return;
   }
 
+  if (data === "vlessons") {
+    await sendLessonPicker(chatId);
+    return;
+  }
+  if (data.startsWith("vlesson:")) {
+    const d = data.slice(8);
+    const ok = (d === LESSON_NONE || /^\d{4}-\d{2}-\d{2}$/.test(d)) && (await startLessonPractice(chatId, d === LESSON_NONE ? null : d));
+    if (!ok) await tg("sendMessage", { chat_id: chatId, text: "В этом уроке слов уже нет." });
+    return;
+  }
+
   if (data === "vsource:personal") {
     await handleModeVocabPersonal(chatId);
     return;
@@ -10348,7 +10396,7 @@ async function handleCallback(callbackQuery) {
       // «Папка пройдена»: все слова текущего списка показаны, цикл начался заново.
       if (picked.resetCycle && vocab.length >= 5 && !pending.blitz) {
         const gotFolder = checkAchievements(s, { defeated: null, folderDone: true, blitzPerfect: false }, today);
-        const doneLine = `📁 Все ${vocab.length} слов ${pending.shared ? "темы" : pending.topic ? `папки «${mdEscape(topicLabel(pending.topic))}»` : "словаря"} пройдены — начинаем новый круг!`;
+        const doneLine = `📁 Все ${vocab.length} слов ${pending.shared ? "темы" : isLessonKey(pending.topic) ? `— ${mdEscape(topicLabel(pending.topic))} —` : pending.topic ? `папки «${mdEscape(topicLabel(pending.topic))}»` : "словаря"} пройдены — начинаем новый круг!`;
         const extra = [doneLine, ...gotFolder.map(achievementLine)].join("\n");
         picked.text = picked.text.replace(resultText, `${resultText}\n${extra}`);
       }
@@ -12220,6 +12268,13 @@ async function handleAppApi(body) {
       case "startPractice":
         await handleModeVocab(chatId);
         return appJson({ ok: true });
+      case "startLesson": {
+        // слова одного урока: date — день добавления (ГГГГ-ММ-ДД) или "none" для слов без даты
+        const d = String(body.date || "");
+        if (d !== LESSON_NONE && !/^\d{4}-\d{2}-\d{2}$/.test(d)) return appJson({ ok: false, error: "bad_date" }, 400);
+        const started = await startLessonPractice(chatId, d === LESSON_NONE ? null : d);
+        return appJson(started ? { ok: true } : { ok: false, error: "empty_lesson" }, started ? 200 : 404);
+      }
       case "startSlang":
         await tg("sendMessage", { chat_id: chatId, text: "💬 150 американских фраз — какой формат?", reply_markup: { inline_keyboard: [[{ text: "🔤 Перевод", callback_data: "idiomformat:translate" }], [{ text: "💬 Диалог", callback_data: "idiomformat:dialogue" }]] } });
         return appJson({ ok: true });

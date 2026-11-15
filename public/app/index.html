@@ -403,7 +403,7 @@
 
   // ---------- Демо-данные (только вне Telegram) ----------
   const demoState = {
-    words: [["reliable", "надёжный", "школа"], ["consistent", "последовательный", "школа"], ["reluctant", "неохотный", null], ["stave off", "предотвращать", null], ["endure", "терпеть; выдерживать", null], ["keep up", "не отставать", "работа"], ["take over", "захватывать", "работа"], ["vanish", "исчезать", null], ["precaution", "мера предосторожности", "школа"], ["threaten", "угрожать", null], ["ciao", "привет", "итальянский"], ["grazie", "спасибо", "итальянский"]].map(([en, ru, topic]) => ({ en, ru, topic, errors: en === "reluctant" ? 4 : en === "stave off" ? 3 : 0, due: ["reliable", "endure", "ciao"].includes(en) })),
+    words: [["reliable", "надёжный", "школа"], ["consistent", "последовательный", "школа"], ["reluctant", "неохотный", null], ["stave off", "предотвращать", null], ["endure", "терпеть; выдерживать", null], ["keep up", "не отставать", "работа"], ["take over", "захватывать", "работа"], ["vanish", "исчезать", null], ["precaution", "мера предосторожности", "школа"], ["threaten", "угрожать", null], ["ciao", "привет", "итальянский"], ["grazie", "спасибо", "итальянский"]].map(([en, ru, topic], i) => ({ en, ru, topic, errors: en === "reluctant" ? 4 : en === "stave off" ? 3 : 0, due: ["reliable", "endure", "ciao"].includes(en), addedAt: i < 2 ? null : new Date(Date.now() - [9, 9, 9, 5, 5, 5, 2, 2, 2, 2][i - 2] * 864e5).toISOString().slice(0, 10) })),
     identity: { leagueOptIn: true, leagueAnon: false, remindersEnabled: true, everyDays: 1, hours: [10, 20], goal: 20, gender: "f", avatar: "🦄", formal: false, callName: null, cheers: null, wordOfDay: true },
   };
   function demoVocab() {
@@ -640,6 +640,7 @@
   function renderVocab() {
     const v = state.vocab; const root = $("#page-vocab");
     if (!v) { root.innerHTML = state.vocabError ? `<div class="notice">Не удалось загрузить словарь — проверь интернет.<br><button class="btn" id="vocab-retry" style="margin-top:10px">Попробовать ещё раз</button></div>` : `<div class="notice">Загружаю словарь…</div>`; const b = $("#vocab-retry"); if (b) b.addEventListener("click", async () => { state.vocabError = null; renderVocab(); await loadVocab(); renderVocab(); }); return; }
+    if (state.folder === "@lessons") return renderLessons();
     if (state.folder !== null) return renderWordList();
     const folders = v.folders.map((f, i) => {
       const due = v.words.filter((w) => (w.topic || "__general__") === f.key && w.due).length;
@@ -652,29 +653,63 @@
       <div class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="q" placeholder="Поиск по всем словам" value="${esc(state.query)}" /></div>
       ${v.total ? "" : `<div class="notice" style="margin-top:14px">Словарь пустой. Нажми + и вставь слова в формате «слово . перевод».</div>`}
       <div class="folder card aqua" data-folder="*"><div><div class="t">Все слова</div><div class="pills"><span class="pill">${v.total}</span></div></div><button class="fab">${iconArrow()}</button></div>
+      ${v.words.some((w) => w.addedAt) ? `<div class="folder card lavender" data-folder="@lessons"><div><div class="t">🗓 Слова с урока</div><div class="pills"><span class="pill">${lessonsOf2(v).filter((l) => l.date !== "none").length} ${plural(lessonsOf2(v).filter((l) => l.date !== "none").length, ["урок", "урока", "уроков"])} по датам</span></div></div><button class="fab">${iconArrow()}</button></div>` : ""}
       ${folders}
       <div class="muted" style="margin-top:16px;line-height:1.5">Папка появляется сама, когда ты добавляешь слова со строкой #название. Слово, которое уже есть, переезжает в эту папку.</div>`;
-    root.querySelectorAll("[data-folder]").forEach((el) => el.addEventListener("click", () => { state.folder = el.dataset.folder; state.selected.clear(); renderWordList(); }));
+    root.querySelectorAll("[data-folder]").forEach((el) => el.addEventListener("click", () => { state.folder = el.dataset.folder; state.selected.clear(); renderVocab(); }));
     $("#q").addEventListener("input", (e) => { state.query = e.target.value; if (state.query.trim()) { state.folder = "*"; renderWordList(); } });
     $("#add-words").addEventListener("click", () => openAddSheet(null));
+  }
+  // ---------- Слова с урока: урок = день, когда слова добавили в словарь ----------
+  const isLessonKey = (k) => typeof k === "string" && k.startsWith("@lesson:");
+  const lessonDateRu = (d) => (/^\d{4}-\d{2}-\d{2}$/.test(d) ? `${d.slice(8, 10)}.${d.slice(5, 7)}.${d.slice(0, 4)}` : "");
+  const WEEKDAYS = ["воскресенье", "понедельник", "вторник", "среда", "четверг", "пятница", "суббота"];
+  function lessonsOf2(v) {
+    const m = new Map();
+    for (const w of v.words) { const d = w.addedAt || "none"; const o = m.get(d) || { date: d, count: 0, due: 0, sample: [] }; o.count++; if (w.due) o.due++; if (o.sample.length < 4) o.sample.push(w.en); m.set(d, o); }
+    const list = [...m.values()].filter((l) => l.date !== "none").sort((a, b) => (a.date < b.date ? 1 : -1));
+    if (m.has("none")) list.push(m.get("none"));
+    return list;
+  }
+  async function startLesson(date) {
+    haptic("medium");
+    if (!DEMO) { const r = await api("startLesson", { date }); if (!r || !r.ok) return toast("Не получилось начать — проверь интернет"); }
+    closeApp("В Telegram бот пришлет первое слово урока в чат");
+  }
+  function renderLessons() {
+    const v = state.vocab; const root = $("#page-vocab"); const list = lessonsOf2(v);
+    const rows = list.map((l, i) => `<div class="folder card ${GRADS[i % GRADS.length]}" data-lesson="${esc(l.date)}">
+        <div style="min-width:0"><div class="t">${l.date === "none" ? "Без даты урока" : `${lessonDateRu(l.date)} · ${WEEKDAYS[new Date(l.date + "T12:00:00Z").getUTCDay()]}`}</div>
+        <div class="muted" style="font-size:13px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(l.sample.join(", "))}${l.count > l.sample.length ? "…" : ""}</div>
+        <div class="pills"><span class="pill">${l.count} ${plural(l.count, ["слово", "слова", "слов"])}</span>${l.due ? `<span class="pill accent">${l.due} повторить</span>` : ""}</div></div>
+        <button class="fab" data-go="${esc(l.date)}" title="Отработать">▶</button></div>`).join("");
+    root.innerHTML = `<div style="margin-bottom:12px"><button class="back" id="back">← Словарь</button><h1 style="margin-top:4px">🗓 Слова с урока</h1><div class="muted">Урок — это день, когда слова добавили в словарь. Нажми ▶, чтобы отработать слова урока, или на карточку, чтобы посмотреть список.</div></div>${rows}<div style="height:16px"></div>`;
+    $("#back").addEventListener("click", () => { state.folder = null; renderVocab(); });
+    root.querySelectorAll("[data-lesson]").forEach((el) => el.addEventListener("click", (ev) => {
+      if (ev.target.closest("[data-go]")) return startLesson(ev.target.closest("[data-go]").dataset.go);
+      haptic(); state.folder = `@lesson:${el.dataset.lesson}`; state.selected.clear(); renderWordList(); window.scrollTo(0, 0);
+    }));
   }
   function renderWordList() {
     const v = state.vocab; const root = $("#page-vocab");
     const key = state.folder; const q = state.query.trim().toLowerCase();
     const folder = v.folders.find((f) => f.key === key);
-    const title = key === "*" ? "Все слова" : folder ? folder.label : "Папка";
-    let words = key === "*" ? v.words : v.words.filter((w) => (w.topic || "__general__") === key);
+    const lesson = isLessonKey(key) ? key.slice(8) : null;
+    const title = lesson ? (lesson === "none" ? "Слова без даты урока" : `Урок ${lessonDateRu(lesson)}`) : key === "*" ? "Все слова" : folder ? folder.label : "Папка";
+    let words = lesson ? v.words.filter((w) => (w.addedAt || "none") === lesson) : key === "*" ? v.words : v.words.filter((w) => (w.topic || "__general__") === key);
     if (q) words = words.filter((w) => w.en.toLowerCase().includes(q) || (w.ru || "").toLowerCase().includes(q));
     const rows = words.map((w) => `<div class="word" data-en="${esc(w.en)}"><div class="cb ${state.selected.has(w.en) ? "on" : ""}">${state.selected.has(w.en) ? "✓" : ""}</div><span class="en">${esc(w.en)}${w.errors ? `<span class="n">×${w.errors}</span>` : ""}${w.due ? `<span class="due">повторить</span>` : ""}</span><span class="ru">${esc(w.ru || "")}</span></div>`).join("");
     const canRename = folder && !folder.isGeneral;
     root.innerHTML = `
-      <div class="row between" style="margin-bottom:12px"><div><button class="back" id="back">← Папки</button><h1 style="margin-top:4px">${esc(title)}</h1><div class="muted">${words.length} ${plural(words.length, ["слово", "слова", "слов"])}${q ? ` по запросу «${esc(state.query)}»` : ""}</div></div>
+      <div class="row between" style="margin-bottom:12px"><div><button class="back" id="back">${lesson ? "← Уроки" : "← Папки"}</button><h1 style="margin-top:4px">${esc(title)}</h1><div class="muted">${words.length} ${plural(words.length, ["слово", "слова", "слов"])}${q ? ` по запросу «${esc(state.query)}»` : ""}</div></div>
         <div class="row">${canRename ? `<button class="fab ghost" id="rename" title="Переименовать">✏️</button>` : ""}<button class="fab" id="add-words">${iconPlus()}</button></div></div>
       <div class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="q" placeholder="Поиск" value="${esc(state.query)}" /></div>
+      ${lesson && words.length && !q ? `<div style="margin-top:12px"><button class="btn primary" id="lesson-go">Отработать ${words.length} ${plural(words.length, ["слово", "слова", "слов"])} урока</button><div class="muted" style="margin-top:6px;text-align:center;font-size:13px">вопросы придут в чат с ботом</div></div>` : ""}
       <div class="card" style="margin-top:12px;padding:4px 16px">${rows || `<div class="muted" style="padding:12px 0">Ничего не найдено.</div>`}</div>
       <div class="muted" style="margin-top:10px">Нажми на слово, чтобы выбрать: выбранные можно удалить или перенести в папку.</div>
       <div style="height:70px"></div>`;
-    $("#back").addEventListener("click", () => { state.folder = null; state.query = ""; state.selected.clear(); removeActions(); renderVocab(); });
+    $("#back").addEventListener("click", () => { state.folder = lesson ? "@lessons" : null; state.query = ""; state.selected.clear(); removeActions(); renderVocab(); });
+    const lg = $("#lesson-go"); if (lg) lg.addEventListener("click", () => startLesson(lesson));
     $("#q").addEventListener("input", (e) => { state.query = e.target.value; renderWordList(); setTimeout(() => { const i = $("#q"); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }, 0); });
     $("#add-words").addEventListener("click", () => openAddSheet(folder && !folder.isGeneral ? folder.label : null));
     if (canRename) $("#rename").addEventListener("click", () => openRenameSheet(folder.label));
@@ -716,7 +751,7 @@
       const topic = ($("#mv-new").value || "").trim() || chosen;
       if (topic === null) return toast("Выбери папку");
       const r = await api("moveWords", { ens, topic: topic || null });
-      if (r && r.ok) { state.vocab = r; state.selected.clear(); closeSheet(); toast(`Перенесено: ${r.moved}`); if (state.folder !== "*") state.folder = topic ? (r.folders.find((f) => f.label.toLowerCase() === String(topic).toLowerCase()) || {}).key || state.folder : "__general__"; renderWordList(); } else toast("Не получилось перенести");
+      if (r && r.ok) { state.vocab = r; state.selected.clear(); closeSheet(); toast(`Перенесено: ${r.moved}`); if (state.folder !== "*" && !isLessonKey(state.folder)) state.folder = topic ? (r.folders.find((f) => f.label.toLowerCase() === String(topic).toLowerCase()) || {}).key || state.folder : "__general__"; renderWordList(); } else toast("Не получилось перенести");
     });
   }
   function openAddSheet(topicLabel) {
