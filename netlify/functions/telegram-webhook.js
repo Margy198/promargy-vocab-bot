@@ -410,7 +410,8 @@ function levelOf(xp) {
 
 function progressBar(ratio, width = 10) {
   const filled = Math.max(0, Math.min(width, Math.round(ratio * width)));
-  return "█".repeat(filled) + "░".repeat(width - filled);
+  // цветные квадраты выглядят одинаково на iPhone и Android; «█» и «░» на iPhone рисуются разной ширины и цвета
+  return "🟩".repeat(filled) + "⬜".repeat(width - filled);
 }
 
 function levelLine(xp) {
@@ -10940,15 +10941,22 @@ function weeklySummaryText(stats, vocab, nowMs) {
   }
   lines.push(`📚 Отработано слов и упражнений: ${weekCount}${cmp}`);
   lines.push(`📆 Дней с занятиями: ${activeDays} из 7`);
-  lines.push(`⭐ XP за неделю: ${xpWeek(stats, nowMs)} · ${levelLine(stats.xp || 0).replace(/^⭐ /, "")}`);
+  // XP за неделю и общий уровень — отдельными строками, чтобы два числа не сливались («1263 · 1263 XP»)
+  const lvl = levelOf(stats.xp || 0);
+  lines.push(`⭐ XP за неделю: ${xpWeek(stats, nowMs)}`);
+  lines.push(`🏅 Всего ${stats.xp || 0} XP · уровень ${lvl.number} ${lvl.name}`);
+  lines.push(lvl.next ? `${progressBar(lvl.progress)} еще ${lvl.toNext} XP до «${lvl.next.name}»` : "Это максимальный уровень 🎉");
   if (streak >= 1) {
     lines.push(`${streakLine(streak)}${stats.bestDayStreak > streak ? ` (рекорд — ${stats.bestDayStreak})` : ""}`);
   } else if (stats.bestDayStreak > 0) {
     lines.push(`🔥 Серия сейчас прервана, рекорд — ${stats.bestDayStreak} ${pluralRu(stats.bestDayStreak, ["день", "дня", "дней"])}. Начни новую!`);
   }
-  const worst = Object.entries(stats.wrong || {}).sort((a, b) => b[1] - a[1])[0];
+  // самое упрямое слово ищем среди слов, которые еще есть в словаре (без учета регистра), чтобы показать перевод
+  const byEn = new Map((vocab || []).map((x) => [String(x.en).toLowerCase(), x]));
+  const wrongSorted = Object.entries(stats.wrong || {}).sort((a, b) => b[1] - a[1]);
+  const worst = wrongSorted.find(([en]) => byEn.has(String(en).toLowerCase())) || wrongSorted[0];
   if (worst && worst[1] >= 2) {
-    const w = (vocab || []).find((x) => x.en === worst[0]);
+    const w = byEn.get(String(worst[0]).toLowerCase());
     lines.push(`🧱 Самое упрямое слово: ${worst[0]}${w ? ` — ${w.ru}` : ""} (ошибки: ${worst[1]})`);
   }
   return lines.join("\n");
