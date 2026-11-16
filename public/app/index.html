@@ -350,6 +350,27 @@
   // Подписанная ботом ссылка — запасной вход, когда Telegram не передал данные пользователя
   let appToken = ""; try { appToken = window.__appToken || ""; } catch (e) {}
   const DEMO = !initData && !appToken; // вне Telegram — демо-данные, чтобы смотреть дизайн в браузере
+  // Приложение открыто внутри Telegram, но Telegram не передал ни данных пользователя, ни подписанной ссылки
+  // (так бывает со старой кнопкой клавиатуры). Демо показывать нельзя — ведем ученика за новой кнопкой входа.
+  const BOT_NAME = "promargy_toolkitbot";
+  const NO_LOGIN = (() => { if (!DEMO) return false; const pf = String((window.__tgBridge || {}).platform || ""); return !!pf && pf !== "?" && pf !== "unknown"; })();
+  function showNoLogin() {
+    const link = `https://t.me/${BOT_NAME}?start=app`;
+    const box = document.createElement("div");
+    box.id = "nologin";
+    box.style.cssText = "position:fixed;inset:0;z-index:9999;background:var(--bg,#fff);color:var(--text,#111);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;text-align:center;gap:14px";
+    box.innerHTML = `<div style="font-size:44px">🔑</div>
+      <div style="font-size:19px;font-weight:700">Нужна новая кнопка входа</div>
+      <div style="font-size:15px;line-height:1.45;max-width:340px">Telegram открыл приложение по старой кнопке, и оно не знает, кто ты. Нажми кнопку ниже — бот пришлет новую, и приложение откроется как обычно.</div>
+      <a id="nologin-go" class="btn primary" href="${link}" style="text-decoration:none;display:inline-block;padding:13px 22px">Получить кнопку входа</a>
+      <div class="muted" style="font-size:13px;max-width:340px">Не сработало? Напиши боту /start и открой приложение кнопкой «📱 Приложение» из его ответа.</div>
+      <div class="muted" style="font-size:11px;opacity:.6">${tgDiag()}</div>`;
+    document.body.appendChild(box);
+    box.querySelector("#nologin-go").addEventListener("click", (e) => {
+      if (tg && tg.openTelegramLink) { e.preventDefault(); try { tg.openTelegramLink(link); } catch (err) { location.href = link; return; } setTimeout(() => { try { tg.close(); } catch (err) {} }, 400); }
+    });
+    const sp = document.getElementById("splash"); if (sp) sp.classList.add("hide");
+  }
   // Короткая строка-диагностика: по ней видно, почему приложение решило, что оно вне Telegram
   function tgDiag() {
     const b = window.__tgBridge || {};
@@ -2064,6 +2085,7 @@
   if (tg && tg.BackButton) { try { tg.BackButton.onClick(() => studyBack()); } catch (e) {} }
 
   function fail(msg) { $("#page-progress").innerHTML = `<div class="notice">${msg}</div>`; }
+  if (NO_LOGIN) { try { applyTheme(); } catch (e) {} showNoLogin(); return; }
   const firstPage = ["vocab", "blitz", "account", "progress", "study"].includes(startPage) ? startPage : "study";
   let startedFromCache = false;
   const cachedMe = DEMO ? null : cached("me");

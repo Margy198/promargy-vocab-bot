@@ -8452,6 +8452,17 @@ async function handleOpenApp(chatId) {
     reply_markup: { inline_keyboard: [[{ text: "Открыть тренажёр", web_app: { url } }]] },
   });
 }
+async function handleAppRelogin(chatId) {
+  const url = miniAppUrl(chatId);
+  if (!url) return handleOpenApp(chatId);
+  await tg("sendMessage", { chat_id: chatId, text: "Обновила кнопки входа 👇", reply_markup: await mainReplyKeyboard(chatId) });
+  try { await tg("setChatMenuButton", { chat_id: chatId, menu_button: { type: "web_app", text: "Приложение", web_app: { url } } }); } catch (e) { /* не критично */ }
+  await tg("sendMessage", {
+    chat_id: chatId,
+    text: "📱 Нажми «Открыть тренажер» — приложение откроется под твоим именем.",
+    reply_markup: { inline_keyboard: [[{ text: "Открыть тренажер", web_app: { url } }]] },
+  });
+}
 function miniAppUrl(chatId) {
   const base = process.env.MINI_APP_URL || process.env.URL || "";
   if (!base || !/^https:/i.test(base)) return "";
@@ -11182,6 +11193,9 @@ async function handleMessage(message) {
     return;
   }
 
+  // /start app — ученик пришел из приложения, которое открылось без входа (старая кнопка клавиатуры).
+  // Присылаем свежую клавиатуру и inline-кнопку с личной подписью; прав доступа это не меняет.
+  if (/^\/start\s+app$/i.test(text)) return handleAppRelogin(chatId);
   if (text === "/start" || /^\/start\s+\S+/.test(text)) return handleStart(chatId);
   if (text === BTN_VOCAB) return handleModeVocab(chatId);
   if (text === BTN_REMINDERS) return handleReminders(chatId, "");
