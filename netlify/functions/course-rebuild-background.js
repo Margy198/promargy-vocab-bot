@@ -8,6 +8,8 @@
 //                 со следующим — так укладываемся в лимит времени. Ключи:
 //                 course:level:<code>, course:topic:<id>, course:index, course:meta.
 //   grammar     — задания at/in/on, условные, герундий из базы Notion → grammar:items.
+//   student     — задания одного ученика: подстраницы его страницы «Домашнее» в Notion
+//                 (body.chatId; страницу привязывает преподаватель в кабинете) → stu:<chatId>:*.
 //   seedGrammar — один раз создать эту базу в Notion под корневой страницей курса
 //                 и залить в неё встроенные задания (чтобы не набирать руками) → grammar:dbId.
 //
@@ -15,7 +17,8 @@
 // TELEGRAM_WEBHOOK_SECRET (защита от чужих вызовов). Необязательно: NOTION_COURSE_ROOT (id корневой
 // страницы плана; по умолчанию «Твой путь в английский»), NOTION_GRAMMAR_DB (id базы заданий).
 import { getStore } from "@netlify/blobs";
-import { buildLevel, assembleIndex, parseLevelPage, blocksToMarkdown } from "../lib/course-builder.mjs";
+import { buildLevel, assembleIndex, parseLevelPage, blocksToMarkdown, buildTopic } from "../lib/course-builder.mjs";
+import { normalizeHomework } from "../lib/homework-normalizer.mjs";
 import { PREP_ITEMS_A, PREP_ITEMS_B, COND_ITEMS, GERUND_PREP_ITEMS } from "../../data/grammar-extra.mjs";
 import BUNDLED_INDEX from "../../data/course/index.mjs";
 
@@ -232,6 +235,66 @@ async function selfInvoke(body) {
   if (!r.ok && r.status !== 202) throw new Error(`не удалось запустить следующий уровень: ${r.status}`);
 }
 
+// ---------- задания ученика из Notion ----------
+// Привязку (stu:<chatId>:link) ставит только преподаватель. Здесь читаем подстраницы привязанной страницы,
+// приводим каждую к шаблону курса и сохраняем как тему. Прав доступа это не меняет.
+const STU_VERSION = 1; // менять при правке разбора — тогда страницы пересоберутся, даже если не менялись
+const STU_MAX_PAGES = 60;
+async function runStudent(body) {
+  const chatId = String(body.chatId || "");
+  if (!/^\d{1,20}$/.test(chatId)) throw new Error("bad chatId");
+  const key = (k) => `stu:${chatId}:${k}`;
+  const log = [];
+  const setSt = (patch) => store().setJSON(key("status"), { ...patch, log: log.slice(-40), updatedAt: new Date().toISOString() });
+  const startedAt = new Date().toISOString();
+  try {
+    const link = await store().get(key("link"), { type: "json" });
+    if (!link || !link.pageId) throw new Error("страница Notion не привязана");
+    await setSt({ status: "running", startedAt });
+    let rootId = nid(link.pageId);
+    let kids = await allChildren(rootId);
+    // привязана страница ученика целиком — берем ее подстраницу «Домашнее…»
+    const hw = kids.find((b) => b.type === "child_page" && /^\s*Домашн/i.test((b.child_page && b.child_page.title) || ""));
+    if (hw) { rootId = nid(hw.id); kids = await allChildren(rootId); log.push(`беру подстраницу «${hw.child_page.title}»`); }
+    let pages = kids.filter((b) => b.type === "child_page").map((b) => ({ id: nid(b.id), title: ((b.child_page && b.child_page.title) || "").trim() }));
+    const skipped = pages.filter((p) => /для преподавателя/i.test(p.title));
+    pages = pages.filter((p) => p.title && !/для преподавателя/i.test(p.title));
+    if (skipped.length) log.push(`пропущено страниц «для преподавателя»: ${skipped.length}`);
+    if (pages.length > STU_MAX_PAGES) { log.push(`страниц ${pages.length} — беру последние ${STU_MAX_PAGES}`); pages = pages.slice(-STU_MAX_PAGES); }
+    if (!pages.length) throw new Error("на привязанной странице нет подстраниц с заданиями");
+    const prev = (await store().get(key("index"), { type: "json" })) || {};
+    const prevById = new Map((prev.v === STU_VERSION ? prev.topics || [] : []).map((t) => [t.id, t]));
+    const topics = []; let rebuilt = 0;
+    for (const [i, pg] of pages.entries()) {
+      try {
+        const p = await notion(`/pages/${pg.id}`);
+        const pt = pageTitle(p);
+        const title = (pt.title || pg.title).replace(/<[^>]+>/g, "").replace(/\s*\(1\)\s*$/, "").trim();
+        const editedAt = p.last_edited_time || "";
+        const old = prevById.get(pg.id);
+        if (old && old.editedAt === editedAt) { topics.push({ ...old, n: i + 1, title }); continue; }
+        const tree = await blockTree(pg.id);
+        const tt = new Map(); const w2 = (bs) => { for (const b of bs) { if (b.type === "child_page") tt.set(nid(b.id), { title: b.child_page.title, emoji: "" }); if (b.children) w2(b.children); } }; w2(tree);
+        const norm = normalizeHomework(blocksToMarkdown(tree, tt), title);
+        const topic = buildTopic({ id: pg.id, level: "", n: i + 1, emoji: pt.emoji || "📒", title, kind: "topic", description: "", contains: "" }, norm.md);
+        topic.source = "notion-student";
+        await store().setJSON(key(`topic:${pg.id}`), topic);
+        rebuilt += 1;
+        for (const l of norm.log) log.push(`«${title.slice(0, 40)}»: ${l}`);
+        topics.push({ id: pg.id, n: i + 1, emoji: topic.emoji, title, editedAt, exercises: topic.exercises.length, withKey: topic.exercises.filter((e) => e.answers).length, theory: topic.sections.length > 0 });
+      } catch (e) { log.push(`«${pg.title.slice(0, 40)}»: не прочитана — ${String((e && e.message) || e).slice(0, 120)}`); }
+    }
+    if (!topics.length) throw new Error("ни одна страница не прочиталась");
+    await store().setJSON(key("index"), { v: STU_VERSION, builtAt: new Date().toISOString(), rootId, topics });
+    log.push(`готово: страниц ${topics.length}, обновлено ${rebuilt}`);
+    await setSt({ status: "done", startedAt, finishedAt: new Date().toISOString(), pages: topics.length, rebuilt });
+  } catch (e) {
+    let msg = String((e && e.message) || e);
+    if (/Notion 404|Could not find|object_not_found/i.test(msg)) msg = "Notion не отдает эту страницу. Открой ее в Notion → «•••» → «Подключения» и добавь интеграцию бота, потом нажми «Обновить».";
+    await setSt({ status: "error", startedAt, finishedAt: new Date().toISOString(), error: msg });
+  }
+}
+
 // ---------- грамматика ----------
 const PROP = { title: "Предложение", type: "Тип", o1: "Вариант 1", o2: "Вариант 2", o3: "Вариант 3", correct: "Верный", explain: "Объяснение", active: "Активно" };
 const txt = (p) => (p && (p.rich_text || p.title) ? (p.rich_text || p.title).map((r) => (r.plain_text != null ? r.plain_text : (r.text && r.text.content) || "")).join("").trim() : "");
@@ -315,6 +378,11 @@ export default async (req) => {
   try { body = await req.json(); } catch (e) { return new Response("bad json", { status: 400 }); }
   const secret = process.env.TELEGRAM_WEBHOOK_SECRET || "";
   if (secret && body.secret !== secret) return new Response("forbidden", { status: 403 });
+  if (body.mode === "student") {
+    if (!process.env.NOTION_TOKEN) { await store().setJSON(`stu:${String(body.chatId || "")}:status`, { status: "error", error: "нет переменной NOTION_TOKEN в Netlify", updatedAt: new Date().toISOString() }); return new Response("no token", { status: 200 }); }
+    try { await runStudent(body); } catch (e) { console.error("student", e && e.message); }
+    return new Response("ok", { status: 200 });
+  }
   if (!process.env.NOTION_TOKEN) { await setStatus({ mode: body.mode, status: "error", error: "нет переменной NOTION_TOKEN в Netlify", finishedAt: new Date().toISOString() }); return new Response("no token", { status: 200 }); }
   try {
     if (body.mode === "course") await runCourse(body);

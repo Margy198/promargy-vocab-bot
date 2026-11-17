@@ -464,21 +464,26 @@
     const ws = (t) => { const p = demoCourse.progress[t.id]; const prev = prevOf.get(t.id); const pp = prev ? demoCourse.progress[prev] : null; const status = p ? p.status : (!prev || pp) ? "available" : "locked"; return { ...t, status, updatedAt: p ? p.updatedAt : null }; };
     const levels = idx.levels.map((lv) => { const topics = lv.topics.map(ws); const main = topics.filter((t) => t.kind === "topic"); return { code: lv.code, title: lv.title, emoji: lv.emoji, intro: lv.intro, checkpoint: lv.checkpoint, topics, total: main.length, done: main.filter((t) => t.status === "done").length, started: main.filter((t) => t.status === "started").length }; });
     const categories = idx.categories.map((c) => { const topics = c.topics.map((id) => byId.get(id)).filter(Boolean).map(ws); const status = topics.every((t) => t.status === "done") ? "done" : topics.some((t) => t.status === "done" || t.status === "started") ? "started" : topics.some((t) => t.status === "available") ? "available" : "locked"; return { key: c.key, title: c.title, outline: c.outline, topics, total: topics.length, done: topics.filter((t) => t.status === "done").length, status }; });
+    let mine = null;
+    if (window.__demoMine) { const topics = window.__demoMine.topics.map((t, i) => ws({ id: t.id, n: i + 1, emoji: t.emoji || "📒", title: t.title, kind: "topic", description: `${t.exercises.length} упр.`, contains: "", level: "", mine: true })).map((t) => ({ ...t, status: t.status === "locked" ? "available" : t.status })); categories.unshift({ key: "mine", title: "📒 Мои задания", outline: "задания от преподавателя из Notion", topics, total: topics.length, done: topics.filter((t) => t.status === "done").length, status: "available" }); mine = { total: topics.length, done: topics.filter((t) => t.status === "done").length }; }
     const all = levels.flatMap((l) => l.topics.filter((t) => t.kind === "topic"));
     demoHomework(); for (const h of demoCourse.hw) if (!h.topicId) { const t = all.find((x) => x.title === h.title) || all[0]; h.topicId = t.id; }
-    return { ok: true, track: demoCourse.track || "general", businessAvailable: true, plan: demoCourse.plan || { 1: { theory: "2026-07-05T10:00:00Z", practice: "2026-07-06T10:00:00Z" }, 3: { theory: "2026-07-05T10:00:00Z" } }, levels, categories, level: demoCourse.level, total: all.length, done: all.filter((t) => t.status === "done").length, homework: demoHomework() };
+    return { ok: true, track: demoCourse.track || "general", businessAvailable: true, plan: demoCourse.plan || { 1: { theory: "2026-07-05T10:00:00Z", practice: "2026-07-06T10:00:00Z" }, 3: { theory: "2026-07-05T10:00:00Z" } }, levels, categories, level: demoCourse.level, total: all.length, done: all.filter((t) => t.status === "done").length, homework: demoHomework(), mine };
   }
   async function demoAsync(action, extra) {
     switch (action) {
       case "course": return demoCoursePayload();
-      case "topic": { const topic = await demoFetchJson("__course/topics/" + extra.id + ".json"); return { ok: true, topic, progress: demoCourse.progress[extra.id] || null, notes: demoCourse.notes.filter((n) => n.topicId === extra.id) }; }
+      case "topic": { const dm = window.__demoMine && window.__demoMine.topics.find((t) => t.id === extra.id); const topic = dm || await demoFetchJson("__course/topics/" + extra.id + ".json"); return { ok: true, topic, progress: demoCourse.progress[extra.id] || null, notes: demoCourse.notes.filter((n) => n.topicId === extra.id) }; }
       case "courseSet": { if (extra.status === "done" && demoCourse.hw) for (const h of demoCourse.hw) if (h.topicId === extra.id && !h.doneAt) h.doneAt = new Date().toISOString(); const prev = demoCourse.progress[extra.id]; let awardedXp = 0; if (extra.status === "reset") delete demoCourse.progress[extra.id]; else if (!(extra.status === "started" && prev && prev.status === "done")) { if (extra.status === "done" && !(prev && prev.status === "done")) awardedXp = 50; demoCourse.progress[extra.id] = { status: extra.status, updatedAt: new Date().toISOString() }; } return { ok: true, awardedXp, ...(await demoCoursePayload()) }; }
       case "courseLevel": demoCourse.level = extra.level; return { ok: true, ...(await demoCoursePayload()) };
       case "courseTrack": demoCourse.track = extra.track; return { ok: true, ...(await demoCoursePayload()) };
+      case "notionLink": demoNotion = { linked: true, url: extra.url, pages: 0, exercises: 0, status: { status: "running", log: ["запускаю…"] } }; return { ok: true, started: true, notion: demoNotion };
+      case "notionStatus": case "notionSync": if (demoNotion.linked) demoNotion = { ...demoNotion, pages: 3, exercises: 9, builtAt: new Date().toISOString(), status: { status: "done", log: ["готово: страниц 3, обновлено 3"] } }; return { ok: true, notion: demoNotion };
+      case "notionUnlink": demoNotion = { linked: false }; return { ok: true, notion: demoNotion };
       case "planMark": { demoCourse.plan = demoCourse.plan || { 1: { theory: "2026-07-05T10:00:00Z", practice: "2026-07-06T10:00:00Z" }, 3: { theory: "2026-07-05T10:00:00Z" } }; const c = { ...(demoCourse.plan[extra.n] || {}) }; if (extra.on) c[extra.kind] = new Date().toISOString(); else delete c[extra.kind]; demoCourse.plan[extra.n] = c; return { ok: true, plan: demoCourse.plan }; }
       case "homework": return { ok: true, homework: demoHomework() };
       case "teacherStudents": return demoStudents();
-      case "teacherStudent": { const st = demoStudents().students.find((x) => x.chatId === extra.chatId) || demoStudents().students[0]; const me = await demo("me", {}); const c = await demoCoursePayload(); const topics = c.levels.flatMap((l) => l.topics.filter((t) => t.kind === "topic").map((t) => ({ ...t, level: l.code }))).slice(2, 2 + st.topicsDone + st.topicsStarted).map((t, i) => ({ id: t.id, title: t.title, emoji: t.emoji, level: t.level, status: i < st.topicsDone ? "done" : "started", updatedAt: new Date(Date.now() - i * 2 * 864e5).toISOString() })); return { ok: true, profile: { ...me, user: { ...me.user, firstName: st.firstName, username: st.username, avatar: st.avatar, chatId: st.chatId }, xp: st.xp, streak: st.streak, xpWeek: st.xpWeek, vocabCount: st.vocabCount, answered: st.answered, correct: st.correct, level: { ...me.level, name: st.level } }, topics, courseLevel: st.courseLevel, courseDone: st.topicsDone, courseTotal: c.total, homework: demoHomework(), victories: ["reluctant", "endure", "stave off"] }; }
+      case "teacherStudent": { const st = demoStudents().students.find((x) => x.chatId === extra.chatId) || demoStudents().students[0]; const me = await demo("me", {}); const c = await demoCoursePayload(); const topics = c.levels.flatMap((l) => l.topics.filter((t) => t.kind === "topic").map((t) => ({ ...t, level: l.code }))).slice(2, 2 + st.topicsDone + st.topicsStarted).map((t, i) => ({ id: t.id, title: t.title, emoji: t.emoji, level: t.level, status: i < st.topicsDone ? "done" : "started", updatedAt: new Date(Date.now() - i * 2 * 864e5).toISOString() })); return { ok: true, profile: { ...me, user: { ...me.user, firstName: st.firstName, username: st.username, avatar: st.avatar, chatId: st.chatId }, xp: st.xp, streak: st.streak, xpWeek: st.xpWeek, vocabCount: st.vocabCount, answered: st.answered, correct: st.correct, level: { ...me.level, name: st.level } }, topics, courseLevel: st.courseLevel, courseDone: st.topicsDone, courseTotal: c.total, homework: demoHomework(), victories: ["reluctant", "endure", "stave off"], notion: demoNotion }; }
       case "hwAssign": { demoCourse.hw = demoHomework().items; for (const id of extra.chatIds || [extra.chatId]) { const st = demoStudents().students.find((x) => x.chatId === id); if (st) st.hwOpen += 1; } const c = await demoCoursePayload(); const t = c.levels.flatMap((l) => l.topics).find((x) => x.id === extra.topicId); demoCourse.hw.push({ id: Math.random().toString(36).slice(2), topicId: extra.topicId, title: t ? t.title : "Тема", emoji: t ? t.emoji : null, level: t ? t.level : null, deadline: extra.deadline || null, note: extra.note || null, doneAt: null }); return { ok: true, assigned: extra.chatIds || [extra.chatId], topic: t }; }
       case "contentStatus": return demoContent();
       case "contentRebuild": { demoCourse.content = demoCourse.content || (await demoContent()); demoCourse.content.rebuild = { mode: extra.what, status: "running", startedAt: new Date().toISOString(), total: 6, done: ["A0", "A1"], log: ["19:40:01 ищу страницы уровней в Notion…", "19:40:02 уровни: A0, A1, A2, B1, B2, C1", "19:40:02 уровень A0: читаю страницы…", "19:40:31 уровень A0: 5 тем записано", "19:40:31 уровень A1: читаю страницы…", "19:41:40 уровень A1: 14 тем записано", "19:41:40 уровень A2: читаю страницы…"] }; setTimeout(() => { demoCourse.content.rebuild.status = "done"; demoCourse.content.rebuild.done = ["A0", "A1", "A2", "B1", "B2", "C1"]; demoCourse.content.course.source = "notion"; demoCourse.content.course.builtAt = new Date().toISOString(); }, 9000); return { ok: true, ...demoCourse.content }; }
@@ -497,7 +502,7 @@
     return null;
   }
   function demo(action, extra) {
-    if (["course", "topic", "courseSet", "courseLevel", "courseTrack", "planMark", "notes", "noteAdd", "noteEdit", "noteDelete", "slang", "interests", "interestsSet", "feed", "interestsAddWords", "homework", "teacherStudents", "teacherStudent", "hwAssign", "hwRemove", "contentStatus", "contentRebuild", "contentReset"].includes(action)) return demoAsync(action, extra);
+    if (["course", "topic", "courseSet", "courseLevel", "courseTrack", "planMark", "notes", "noteAdd", "noteEdit", "noteDelete", "slang", "interests", "interestsSet", "feed", "interestsAddWords", "homework", "teacherStudents", "teacherStudent", "hwAssign", "hwRemove", "contentStatus", "contentRebuild", "contentReset", "notionLink", "notionUnlink", "notionSync", "notionStatus"].includes(action)) return demoAsync(action, extra);
     const today = new Date(); const days = [];
     for (let i = 13; i >= 0; i--) { const d = new Date(today.getTime() - i * 864e5); days.push({ date: d.toISOString().slice(0, 10), answers: [12, 20, 0, 15, 24, 18, 9, 30, 22, 0, 16, 25, 19, 7][13 - i] }); }
     const id = demoState.identity;
@@ -1017,7 +1022,7 @@
   }
   // сквозные бизнес-блоки лежат в «уровне» BIZ
   const lvName = (code) => (code === "BIZ" ? "💼 Блоки" : code || "");
-  function findTopicMeta(id) { for (const l of state.course.levels) for (const t of l.topics) if (t.id === id) return { level: l, meta: t }; return null; }
+  function findTopicMeta(id) { for (const l of state.course.levels) for (const t of l.topics) if (t.id === id) return { level: l, meta: t }; const mine = (state.course.categories || []).find((c) => c.key === "mine"); const mt = mine && mine.topics.find((t) => t.id === id); return mt ? { level: { code: "", title: "Мои задания" }, meta: mt } : null; }
   function categoryOfTopic(id) { for (const c of state.course.categories) if (c.topics.some((t) => t.id === id)) return c.key; return null; }
   function findCategory(key) { return state.course.categories.find((c) => c.key === key) || null; }
   function topicCardsHtml(topics, withLevel) {
@@ -1071,12 +1076,18 @@
       <div style="margin-top:18px"><button class="btn" id="go-topics" style="background:var(--g-aqua);font-size:15px">Далее</button></div>
       ${cont ? `<div class="card aqua" style="margin-top:14px;cursor:pointer" id="continue"><div class="row between"><div><div class="muted" style="color:var(--text-2);opacity:.7">Продолжить · ${esc(lvName(cont.t.level || ""))}</div><div style="font-size:17px;margin-top:2px">${esc(cont.t.emoji || "")} ${esc(cont.t.title)}</div></div><button class="fab">${iconArrow()}</button></div></div>` : ""}
       ${c.track !== "business" ? `<div class="card aqua" style="margin-top:14px;cursor:pointer" id="go-plan"><div class="row between"><div><div style="font-size:17px">🗺 Мой план</div><div class="muted" style="color:var(--text-2);opacity:.75;margin-top:2px">${STUDY_PLAN.length} тем по порядку · отмечено ${STUDY_PLAN.filter((x) => planDone(x).theory && planDone(x).practice).length}</div></div><button class="fab">${iconArrow()}</button></div></div>` : ""}
+      ${c.mine ? `<div class="card pink" style="margin-top:14px;cursor:pointer" id="go-mine"><div class="row between"><div><div style="font-size:17px">📒 Мои задания</div><div class="muted" style="color:var(--text-2);opacity:.75;margin-top:2px">от преподавателя · ${c.mine.total} ${plural(c.mine.total, ["страница", "страницы", "страниц"])}${c.mine.done ? ` · пройдено ${c.mine.done}` : ""}</div></div><button class="fab">${iconArrow()}</button></div></div>` : ""}
       <div class="card lavender" style="margin-top:14px;cursor:pointer" id="go-interests"><div class="row between"><div><div style="font-size:17px">🎯 Мои темы</div><div class="muted" style="color:var(--text-2);opacity:.75;margin-top:2px">предложения и слова по тому, что интересно именно тебе</div></div><button class="fab">${iconArrow()}</button></div></div>
       <div class="row" style="margin-top:12px;gap:10px"><button class="btn" id="go-notes" style="flex:1">📝 Заметки</button><button class="btn" id="go-slang" style="flex:1">💬 Сленг</button></div>
       <div style="height:8px"></div>`;
     $("#go-interests").addEventListener("click", () => { haptic(); go("interests"); });
     const gp = $("#go-plan"); if (gp) gp.addEventListener("click", () => { haptic(); go("plan"); });
     // «Обычный / Для работы»: та же грамматика, примеры и упражнения из рабочей среды; прогресс у каждой версии свой
+    const gm = $("#go-mine"); if (gm) gm.addEventListener("click", () => {
+      haptic(); go("category", { key: "mine", from: "home" });
+      // список старше получаса — тихо перечитываем Notion, чтобы новые задания появились без участия преподавателя
+      if (!DEMO && c.mine && c.mine.builtAt && Date.now() - Date.parse(c.mine.builtAt) > 30 * 60 * 1000) api("notionSync").then((r) => { if (!r || !r.ok) return; setTimeout(async () => { const n = await api("course"); if (n && n.ok) { state.course = n; cacheSet("course", n); if (state.study.view === "category" && state.study.key === "mine") renderStudy(); } }, 25000); });
+    });
     root.querySelectorAll("[data-track]").forEach((b) => b.addEventListener("click", async () => {
       const tr = b.dataset.track; if (tr === (c.track || "general")) return;
       haptic(); root.querySelectorAll("[data-track]").forEach((x) => x.classList.toggle("on", x === b));
@@ -1144,6 +1155,28 @@
     $("#t-content").addEventListener("click", () => { haptic(); go("content"); });
     root.querySelectorAll(".stud").forEach((el) => el.addEventListener("click", () => { haptic(); go("tstudent", { chatId: el.dataset.sid }); }));
   }
+  // Привязка страницы «Домашнее» ученика в Notion: подстраницы становятся заданиями в его приложении
+  const NOTION_ERR = { bad_url: "Это не похоже на ссылку Notion — скопируй ссылку на страницу целиком", no_notion_token: "В Netlify нет переменной NOTION_TOKEN", no_url: "В Netlify нет адреса сайта (URL)", already_running: "Уже обновляется — подожди минуту", not_linked: "Страница не привязана", forbidden: "Это может только преподаватель" };
+  function notionBlockHtml(n) {
+    n = n || { linked: false };
+    const stt = n.status || null; const fmtAt = (iso) => { if (!iso) return "—"; try { return new Date(iso).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).replace(",", ""); } catch (e) { return iso.slice(0, 10); } };
+    if (!n.linked) return `<div class="card" style="margin-top:8px;padding:12px 14px"><div class="muted" style="font-size:13px;line-height:1.4">Вставь ссылку на страницу «Домашнее» этого ученика в Notion. Ее подстраницы появятся у ученика в «Учеба → Мои задания», а упражнения с ключом станут заданиями с проверкой.</div><input id="n-url" class="tl-input" placeholder="https://www.notion.so/…" style="margin:10px 0 0;width:100%" /><div style="margin-top:10px"><button class="btn primary small" id="n-link">Привязать</button></div></div>`;
+    const line = stt && stt.status === "running" ? "⏳ Читаю страницы из Notion…" : stt && stt.status === "error" ? `⚠️ ${esc(stt.error || "ошибка")}` : n.pages ? `✅ ${n.pages} ${plural(n.pages, ["страница", "страницы", "страниц"])} · ${n.exercises} упр. · обновлено ${fmtAt(n.builtAt)}` : "Пока ничего не собрано";
+    const log = stt && stt.log && stt.log.length ? `<details style="margin-top:8px"><summary class="muted" style="font-size:13px;cursor:pointer">Журнал</summary><div class="muted" style="font-size:12px;line-height:1.45;margin-top:6px">${stt.log.map((l) => esc(l)).join("<br>")}</div></details>` : "";
+    return `<div class="card" style="margin-top:8px;padding:12px 14px"><div style="font-size:14px;line-height:1.4">${line}</div><div class="muted" style="font-size:12px;margin-top:4px;word-break:break-all">${esc(n.url || "")}</div>${log}<div class="row" style="gap:8px;margin-top:10px"><button class="btn primary small" id="n-sync">Обновить</button><button class="btn small" id="n-unlink">Отвязать</button></div></div>`;
+  }
+  let notionPoll = null;
+  function bindNotionBlock(root, id, d) {
+    const fail = (r) => toast(NOTION_ERR[(r && (r.error || r.startError)) || ""] || "Не получилось — проверь интернет");
+    const apply = (r) => { d.notion = r.notion; tcache.student[id] = d; if (state.study.view === "tstudent" && state.study.chatId === id) renderStudy(); };
+    const lk = $("#n-link"); if (lk) lk.addEventListener("click", async () => { const url = ($("#n-url").value || "").trim(); if (!url) return toast("Вставь ссылку на страницу"); haptic(); lk.disabled = true; const r = await api("notionLink", { chatId: id, url }); if (!r || !r.ok) { lk.disabled = false; return fail(r); } if (r.startError) fail(r); apply(r); });
+    const sy = $("#n-sync"); if (sy) sy.addEventListener("click", async () => { haptic(); sy.disabled = true; const r = await api("notionSync", { chatId: id }); if (r && r.notion) apply(r); if (!r || !r.ok) fail(r); });
+    const ul = $("#n-unlink"); if (ul) ul.addEventListener("click", async () => { if (!(await confirmSheet("Отвязать страницу Notion? Ученик перестанет видеть «Мои задания». Страницы в Notion останутся.", "Отвязать"))) return; const r = await api("notionUnlink", { chatId: id }); if (r && r.ok) { apply(r); toast("Отвязано"); } else fail(r); });
+    // пока идет сборка — раз в 4 секунды спрашиваем статус
+    clearTimeout(notionPoll);
+    if (d.notion && d.notion.status && d.notion.status.status === "running") notionPoll = setTimeout(async () => { if (state.study.view !== "tstudent" || state.study.chatId !== id) return; const r = await api("notionStatus", { chatId: id }); if (r && r.ok) apply(r); }, 4000);
+  }
+  let demoNotion = { linked: false };
   async function renderTeacherStudent(root) {
     const st = state.study; const id = st.chatId; let d = tcache.student[id];
     if (!d) { root.innerHTML = `<div style="margin-top:4px">${backLink("Ученики")}</div><div class="notice" style="margin-top:14px">Загружаю…</div>`; $("#study-back").addEventListener("click", () => studyBack()); const r = await api("teacherStudent", { chatId: id }); if (!r || !r.ok) { toast("Не удалось открыть карточку"); return go("teacher"); } d = tcache.student[id] = r; if (state.study.view !== "tstudent" || state.study.chatId !== id) return; }
@@ -1158,12 +1191,15 @@
       <div class="row between" style="margin-top:18px"><h2>📚 Домашка</h2><button class="btn small" id="t-assign">+ Задать</button></div>
       ${open.length ? open.map((i) => hwRowHtml(i, `<button class="btn small" data-rm="${i.id}" style="flex:none;padding:6px 9px;font-size:12px">✕</button>`)).join("") : `<div class="muted" style="margin-top:8px">Открытых заданий нет.</div>`}
       ${done.length ? `<div class="muted" style="margin-top:10px;font-size:13px">Сдано: ${done.map((i) => `${esc(i.title)} (${fmtDay((i.doneAt || "").slice(0, 10))})`).join(", ")}</div>` : ""}
+      <h2 style="margin-top:18px">📒 Задания из Notion</h2>
+      ${notionBlockHtml(d.notion)}
       <h2 style="margin-top:18px">Темы курса</h2>
       ${d.topics.length ? d.topics.slice(0, 12).map((t) => `<div class="fold" style="padding:10px 14px"><span style="font-size:14px">${esc(t.emoji || "")} ${esc(t.title)} <span class="muted">· ${esc(lvName(t.level))}</span></span><span class="tag ${t.status}">${STATUS_LABEL[t.status]}</span></div>`).join("") : `<div class="muted" style="margin-top:8px">Ещё не открывал(а) темы в приложении.</div>`}
       <h2 style="margin-top:18px">Частые ошибки в словаре</h2><div class="card" style="margin-top:8px;padding:4px 16px">${wrong}</div>
       ${d.victories && d.victories.length ? `<div class="muted" style="margin-top:10px;font-size:13px">🏆 Победил(а): ${d.victories.map((v) => esc(typeof v === "string" ? v : v.en || "")).join(", ")}</div>` : ""}
       <div style="margin-top:16px"><button class="btn" id="t-chat">Написать в Telegram</button></div><div style="height:16px"></div>`;
     $("#t-assign").addEventListener("click", () => { haptic(); go("hwassign", { chatId: id, chatIds: [id] }); });
+    bindNotionBlock(root, id, d);
     $("#t-chat").addEventListener("click", () => { const url = u.username ? `https://t.me/${u.username}` : `tg://user?id=${u.chatId || id}`; try { if (tg && tg.openTelegramLink) tg.openTelegramLink(url); else window.open(url); } catch (e) { window.open(url); } });
     root.querySelectorAll("[data-rm]").forEach((b) => b.addEventListener("click", async (e) => { e.stopPropagation(); if (!(await confirmSheet("Снять это задание?", "Снять"))) return; const r = await api("hwRemove", { chatId: id, hwId: b.dataset.rm }); if (r && r.ok) { tcache.student[id] = r; tcache.students = null; toast("Задание снято"); renderStudy(); } else toast("Не получилось"); }));
     root.querySelectorAll(".hw[data-topic]").forEach((el) => el.addEventListener("click", () => { if (el.dataset.topic) openTopic(el.dataset.topic); }));
@@ -1299,13 +1335,14 @@
     const cat = findCategory(state.study.key); if (!cat) return go("topics");
     const lvl = state.study.level || "";
     const topics = lvl ? cat.topics.filter((t) => t.level === lvl) : cat.topics;
-    const rows = cat.topics.map((t, i) => (lvl && t.level !== lvl) ? "" : `<div class="lesson ${t.status === "done" ? "read" : ""} ${t.status === "locked" ? "locked" : ""}" data-id="${t.id}"><div class="ic">${esc(t.emoji || "📘")}</div><div style="flex:1"><div class="k">Урок ${i + 1} · ${esc(lvName(t.level))}${t.status === "started" ? " · в процессе" : t.status === "done" ? " · завершено" : t.status === "locked" ? " · недоступно" : ""}</div><div class="t">${esc(t.title)}</div></div><div class="ln"></div></div>`).join("");
+    const rows = cat.topics.map((t, i) => (lvl && t.level !== lvl) ? "" : `<div class="lesson ${t.status === "done" ? "read" : ""} ${t.status === "locked" ? "locked" : ""}" data-id="${t.id}"><div class="ic">${esc(t.emoji || "📘")}</div><div style="flex:1"><div class="k">${t.mine ? esc(t.description || "задание") : `Урок ${i + 1} · ${esc(lvName(t.level))}`}${t.status === "started" ? " · в процессе" : t.status === "done" ? " · завершено" : t.status === "locked" ? " · недоступно" : ""}</div><div class="t">${esc(t.title)}</div></div><div class="ln"></div></div>`).join("");
     root.innerHTML = `
-      <div class="head"><div class="row between"><div>${backLink("Все темы")}<div class="ttl" style="margin-top:6px">${esc(cat.title)}</div><div class="sub">${esc(cat.outline)}</div></div></div><div style="margin-top:10px"><span class="tag ${cat.status}">${STATUS_LABEL[cat.status]}</span> <span class="tag">${topics.length} ${plural(topics.length, ["урок", "урока", "уроков"])}${cat.done ? ` · ${cat.done} ✓` : ""}</span></div></div>
+      <div class="head"><div class="row between"><div>${backLink("Все темы")}<div class="ttl" style="margin-top:6px">${esc(cat.title)}</div><div class="sub">${esc(cat.outline)}</div></div></div><div style="margin-top:10px"><span class="tag ${cat.status}">${STATUS_LABEL[cat.status]}</span> <span class="tag">${topics.length} ${cat.key === "mine" ? plural(topics.length, ["страница", "страницы", "страниц"]) : plural(topics.length, ["урок", "урока", "уроков"])}${cat.done ? ` · ${cat.done} ✓` : ""}</span></div></div>
       ${rows}
-      <div class="navbtns"><button class="btn" id="c-prev">Назад</button><button class="btn" id="c-next">Далее</button></div><div style="height:16px"></div>`;
+      ${cat.key === "mine" ? "" : `<div class="navbtns"><button class="btn" id="c-prev">Назад</button><button class="btn" id="c-next">Далее</button></div>`}<div style="height:16px"></div>`;
     root.querySelectorAll(".lesson[data-id]").forEach((el) => el.addEventListener("click", () => { haptic(); const t = cat.topics.find((x) => x.id === el.dataset.id); if (t.status === "locked") confirmSheetOk(`«${t.title}» — следующий по порядку. Лучше сначала пройти предыдущий урок, но можно открыть и так.`, "Открыть всё равно").then((ok) => { if (ok) openTopic(t.id); }); else openTopic(t.id); }));
     const cats = state.course.categories; const ci = cats.findIndex((x) => x.key === cat.key);
+    if (cat.key === "mine") return;
     $("#c-prev").addEventListener("click", () => { haptic(); if (ci > 0) go("category", { key: cats[ci - 1].key, level: lvl }); else go("topics", { level: lvl }); });
     $("#c-next").addEventListener("click", () => { haptic(); if (ci < cats.length - 1) go("category", { key: cats[ci + 1].key, level: lvl }); else go("topics", { level: lvl }); });
   }
@@ -1392,7 +1429,7 @@
     const status = meta ? meta.status : "started";
     const rows = lessons.map((l, i) => `<div class="lesson ${read.has(lessonKey(l)) ? "read" : ""}" data-i="${i}"><div class="ic">${l.icon}</div><div><div class="k">Шаг ${i + 1}</div><div class="t">${esc(l.title)}</div></div><div class="ln"></div></div>`).join("");
     root.innerHTML = `
-      <div class="head"><div class="row between"><div>${backLink(catTitle)}<div class="ttl" style="margin-top:6px">${esc(t.emoji || "")} ${esc(t.title)}</div><div class="sub">${esc(catTitle)} · ${lv ? esc(lvName(lv.code)) + " · " : ""}${lessons.length} ${plural(lessons.length, ["шаг", "шага", "шагов"])} · ${read.size} пройдено</div></div><button class="fab ghost" id="t-notes" title="Заметки" style="margin-top:22px">📝${state.topicNotes.length ? `<span class="pill" style="position:absolute;margin:-40px 0 0 30px;padding:1px 6px;font-size:11px">${state.topicNotes.length}</span>` : ""}</button></div>
+      <div class="head"><div class="row between"><div>${backLink(catTitle)}<div class="ttl" style="margin-top:6px">${esc(t.emoji || "")} ${esc(t.title)}</div><div class="sub">${esc(catTitle)} · ${lv && lv.code ? esc(lvName(lv.code)) + " · " : ""}${lessons.length} ${plural(lessons.length, ["шаг", "шага", "шагов"])} · ${read.size} пройдено</div></div><button class="fab ghost" id="t-notes" title="Заметки" style="margin-top:22px">📝${state.topicNotes.length ? `<span class="pill" style="position:absolute;margin:-40px 0 0 30px;padding:1px 6px;font-size:11px">${state.topicNotes.length}</span>` : ""}</button></div>
         <div style="margin-top:10px"><span class="tag ${status}">${STATUS_LABEL[status] || "В процессе"}</span></div></div>
       ${t.intro ? `<div class="card content" style="font-size:14px">${t.intro}</div>` : ""}
       ${(t.drills || []).length ? `<div class="card aqua train-card" id="t-train" style="margin-top:12px"><div><div style="font-size:17px">🎯 Тренировка</div><div class="muted" style="color:var(--text-2);opacity:.8;margin-top:2px">${t.drills.length} ${plural(t.drills.length, ["задание", "задания", "заданий"])} из ${t.exercises.length} ${plural(t.exercises.length, ["упражнения", "упражнений", "упражнений"])} · по 20 вперемешку</div></div><button class="fab">${iconArrow()}</button></div>` : ""}
@@ -1427,7 +1464,7 @@
   }
   function lessonHeader(t, l, i, total, extraClass) {
     const lv = levelOfTopic(t.id);
-    return `<div class="head ${extraClass || ""}"><div class="row between"><div>${backLink(t.title.length > 24 ? t.title.slice(0, 24) + "…" : t.title)}<div class="ttl" style="margin-top:6px">${esc(t.title)}</div><div class="sub">Шаг ${i + 1} из ${total}${lv ? ` · ${esc(lvName(lv.code))}` : ""}</div></div><span class="tag" style="margin-top:28px">${esc(lv ? lvName(lv.code) : "")}</span></div></div>`;
+    return `<div class="head ${extraClass || ""}"><div class="row between"><div>${backLink(t.title.length > 24 ? t.title.slice(0, 24) + "…" : t.title)}<div class="ttl" style="margin-top:6px">${esc(t.title)}</div><div class="sub">Шаг ${i + 1} из ${total}${lv && lv.code ? ` · ${esc(lvName(lv.code))}` : ""}</div></div><span class="tag" style="margin-top:28px${lv && lv.code ? "" : ";display:none"}">${esc(lv ? lvName(lv.code) : "")}</span></div></div>`;
   }
   function navButtons(i, total) {
     return `<div class="navbtns"><button class="btn" id="l-prev" ${i <= 0 ? "disabled" : ""}>Назад</button><button class="btn" id="l-next">${i >= total - 1 ? "К теме" : "Далее"}</button></div>`;

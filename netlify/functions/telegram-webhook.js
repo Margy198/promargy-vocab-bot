@@ -11646,6 +11646,45 @@ async function readCourseTopic(id) {
   }
   return { ...t, ...built };
 }
+// --- Задания ученика из Notion ---
+// Преподаватель привязывает к ученику его страницу «Домашнее» в Notion (кабинет → карточка ученика).
+// Фоновая функция (mode "student") превращает подстраницы в темы с интерактивными заданиями: stu:<chatId>:*.
+// Привязка не дает и не меняет прав доступа; ученик видит только свои страницы.
+const stuKey = (chatId, k) => `stu:${chatId}:${k}`;
+async function readStuIndex(chatId) { try { const v = await courseStore().get(stuKey(chatId, "index"), { type: "json" }); return v && Array.isArray(v.topics) ? v : null; } catch (e) { return null; } }
+async function readStuLink(chatId) { try { return await courseStore().get(stuKey(chatId, "link"), { type: "json" }); } catch (e) { return null; } }
+async function readStuTopic(chatId, id) {
+  if (!/^[0-9a-f]{32}$/.test(String(id))) return null;
+  const link = await readStuLink(chatId); if (!link) return null;
+  let t = null; try { t = await courseStore().get(stuKey(chatId, `topic:${id}`), { type: "json" }); } catch (e) { t = null; }
+  if (!t || !t.id) return null;
+  try { const r = buildTopicDrills(t); return { ...t, drills: r.drills, drillLeads: r.leads }; } catch (e) { console.error("stu drills", id, e && e.message); return { ...t, drills: [], drillLeads: {} }; }
+}
+async function stuNotionPayload(chatId) {
+  const link = await readStuLink(chatId);
+  if (!link) return { linked: false };
+  const index = await readStuIndex(chatId);
+  let status = null; try { status = await courseStore().get(stuKey(chatId, "status"), { type: "json" }); } catch (e) { status = null; }
+  return { linked: true, url: link.url || "", linkedAt: link.at || null, builtAt: index ? index.builtAt : null, pages: index ? index.topics.length : 0,
+    exercises: index ? index.topics.reduce((a, t) => a + (t.exercises || 0), 0) : 0, status: status ? { status: status.status, error: status.error || null, updatedAt: status.updatedAt, log: (status.log || []).slice(-12) } : null };
+}
+async function startStudentSync(chatId, by) {
+  const base = (process.env.URL || "").replace(/\/+$/, "");
+  if (!base) return { ok: false, error: "no_url" };
+  if (!process.env.NOTION_TOKEN) return { ok: false, error: "no_notion_token" };
+  if (!(await readStuLink(chatId))) return { ok: false, error: "not_linked" };
+  let cur = null; try { cur = await courseStore().get(stuKey(chatId, "status"), { type: "json" }); } catch (e) { cur = null; }
+  if (cur && cur.status === "running" && Date.now() - Date.parse(cur.updatedAt || 0) < 5 * 60 * 1000) return { ok: false, error: "already_running" };
+  await courseStore().setJSON(stuKey(chatId, "status"), { status: "running", startedAt: new Date().toISOString(), updatedAt: new Date().toISOString(), by: String(by), log: ["запускаю…"] });
+  try {
+    const r = await fetch(`${base}/.netlify/functions/course-rebuild-background`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ mode: "student", chatId: String(chatId), secret: WEBHOOK_SECRET, by: String(by) }) });
+    if (!r.ok && r.status !== 202) { await courseStore().setJSON(stuKey(chatId, "status"), { status: "error", error: `функция не запустилась: ${r.status}`, updatedAt: new Date().toISOString() }); return { ok: false, error: `start_${r.status}` }; }
+  } catch (e) {
+    await courseStore().setJSON(stuKey(chatId, "status"), { status: "error", error: String((e && e.message) || e), updatedAt: new Date().toISOString() });
+    return { ok: false, error: "start_failed" };
+  }
+  return { ok: true };
+}
 // Задания грамматики: из Notion-базы (Blobs grammar:items), если там есть хотя бы 5 заданий типа, иначе встроенные.
 const BUNDLED_GRAMMAR = { prepA: PREP_ITEMS_A, prepB: PREP_ITEMS_B, condB1: COND_ITEMS, gerundPrep: GERUND_PREP_ITEMS };
 let grammarCache = { at: 0, value: null };
@@ -11768,18 +11807,27 @@ async function appCoursePayload(chatId) {
     const topics = c.topics.map((id) => byId.get(id)).filter(Boolean).map(withStatus);
     return { key: c.key, title: c.title, outline: c.outline, topics, total: topics.length, done: topics.filter((t) => t.status === "done").length, status: categoryStatus(topics) };
   });
+  // задания ученика из Notion — отдельной категорией в начале списка
+  const stuIndex = (await readStuLink(chatId)) ? await readStuIndex(chatId) : null;
+  let mine = null;
+  if (stuIndex && stuIndex.topics.length) {
+    const topics = stuIndex.topics.slice().reverse().map((t) => ({ id: t.id, n: t.n, emoji: t.emoji || "📒", title: t.title, kind: "topic", description: t.exercises ? `${t.exercises} упр.` : "материал", contains: "", level: "", mine: true, status: courseTopicStatus(null, t.id, progress), updatedAt: (progress.topics[t.id] || {}).updatedAt || null }));
+    mine = { key: "mine", title: "📒 Мои задания", outline: "задания от преподавателя из Notion", topics, total: topics.length, done: topics.filter((t) => t.status === "done").length, status: categoryStatus(topics), builtAt: stuIndex.builtAt };
+    categories.unshift(mine);
+  }
   const all = levels.flatMap((l) => l.topics.filter((t) => t.kind === "topic"));
   const homework = await appHomeworkPayload(chatId);
   // в бизнес-версии нет A0 — свой уровень хранится отдельно (bizLevel)
   const lvl = track === "business" ? (progress.bizLevel || (progress.level && progress.level !== "A0" ? progress.level : null)) : progress.level;
-  return { ok: true, track, businessAvailable: !!biz, plan: progress.plan || {}, levels, categories, level: levels.some((l) => l.code === lvl) ? lvl : null, total: all.length, done: all.filter((t) => t.status === "done").length, builtAt: index.builtAt || null, homework };
+  return { ok: true, track, businessAvailable: !!biz, plan: progress.plan || {}, levels, categories, level: levels.some((l) => l.code === lvl) ? lvl : null, total: all.length, done: all.filter((t) => t.status === "done").length, builtAt: index.builtAt || null, homework, mine: mine ? { total: mine.total, done: mine.done, builtAt: mine.builtAt } : null };
 }
 async function setCourseTopicStatus(chatId, topicId, status) {
   const index = await readCourseIndex();
   if (!index) return { ok: false, error: "content_missing" };
   const biz = await readBizIndex();
   const known = [index, biz].filter(Boolean).some((ix) => ix.levels.some((l) => l.topics.some((t) => t.id === topicId)));
-  if (!known) return { ok: false, error: "unknown_topic" };
+  const stu = known ? null : await readStuIndex(chatId);
+  if (!known && !(stu && stu.topics.some((t) => t.id === topicId))) return { ok: false, error: "unknown_topic" };
   let awardedXp = 0;
   await withOptimisticUpdate(courseStore(), `progress:${chatId}`, emptyCourseProgress, (current) => {
     const next = { ...emptyCourseProgress(), ...current, topics: { ...(current.topics || {}) } };
@@ -11937,7 +11985,7 @@ async function teacherStudentPayload(studentId, nowMs = Date.now()) {
   if (course.ok) for (const l of course.levels) for (const t of l.topics) if (t.status === "done" || t.status === "started") topics.push({ id: t.id, title: t.title, emoji: t.emoji || null, level: l.code, status: t.status, updatedAt: t.updatedAt });
   topics.sort((a, b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")));
   const stats = await getStats(studentId);
-  return { profile, topics, courseLevel: course.ok ? course.level : null, courseDone: course.ok ? course.done : 0, courseTotal: course.ok ? course.total : 0, homework: hw, victories: (stats.victories || []).slice(-10) };
+  return { profile, topics, courseLevel: course.ok ? course.level : null, courseDone: course.ok ? course.done : 0, courseTotal: course.ok ? course.total : 0, homework: hw, victories: (stats.victories || []).slice(-10), notion: await stuNotionPayload(studentId) };
 }
 async function setCourseLevel(chatId, level) {
   const track = courseTrackOf(await readCourseProgress(chatId));
@@ -12200,8 +12248,43 @@ async function handleAppApi(body) {
         await removeHomework(sid, String(body.hwId || ""));
         return appJson({ ok: true, ...(await teacherStudentPayload(sid)) });
       }
+      // Задания ученика из Notion: привязать / отвязать может только преподаватель
+      case "notionLink": {
+        if (!(await isAdmin(chatId))) return appJson({ ok: false, error: "forbidden" }, 403);
+        const sid = String(body.chatId || "");
+        if (!/^\d{1,20}$/.test(sid)) return appJson({ ok: false, error: "bad_id" }, 400);
+        const url = String(body.url || "").trim().slice(0, 400);
+        const m = url.replace(/-/g, "").match(/([0-9a-f]{32})(?:[?#/]|$)/i);
+        if (!m) return appJson({ ok: false, error: "bad_url" }, 400);
+        await courseStore().setJSON(stuKey(sid, "link"), { pageId: m[1].toLowerCase(), url, by: String(chatId), at: new Date().toISOString() });
+        const r = await startStudentSync(sid, chatId);
+        return appJson({ ok: true, started: !!r.ok, startError: r.ok ? null : r.error, notion: await stuNotionPayload(sid) });
+      }
+      case "notionUnlink": {
+        if (!(await isAdmin(chatId))) return appJson({ ok: false, error: "forbidden" }, 403);
+        const sid = String(body.chatId || "");
+        if (!/^\d{1,20}$/.test(sid)) return appJson({ ok: false, error: "bad_id" }, 400);
+        // убираем только привязку и список: ученик перестает видеть задания, сами страницы в Notion не трогаем
+        for (const k of ["link", "index", "status"]) { try { await courseStore().delete(stuKey(sid, k)); } catch (e) { /* уже нет */ } }
+        return appJson({ ok: true, notion: await stuNotionPayload(sid) });
+      }
+      case "notionSync": {
+        // преподаватель — для ученика (chatId), ученик — только для себя
+        const admin = await isAdmin(chatId);
+        const sid = admin && body.chatId ? String(body.chatId) : String(chatId);
+        if (!/^\d{1,20}$/.test(sid)) return appJson({ ok: false, error: "bad_id" }, 400);
+        const r = await startStudentSync(sid, chatId);
+        if (!r.ok) return appJson({ ...r, notion: await stuNotionPayload(sid) }, 400);
+        return appJson({ ok: true, notion: await stuNotionPayload(sid) });
+      }
+      case "notionStatus": {
+        const admin = await isAdmin(chatId);
+        const sid = admin && body.chatId ? String(body.chatId) : String(chatId);
+        if (!/^\d{1,20}$/.test(sid)) return appJson({ ok: false, error: "bad_id" }, 400);
+        return appJson({ ok: true, notion: await stuNotionPayload(sid) });
+      }
       case "topic": {
-        const topic = await readCourseTopic(String(body.id || ""));
+        const topic = (await readCourseTopic(String(body.id || ""))) || (await readStuTopic(chatId, String(body.id || "")));
         if (!topic) return appJson({ ok: false, error: "unknown_topic" }, 404);
         const progress = await readCourseProgress(chatId);
         const notes = (await readCourseNotes(chatId)).filter((n) => n.topicId === topic.id);
