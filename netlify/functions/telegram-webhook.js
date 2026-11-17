@@ -12217,7 +12217,7 @@ async function handleAppApi(body) {
       // «Мой план»: отметки «теория» / «практика» по 38 темам плана Маргариты (номер темы 1–60)
       case "planMark": {
         const n = Number(body.n); const kind = String(body.kind || ""); const on = !!body.on;
-        if (!Number.isInteger(n) || n < 1 || n > 60 || !["theory", "practice"].includes(kind)) return appJson({ ok: false, error: "bad_mark" }, 400);
+        if (!Number.isInteger(n) || n < 1 || n > 100 || !["theory", "practice"].includes(kind)) return appJson({ ok: false, error: "bad_mark" }, 400);
         let plan = {};
         await withOptimisticUpdate(courseStore(), `progress:${chatId}`, emptyCourseProgress, (current) => {
           const next = { ...emptyCourseProgress(), ...current, plan: { ...(current.plan || {}) } };
