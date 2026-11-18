@@ -23,6 +23,7 @@ import { VOCAB as DEFAULT_VOCAB } from "../../data/vocab.mjs";
 import { PREP_ITEMS_A, PREP_ITEMS_B, COND_ITEMS, GERUND_PREP_ITEMS } from "../../data/grammar-extra.mjs";
 // Индексы курса и тем по интересам попадают в бандл статически (не зависят от included_files)
 import COURSE_INDEX from "../../data/course/index.mjs";
+import { guideMenu, guideFromCallback, helpMenu, helpFromCallback } from "../lib/guide.mjs";
 import { STUDENT_NOTION_SEED } from "../lib/student-notion-seed.mjs";
 import { buildTopicDrills } from "../lib/drill-builder.mjs";
 import INTEREST_INDEX from "../../data/interests/index.mjs";
@@ -8503,9 +8504,17 @@ async function handleStart(chatId) {
       "То, в чём ошибаешься, будет попадаться чаще.\n\n" +
       "Чтобы добавить новые слова — просто вставь сюда строки вида «English . перевод» " +
       "(можно сразу много строк за раз), я сама их разберу.\n\n" +
-      "Подробная инструкция — /guide, список команд — /help.",
+      "Как тут все устроено и ответы на частые вопросы — /help.",
     reply_markup: await mainReplyKeyboard(chatId),
   });
+  // Инструкция «в три кнопки» — один раз, при первом /start после ее появления (идея Маргариты 18.11.2026)
+  try {
+    const idn = await readIdentity(chatId);
+    if (idn && !idn.guideSeen) {
+      const g = guideMenu(); await tg("sendMessage", { chat_id: chatId, text: g.text, reply_markup: g.reply_markup });
+      await updateIdentity(chatId, (cur) => ({ ...cur, guideSeen: new Date().toISOString() }));
+    }
+  } catch (e) { /* инструкция не должна мешать запуску */ }
   // Личная кнопка меню у поля ввода: такой запуск передаёт данные пользователя,
   // плюс в адресе своя подпись. Обновляется при каждом /start, поэтому не устаревает.
   try {
@@ -8882,14 +8891,19 @@ const GUIDE_TEXT =
   "• Что-то не работает или непонятно — напиши преподавателю.";
 
 async function handleGuide(chatId) {
-  await tg("sendMessage", { chat_id: chatId, text: GUIDE_TEXT, reply_markup: await mainReplyKeyboard(chatId) });
+  const g = guideMenu(); await tg("sendMessage", { chat_id: chatId, text: g.text, reply_markup: g.reply_markup });
 }
 
+// /help — три кнопки: почитать про приложение, самые задаваемые вопросы, все команды
 async function handleHelp(chatId) {
+  const h = helpMenu(); await tg("sendMessage", { chat_id: chatId, text: h.text, reply_markup: h.reply_markup });
+}
+
+async function handleCommandList(chatId) {
   await tg("sendMessage", {
     chat_id: chatId,
     text:
-      "📖 Подробная инструкция — /guide\n\n" +
+      "⌨️ Все команды\n\n" +
       "/mode — переключить лексика / грамматика\n" +
       "/play — новый вопрос\n" +
       "/score — статистика\n" +
@@ -10065,6 +10079,13 @@ async function handleCallback(callbackQuery) {
     return;
   }
 
+  // Инструкция в три кнопки, частые вопросы, список команд
+  if (data.startsWith("g:") || data.startsWith("f:") || data === "h:menu") {
+    const view = data.startsWith("g:") ? guideFromCallback(data) : helpFromCallback(data);
+    if (view) { try { await tg("editMessageText", { chat_id: chatId, message_id: messageId, text: view.text, reply_markup: view.reply_markup }); } catch (e) { await tg("sendMessage", { chat_id: chatId, text: view.text, reply_markup: view.reply_markup }); } }
+    return;
+  }
+  if (data === "h:cmds") { await handleCommandList(chatId); return; }
   if (data === "vlessons") {
     await sendLessonPicker(chatId);
     return;
