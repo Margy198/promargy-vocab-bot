@@ -11662,10 +11662,10 @@ async function readStuTopic(chatId, id) {
   try { const r = buildTopicDrills(t); return { ...t, drills: r.drills, drillLeads: r.leads }; } catch (e) { console.error("stu drills", id, e && e.message); return { ...t, drills: [], drillLeads: {} }; }
 }
 async function stuNotionPayload(chatId) {
-  const link = await readStuLink(chatId);
+  const safe = (k) => courseStore().get(stuKey(chatId, k), { type: "json" }).catch(() => null);
+  const [link, rawIndex, status] = await Promise.all([safe("link"), safe("index"), safe("status")]);
   if (!link) return { linked: false };
-  const index = await readStuIndex(chatId);
-  let status = null; try { status = await courseStore().get(stuKey(chatId, "status"), { type: "json" }); } catch (e) { status = null; }
+  const index = rawIndex && Array.isArray(rawIndex.topics) ? rawIndex : null;
   return { linked: true, url: link.url || "", linkedAt: link.at || null, builtAt: index ? index.builtAt : null, pages: index ? index.topics.length : 0,
     exercises: index ? index.topics.reduce((a, t) => a + (t.exercises || 0), 0) : 0, status: status ? { status: status.status, error: status.error || null, updatedAt: status.updatedAt, log: (status.log || []).slice(-12) } : null };
 }
@@ -11681,25 +11681,14 @@ async function seedStudentNotion(by) {
   const base = (process.env.URL || "").replace(/\/+$/, "");
   if (!base) return { ok: false, error: "no_url" };
   if (!process.env.NOTION_TOKEN) return { ok: false, error: "no_notion_token" };
-  const done = []; const queue = [];
-  for (const row of STUDENT_NOTION_SEED) {
-    const cur = await readStuLink(row.chatId);
-    const known = !!(await identityStore().get(String(row.chatId), { type: "json" }).catch(() => null));
-    if (!cur || cur.pageId !== row.pageId) await courseStore().setJSON(stuKey(row.chatId, "link"), { pageId: row.pageId, url: `https://www.notion.so/${row.pageId}`, by: String(by), at: new Date().toISOString(), seed: true });
-    await courseStore().setJSON(stuKey(row.chatId, "status"), { status: "running", startedAt: new Date().toISOString(), updatedAt: new Date().toISOString(), by: String(by), log: ["в очереди…"] });
-    queue.push(String(row.chatId));
-    done.push({ chatId: row.chatId, name: row.name, known, was: cur ? (cur.pageId === row.pageId ? "same" : "changed") : "new" });
-  }
   try {
-    const r = await fetch(`${base}/.netlify/functions/course-rebuild-background`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ mode: "student", chatId: queue[0], queue: queue.slice(1), secret: WEBHOOK_SECRET, by: String(by) }) });
-    if (!r.ok && r.status !== 202) return { ok: false, error: `start_${r.status}`, students: done };
-  } catch (e) { return { ok: false, error: "start_failed", students: done }; }
-  return { ok: true, students: done };
+    const r = await fetch(`${base}/.netlify/functions/course-rebuild-background`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ mode: "studentSeed", secret: WEBHOOK_SECRET, by: String(by) }) });
+    if (!r.ok && r.status !== 202) return { ok: false, error: `start_${r.status}` };
+  } catch (e) { return { ok: false, error: "start_failed" }; }
+  return { ok: true };
 }
 async function seedStudentNotionStatus() {
-  const out = [];
-  for (const row of STUDENT_NOTION_SEED) { const n = await stuNotionPayload(row.chatId); out.push({ chatId: row.chatId, name: row.name, linked: n.linked, pages: n.pages || 0, exercises: n.exercises || 0, status: n.status ? n.status.status : null, error: n.status ? n.status.error : null }); }
-  return out;
+  return Promise.all(STUDENT_NOTION_SEED.map(async (row) => { const n = await stuNotionPayload(row.chatId); return { chatId: row.chatId, name: row.name, linked: n.linked, pages: n.pages || 0, exercises: n.exercises || 0, status: n.status ? n.status.status : null, error: n.status ? n.status.error : null, builtAt: n.builtAt || null }; }));
 }
 async function startStudentSync(chatId, by) {
   const base = (process.env.URL || "").replace(/\/+$/, "");
@@ -12304,7 +12293,9 @@ async function handleAppApi(body) {
       case "notionSeed": {
         if (!(await isAdmin(chatId))) return appJson({ ok: false, error: "forbidden" }, 403);
         const r = await seedStudentNotion(chatId);
-        return appJson({ ...r, list: await seedStudentNotionStatus() }, r.ok ? 200 : 400);
+        // список сразу, без чтения хранилища: привязки и чтение делает фоновая функция
+        const list = STUDENT_NOTION_SEED.map((row) => ({ chatId: row.chatId, name: row.name, linked: true, pages: 0, exercises: 0, status: r.ok ? "running" : "error", error: r.ok ? null : "не удалось запустить чтение", builtAt: null }));
+        return appJson({ ...r, list }, r.ok ? 200 : 400);
       }
       case "notionSeedStatus": {
         if (!(await isAdmin(chatId))) return appJson({ ok: false, error: "forbidden" }, 403);

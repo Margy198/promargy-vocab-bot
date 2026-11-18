@@ -19,6 +19,7 @@
 import { getStore } from "@netlify/blobs";
 import { buildLevel, assembleIndex, parseLevelPage, blocksToMarkdown, buildTopic } from "../lib/course-builder.mjs";
 import { normalizeHomework } from "../lib/homework-normalizer.mjs";
+import { STUDENT_NOTION_SEED } from "../lib/student-notion-seed.mjs";
 import { PREP_ITEMS_A, PREP_ITEMS_B, COND_ITEMS, GERUND_PREP_ITEMS } from "../../data/grammar-extra.mjs";
 import BUNDLED_INDEX from "../../data/course/index.mjs";
 
@@ -395,6 +396,20 @@ export default async (req) => {
   try { body = await req.json(); } catch (e) { return new Response("bad json", { status: 400 }); }
   const secret = process.env.TELEGRAM_WEBHOOK_SECRET || "";
   if (secret && body.secret !== secret) return new Response("forbidden", { status: 403 });
+  // Привязка списком: ставим привязки из списка Маргариты и дальше читаем учеников по очереди
+  if (body.mode === "studentSeed") {
+    const now = new Date().toISOString();
+    await Promise.all(STUDENT_NOTION_SEED.map(async (row) => {
+      const key = (k) => `stu:${row.chatId}:${k}`;
+      try {
+        const cur = await store().get(key("link"), { type: "json" });
+        if (!cur || cur.pageId !== row.pageId) await store().setJSON(key("link"), { pageId: row.pageId, url: `https://www.notion.so/${row.pageId}`, by: String(body.by || ""), at: now, seed: true });
+        await store().setJSON(key("status"), { status: "running", startedAt: now, updatedAt: now, log: ["в очереди…"] });
+      } catch (e) { console.error("seed", row.chatId, e && e.message); }
+    }));
+    const ids = STUDENT_NOTION_SEED.map((r) => String(r.chatId));
+    body = { ...body, mode: "student", chatId: ids[0], queue: ids.slice(1) };
+  }
   if (body.mode === "student") {
     if (!process.env.NOTION_TOKEN) { await store().setJSON(`stu:${String(body.chatId || "")}:status`, { status: "error", error: "нет переменной NOTION_TOKEN в Netlify", updatedAt: new Date().toISOString() }); return new Response("no token", { status: 200 }); }
     try { await runStudent(body); } catch (e) { console.error("student", e && e.message); }

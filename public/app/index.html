@@ -481,7 +481,7 @@
       case "notionStatus": case "notionSync": if (demoNotion.linked) demoNotion = { ...demoNotion, pages: 3, exercises: 9, builtAt: new Date().toISOString(), status: { status: "done", log: ["готово: страниц 3, обновлено 3"] } }; return { ok: true, notion: demoNotion };
       case "notionUnlink": demoNotion = { linked: false }; return { ok: true, notion: demoNotion };
       case "notionSeed": demoSeed = ["Царь", "Андрей", "Алекс"].map((name, i) => ({ chatId: String(i), name, linked: true, pages: 0, exercises: 0, status: "running", error: null })); return { ok: true, list: demoSeed };
-      case "notionSeedStatus": { const i = demoSeed.findIndex((r) => r.status === "running"); if (i >= 0) demoSeed[i] = i === 1 ? { ...demoSeed[i], status: "error", error: "Notion не отдает эту страницу. Открой ее в Notion → «•••» → «Подключения» и добавь интеграцию бота, потом нажми «Обновить»." } : { ...demoSeed[i], status: "done", pages: 12, exercises: 31 }; return { ok: true, list: demoSeed }; }
+      case "notionSeedStatus": { if (!demoSeed.length) return { ok: true, list: [{ chatId: "1", name: "Царь", linked: false, pages: 0, exercises: 0, status: null }] }; const i = demoSeed.findIndex((r) => r.status === "running"); if (i >= 0) demoSeed[i] = i === 1 ? { ...demoSeed[i], status: "error", error: "Notion не отдает эту страницу. Открой ее в Notion → «•••» → «Подключения» и добавь интеграцию бота, потом нажми «Обновить»." } : { ...demoSeed[i], status: "done", pages: 12, exercises: 31 }; return { ok: true, list: demoSeed }; }
       case "planMark": { demoCourse.plan = demoCourse.plan || { 1: { theory: "2026-07-05T10:00:00Z", practice: "2026-07-06T10:00:00Z" }, 3: { theory: "2026-07-05T10:00:00Z" } }; const c = { ...(demoCourse.plan[extra.n] || {}) }; if (extra.on) c[extra.kind] = new Date().toISOString(); else delete c[extra.kind]; demoCourse.plan[extra.n] = c; return { ok: true, plan: demoCourse.plan }; }
       case "homework": return { ok: true, homework: demoHomework() };
       case "teacherStudents": return demoStudents();
@@ -1134,7 +1134,7 @@
   }
 
   // --- Кабинет учителя ---
-  const tcache = { students: null, student: {} };
+  const tcache = { students: null, student: {}, seedList: undefined };
   function studentName(s) { return s.firstName || (s.username ? "@" + s.username : "Ученик " + s.chatId); }
   function silentLabel(s) { if (s.daysSilent == null) return "ещё не занимался"; if (s.daysSilent === 0) return "сегодня"; if (s.daysSilent === 1) return "вчера"; return `${s.daysSilent} ${plural(s.daysSilent, ["день", "дня", "дней"])} назад`; }
   async function renderTeacher(root) {
@@ -1172,16 +1172,17 @@
   // Привязка списком: страницы учеников из списка Маргариты (на сервере) → их аккаунты, чтение по очереди
   let seedPoll = null;
   function notionSeedHtml(st) {
-    const list = tcache.seedList;
+    const list = tcache.seedList && tcache.seedList.some((r) => r.linked) ? tcache.seedList : null;
     if (!list) return `<button class="btn" id="t-seed" style="width:100%;margin-top:10px">📒 Привязать страницы Notion учеников</button>`;
-    const mark = (r) => (r.status === "running" ? "⏳" : r.status === "error" ? "⚠️" : r.pages ? "✅" : "—");
-    const rows = list.map((r) => `<div style="padding:6px 0;border-top:1px solid var(--line, rgba(0,0,0,.07));font-size:13px;line-height:1.4"><b>${mark(r)} ${esc(r.name)}</b>${r.status === "error" ? `<div class="muted" style="font-size:12px">${esc(r.error || "ошибка")}</div>` : r.status === "running" ? ` <span class="muted">читаю…</span>` : r.pages ? ` <span class="muted">${r.pages} ${plural(r.pages, ["страница", "страницы", "страниц"])} · ${r.exercises} упр.</span>` : ""}</div>`).join("");
+    const mark = (r) => (!r.linked ? "—" : r.status === "running" ? "⏳" : r.status === "error" ? "⚠️" : r.pages ? "✅" : "—");
+    const rows = list.map((r) => `<div style="padding:6px 0;border-top:1px solid var(--line, rgba(0,0,0,.07));font-size:13px;line-height:1.4"><b>${mark(r)} ${esc(r.name)}</b>${r.status === "error" ? `<div class="muted" style="font-size:12px">${esc(r.error || "ошибка")}</div>` : r.status === "running" ? ` <span class="muted">читаю…</span>` : r.pages ? ` <span class="muted">${r.pages} ${plural(r.pages, ["страница", "страницы", "страниц"])} · ${r.exercises} упр.</span>` : !r.linked ? ` <span class="muted">не привязан</span>` : ` <span class="muted">привязан, заданий пока нет</span>`}</div>`).join("");
     const left = list.filter((r) => r.status === "running").length;
     return `<div class="card" style="margin-top:10px;padding:12px 14px"><div class="row between"><b style="font-size:14px">📒 Страницы Notion учеников</b><span class="muted" style="font-size:12px">${left ? `осталось ${left}` : "готово"}</span></div><div style="margin-top:6px">${rows}</div><div class="muted" style="font-size:12px;margin-top:8px;line-height:1.4">Ошибка «Notion не отдает эту страницу» значит, что интеграции бота не открыт доступ к странице ученика в Notion.</div><button class="btn small" id="t-seed" style="margin-top:10px">Запустить еще раз</button></div>`;
   }
   function bindNotionSeed(st) {
     const b = $("#t-seed"); if (!b) return;
     const again = () => { if (state.study.view === "teacher") renderStudy(); };
+    if (tcache.seedList === undefined) { tcache.seedList = null; api("notionSeedStatus").then((r) => { if (r && r.ok && r.list) { tcache.seedList = r.list; again(); } }); }
     b.addEventListener("click", async () => {
       if (!(await confirmSheet("Привязать страницы Notion к аккаунтам учеников из списка и прочитать задания? Доступ к боту это не меняет.", "Привязать"))) return;
       haptic(); b.disabled = true;
