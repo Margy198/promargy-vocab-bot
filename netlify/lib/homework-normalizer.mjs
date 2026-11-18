@@ -1,18 +1,27 @@
 // Домашние задания учеников из Notion пишутся в свободной форме: «Часть 1 … Ключи — часть 1»,
-// «Упражнение 1 … ## Ответы» в конце, один общий тоггл «Ответы» и т.д. Курс же разбирается
+// «Упражнение 1 … ## Ответы» в конце, один общий тоггл «Ответы», ответы простым текстом внизу и т.д. Курс же разбирается
 // по строгому шаблону («## ✍️ Упражнения» → «### Упражнение N.» → тоггл «Ответы»).
 // Этот модуль приводит страницу домашки к шаблону курса, чтобы дальше работали те же
 // buildTopic и buildTopicDrills. Ответы берутся только из ключа на странице — ничего не придумываем.
 
-const EX_RX = /^(#{1,3}\s+)?(<b>)?\s*(?:Часть|Упражнение|Задание|Exercise|Part|Task)\s+(\d+)\s*[.:)]?\s*(?:[—–-]\s*)?(.*)$/i;
-const ANS_HEAD_RX = /^#{1,3}\s+(?:<b>)?\s*(?:Ответы|Ключи|Ключ|Answers|Answer key|Keys)(?![а-яёa-z])/i;
-const ANS_TITLE_RX = /^(?:<b>)?\s*(?:Ответы|Ключи|Ключ|Answers|Answer key|Keys)(?![а-яёa-z])/i;
-const NUM_IN_TITLE_RX = /(?:част[ьи]|упражнени[юяе]|задани[юяе]|exercise|part|task)\s*(\d+)/i;
+const EX_RX = /^(#{1,3}\s+)?(<b>)?\s*(?:Часть|Упражнение|Упр\.?|Задание|Exercise|Ex\.|Part|Task)\s*(\d+)\s*[.:)]?\s*(?:[—–-]\s*)?(.*)$/i;
+const ANS_TITLE_RX = /^(?:<b>)?\s*(?:Ответы|Ответ|Ключи|Ключ|Answers?|Answer key|Keys?)(?![а-яёa-z])/i;
+const NUM_IN_TITLE_RX = /(?:част[ьи]|упражнени[юяеи]|упр\.?|задани[юяеи]|exercise|part|task)\s*(\d+)/i;
+// Строка-метка ключа: заголовком, жирным или простым текстом. «Ответы», «Ответы:», «Ключи — часть 2»,
+// «Ответы к упражнению 1», «Ответы: 1. too 2. very». Обычная фраза («Ответы запиши в тетрадь») меткой не считается.
+const ANS_MARK_RX = /^(?:Ответы|Ответ|Ключи|Ключ|Answers?|Answer key|Keys?)(?:\s+(?:к|ко|для|to|for))?(?:\s*[—–-])?(?:\s*(?:упражнени[юяеи]|упр\.?|част[ьи]|задани[юяеи]|exercise|part|task)\s*(\d+))?\s*[:.]?\s*(.*)$/i;
+function ansMark(st) {
+  const m = stripTags(st.replace(/^#{1,3}\s+/, "")).match(ANS_MARK_RX); if (!m) return null;
+  const rest = (m[2] || "").trim();
+  if (rest && !/^\d{1,2}[.)]\s*\S/.test(rest)) return null;
+  return { n: m[1] ? Number(m[1]) : null, inline: rest };
+}
+function stripTags(x) { return String(x || "").replace(/<[^>]+>/g, "").trim(); }
 const strip = (s) => String(s || "").replace(/<[^>]+>/g, "").trim();
 const opens = (st) => st.startsWith("<toggle") || st.startsWith("<callout");
 const closes = (st) => st === "</toggle>" || st === "</callout>";
 
-// строки ключа: «1\. ответ<br />2. ответ» → отдельные нумерованные строки
+// строки ключа: «1\. ответ<br />2. ответ» → отдельные строки
 function answerLines(lines) {
   const out = [];
   for (const raw of lines) for (const part of String(raw).split(/<br\s*\/?>/i)) {
@@ -20,6 +29,24 @@ function answerLines(lines) {
     if (t.trim() === "---") continue;
     out.push(t);
   }
+  return out;
+}
+// «1. too 2. very 3. too» в одну строку → три строки (только если номера идут подряд)
+function splitInline(line) {
+  const marks = [...String(line).matchAll(/(^|[\s;,])(\d{1,2})[.)]\s/g)].map((m) => ({ at: m.index + m[1].length, n: Number(m[2]) }));
+  if (marks.length < 2 || !marks.every((m, i) => i === 0 || m.n === marks[i - 1].n + 1)) return [line];
+  const out = []; if (marks[0].at > 0 && line.slice(0, marks[0].at).trim()) out.push(line.slice(0, marks[0].at).trim());
+  marks.forEach((m, i) => out.push(line.slice(m.at, i + 1 < marks.length ? marks[i + 1].at : line.length).trim().replace(/[;,]\s*$/, "")));
+  return out;
+}
+// Приводим ключ к виду «N. ответ»: разворачиваем строку с несколькими ответами, «1)» → «1.»,
+// а если ответы написаны без номеров, по одному на строке, — нумеруем по порядку.
+function tidyAnswers(lines) {
+  let out = [];
+  for (const l of lines) { const am = ansMark(l.trim()); if (am && !am.inline) continue; out.push(...splitInline(l)); }
+  out = out.map((l) => l.replace(/^(\s*\d{1,2})\)\s+/, "$1. "));
+  const real = out.filter((l) => stripTags(l));
+  if (real.length && !real.some((l) => /^\s*\d{1,2}\.\s/.test(l))) { let n = 0; out = out.map((l) => (stripTags(l) ? `${++n}. ${l.trim().replace(/^[-•*]\s+/, "")}` : l)); }
   return out;
 }
 // «N. ответ — пояснение по-русски» → «N. <b>ответ</b> (пояснение)»: так ключ читает сборщик заданий.
@@ -57,8 +84,11 @@ export function normalizeHomework(body, pageTitle = "") {
 
   const pre = []; const exs = []; const log = [];
   let mode = "pre"; let cur = null; let ansCur = null; const looseAns = [];
+  // pend — ответы после метки «Ответы» без номера: пока не ясно, это ключ упражнения над ней или общий раздел внизу
+  const PEND = {}; let pend = null;
   const byN = (n) => exs.find((e) => e.n === n) || null;
-  const pushAns = (target, lines) => { if (target) target.answers.push(...lines); else looseAns.push(...lines); };
+  const pushAns = (target, lines) => { if (target === PEND && pend) pend.lines.push(...lines); else if (target && target !== PEND) target.answers.push(...lines); else looseAns.push(...lines); };
+  const flushPend = (toLoose) => { if (!pend) return; if (!toLoose && pend.after) pend.after.answers.push(...pend.lines); else looseAns.push(...pend.lines); pend = null; };
 
   for (let i = 0; i < src.length; i++) {
     const ln = src[i]; const st = ln.trim();
@@ -82,20 +112,28 @@ export function normalizeHomework(body, pageTitle = "") {
       i = k; continue;
     }
     if (st === "---") continue;
-    if (ANS_HEAD_RX.test(st)) { mode = "answers"; ansCur = null; continue; }
+    const am = exs.length || pre.some((l) => /^\d+\.\s/.test(l.trim())) ? ansMark(st) : null;
+    if (am) {
+      flushPend(false); mode = "answers";
+      if (am.n && byN(am.n)) ansCur = byN(am.n);
+      else { pend = { after: cur, lines: [] }; ansCur = PEND; }
+      if (am.inline) pushAns(ansCur, [am.inline]);
+      continue;
+    }
     const h = exHeader(st);
     if (mode === "answers") {
-      if (h) { ansCur = byN(h.n); if (!ansCur) log.push(`в ответах есть «${strip(st).slice(0, 40)}», а такого упражнения нет`); if (h.extra) pushAns(ansCur, answerLines([h.extra])); continue; }
-      pushAns(ansCur, answerLines([ln])); continue;
+      if (h && byN(h.n)) { flushPend(true); ansCur = byN(h.n); if (h.extra) pushAns(ansCur, answerLines([h.extra])); continue; } // подзаголовок в разделе ответов
+      if (!h) { pushAns(ansCur, answerLines([ln])); continue; }
+      flushPend(false); // дальше идет новое упражнение: ответы выше были ключом предыдущего
     }
     if (h) {
-      if (byN(h.n)) log.push(`номер ${h.n} встречается дважды — второе упражнение пронумеровано по порядку`);
       cur = { n: byN(h.n) ? Math.max(...exs.map((e) => e.n)) + 1 : h.n, title: h.title, lines: h.extra ? [h.extra, ""] : [], answers: [] };
-      exs.push(cur); mode = "ex"; continue;
+      exs.push(cur); mode = "ex"; ansCur = null; continue;
     }
     if (mode === "ex" && cur) cur.lines.push(/^#{1,3}\s+/.test(st) ? `<b>${strip(st.replace(/^#{1,3}\s+/, ""))}</b>` : ln);
     else pre.push(ln);
   }
+  flushPend(true);
 
   // без заголовков «Часть/Упражнение»: одно упражнение — нумерованный список с ключом
   if (!exs.length && looseAns.some((l) => l.trim())) {
@@ -105,11 +143,17 @@ export function normalizeHomework(body, pageTitle = "") {
       exs.push({ n: 1, title: strip(pageTitle), lines: pre.splice(start), answers: looseAns.splice(0) });
     }
   }
-  // ответы без подзаголовков: если упражнение одно без ключа — это его ключ
+  // ответы без подзаголовков: одно упражнение без ключа — это его ключ; несколько — делим там, где нумерация начинается с 1
   if (looseAns.some((l) => l.trim())) {
     const empty = exs.filter((e) => !e.answers.some((l) => l.trim()));
     if (empty.length === 1) empty[0].answers.push(...looseAns);
-    else if (exs.length) log.push("ответы не разбиты по упражнениям (нет подзаголовков «Часть N» / «Упражнение N») — часть ключа не привязана");
+    else if (empty.length > 1) {
+      const chunks = []; let c = null;
+      for (const l of tidyAnswers(looseAns)) { if (/^\s*1\.\s/.test(l) || !c) { c = []; chunks.push(c); } c.push(l); }
+      const real = chunks.filter((x) => x.some((l) => strip(l)));
+      if (real.length === empty.length) empty.forEach((e, i) => e.answers.push(...real[i]));
+      else log.push("ответы не разбиты по упражнениям (нет подзаголовков «Часть N» / «Упражнение N») — ключ не привязан");
+    }
   }
 
   const out = [];
@@ -120,7 +164,7 @@ export function normalizeHomework(body, pageTitle = "") {
     for (const e of exs) {
       out.push(`### Упражнение ${e.n}. ${e.title || "Задание"}`, "", ...e.lines, "");
       const gap = e.lines.some((l) => /\.\.\.|…|_{2,}/.test(l));
-      if (e.answers.some((l) => l.trim())) out.push("<toggle>", "Ответы", "", ...e.answers.map((l) => markAnswer(l, gap)), "</toggle>", "");
+      if (e.answers.some((l) => l.trim())) out.push("<toggle>", "Ответы", "", ...tidyAnswers(e.answers).map((l) => markAnswer(l, gap)), "</toggle>", "");
       else log.push(`упражнение ${e.n} без ключа — в приложении оно будет только для чтения`);
     }
   }
