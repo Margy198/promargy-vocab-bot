@@ -238,6 +238,15 @@ async function selfInvoke(body) {
 // ---------- задания ученика из Notion ----------
 // Привязку (stu:<chatId>:link) ставит только преподаватель. Здесь читаем подстраницы привязанной страницы,
 // приводим каждую к шаблону курса и сохраняем как тему. Прав доступа это не меняет.
+// Подстраницы блока, включая лежащие внутри колонок, тогглов и синхронных блоков. В сами подстраницы и таблицы не заходим.
+const STU_CONTAINERS = new Set(["column_list", "column", "toggle", "synced_block", "callout", "quote", "bulleted_list_item", "numbered_list_item", "paragraph", "heading_1", "heading_2", "heading_3"]);
+async function childPagesDeep(blockId, depth = 0, out = []) {
+  for (const b of await allChildren(blockId)) {
+    if (b.type === "child_page") { out.push({ id: nid(b.id), title: ((b.child_page && b.child_page.title) || "").trim() }); continue; }
+    if (b.has_children && STU_CONTAINERS.has(b.type) && depth < 4) await childPagesDeep(b.id, depth + 1, out);
+  }
+  return out;
+}
 const STU_VERSION = 1; // менять при правке разбора — тогда страницы пересоберутся, даже если не менялись
 const STU_MAX_PAGES = 60;
 async function runStudent(body) {
@@ -251,12 +260,20 @@ async function runStudent(body) {
     const link = await store().get(key("link"), { type: "json" });
     if (!link || !link.pageId) throw new Error("страница Notion не привязана");
     await setSt({ status: "running", startedAt });
-    let rootId = nid(link.pageId);
-    let kids = await allChildren(rootId);
-    // привязана страница ученика целиком — берем ее подстраницу «Домашнее…»
-    const hw = kids.find((b) => b.type === "child_page" && /^\s*Домашн/i.test((b.child_page && b.child_page.title) || ""));
-    if (hw) { rootId = nid(hw.id); kids = await allChildren(rootId); log.push(`беру подстраницу «${hw.child_page.title}»`); }
-    let pages = kids.filter((b) => b.type === "child_page").map((b) => ({ id: nid(b.id), title: ((b.child_page && b.child_page.title) || "").trim() }));
+    const rootId = nid(link.pageId);
+    // Страница ученика содержит и личное (оплата, заметки), поэтому берем ТОЛЬКО подстраницы «Домашнее…»
+    // (их может быть несколько, они бывают внутри колонок и тогглов). Если привязана сама «Домашнее» — берем ее.
+    const rootPage = await notion(`/pages/${rootId}`);
+    const isHw = (t) => /^\s*Домашн/i.test(String(t || "").replace(/<[^>]+>/g, ""));
+    const hwRoots = [];
+    if (isHw(pageTitle(rootPage).title)) hwRoots.push({ id: rootId, title: pageTitle(rootPage).title });
+    else {
+      for (const b of await childPagesDeep(rootId)) if (isHw(b.title)) hwRoots.push(b);
+      if (!hwRoots.length) throw new Error("на привязанной странице нет подстраницы «Домашнее» — задания брать неоткуда");
+      log.push(`подстраницы с заданиями: ${hwRoots.map((h) => `«${h.title.trim()}»`).join(", ")}`);
+    }
+    let pages = [];
+    for (const h of hwRoots) pages.push(...(await childPagesDeep(h.id)));
     const skipped = pages.filter((p) => /для преподавателя/i.test(p.title));
     pages = pages.filter((p) => p.title && !/для преподавателя/i.test(p.title));
     if (skipped.length) log.push(`пропущено страниц «для преподавателя»: ${skipped.length}`);
@@ -381,6 +398,13 @@ export default async (req) => {
   if (body.mode === "student") {
     if (!process.env.NOTION_TOKEN) { await store().setJSON(`stu:${String(body.chatId || "")}:status`, { status: "error", error: "нет переменной NOTION_TOKEN в Netlify", updatedAt: new Date().toISOString() }); return new Response("no token", { status: 200 }); }
     try { await runStudent(body); } catch (e) { console.error("student", e && e.message); }
+    // очередь (привязка списком): следующий ученик — отдельным запуском, чтобы не упереться в лимит времени
+    const rest = Array.isArray(body.queue) ? body.queue.map(String).filter((x) => /^\d{1,20}$/.test(x)).slice(0, 60) : [];
+    if (rest.length) {
+      const base = (process.env.URL || "").replace(/\/+$/, "");
+      try { await fetch(`${base}/.netlify/functions/course-rebuild-background`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ mode: "student", chatId: rest[0], queue: rest.slice(1), secret: body.secret, by: body.by }) }); }
+      catch (e) { for (const id of rest) await store().setJSON(`stu:${id}:status`, { status: "error", error: "очередь оборвалась — нажми «Обновить» в карточке ученика", updatedAt: new Date().toISOString() }); }
+    }
     return new Response("ok", { status: 200 });
   }
   if (!process.env.NOTION_TOKEN) { await setStatus({ mode: body.mode, status: "error", error: "нет переменной NOTION_TOKEN в Netlify", finishedAt: new Date().toISOString() }); return new Response("no token", { status: 200 }); }

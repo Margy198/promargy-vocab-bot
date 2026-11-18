@@ -23,6 +23,7 @@ import { VOCAB as DEFAULT_VOCAB } from "../../data/vocab.mjs";
 import { PREP_ITEMS_A, PREP_ITEMS_B, COND_ITEMS, GERUND_PREP_ITEMS } from "../../data/grammar-extra.mjs";
 // Индексы курса и тем по интересам попадают в бандл статически (не зависят от included_files)
 import COURSE_INDEX from "../../data/course/index.mjs";
+import { STUDENT_NOTION_SEED } from "../lib/student-notion-seed.mjs";
 import { buildTopicDrills } from "../lib/drill-builder.mjs";
 import INTEREST_INDEX from "../../data/interests/index.mjs";
 
@@ -11668,6 +11669,38 @@ async function stuNotionPayload(chatId) {
   return { linked: true, url: link.url || "", linkedAt: link.at || null, builtAt: index ? index.builtAt : null, pages: index ? index.topics.length : 0,
     exercises: index ? index.topics.reduce((a, t) => a + (t.exercises || 0), 0) : 0, status: status ? { status: status.status, error: status.error || null, updatedAt: status.updatedAt, log: (status.log || []).slice(-12) } : null };
 }
+// Ссылка Notion → id страницы. У строки базы, открытой сбоку, адрес «<база>?v=…&p=<страница>» — страница в p.
+function notionPageIdFromUrl(url) {
+  const u = String(url || "");
+  const p = u.match(/[?&]p=([0-9a-f]{32})\b/i); if (p) return p[1].toLowerCase();
+  const m = u.split(/[?#]/)[0].replace(/-/g, "").match(/([0-9a-f]{32})$/i) || u.replace(/-/g, "").match(/([0-9a-f]{32})(?:[?#/]|$)/i);
+  return m ? m[1].toLowerCase() : null;
+}
+// Привязка списком (кнопка преподавателя): ставим привязки из STUDENT_NOTION_SEED и запускаем чтение по очереди.
+async function seedStudentNotion(by) {
+  const base = (process.env.URL || "").replace(/\/+$/, "");
+  if (!base) return { ok: false, error: "no_url" };
+  if (!process.env.NOTION_TOKEN) return { ok: false, error: "no_notion_token" };
+  const done = []; const queue = [];
+  for (const row of STUDENT_NOTION_SEED) {
+    const cur = await readStuLink(row.chatId);
+    const known = !!(await identityStore().get(String(row.chatId), { type: "json" }).catch(() => null));
+    if (!cur || cur.pageId !== row.pageId) await courseStore().setJSON(stuKey(row.chatId, "link"), { pageId: row.pageId, url: `https://www.notion.so/${row.pageId}`, by: String(by), at: new Date().toISOString(), seed: true });
+    await courseStore().setJSON(stuKey(row.chatId, "status"), { status: "running", startedAt: new Date().toISOString(), updatedAt: new Date().toISOString(), by: String(by), log: ["в очереди…"] });
+    queue.push(String(row.chatId));
+    done.push({ chatId: row.chatId, name: row.name, known, was: cur ? (cur.pageId === row.pageId ? "same" : "changed") : "new" });
+  }
+  try {
+    const r = await fetch(`${base}/.netlify/functions/course-rebuild-background`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ mode: "student", chatId: queue[0], queue: queue.slice(1), secret: WEBHOOK_SECRET, by: String(by) }) });
+    if (!r.ok && r.status !== 202) return { ok: false, error: `start_${r.status}`, students: done };
+  } catch (e) { return { ok: false, error: "start_failed", students: done }; }
+  return { ok: true, students: done };
+}
+async function seedStudentNotionStatus() {
+  const out = [];
+  for (const row of STUDENT_NOTION_SEED) { const n = await stuNotionPayload(row.chatId); out.push({ chatId: row.chatId, name: row.name, linked: n.linked, pages: n.pages || 0, exercises: n.exercises || 0, status: n.status ? n.status.status : null, error: n.status ? n.status.error : null }); }
+  return out;
+}
 async function startStudentSync(chatId, by) {
   const base = (process.env.URL || "").replace(/\/+$/, "");
   if (!base) return { ok: false, error: "no_url" };
@@ -12254,9 +12287,9 @@ async function handleAppApi(body) {
         const sid = String(body.chatId || "");
         if (!/^\d{1,20}$/.test(sid)) return appJson({ ok: false, error: "bad_id" }, 400);
         const url = String(body.url || "").trim().slice(0, 400);
-        const m = url.replace(/-/g, "").match(/([0-9a-f]{32})(?:[?#/]|$)/i);
+        const m = notionPageIdFromUrl(url);
         if (!m) return appJson({ ok: false, error: "bad_url" }, 400);
-        await courseStore().setJSON(stuKey(sid, "link"), { pageId: m[1].toLowerCase(), url, by: String(chatId), at: new Date().toISOString() });
+        await courseStore().setJSON(stuKey(sid, "link"), { pageId: m, url, by: String(chatId), at: new Date().toISOString() });
         const r = await startStudentSync(sid, chatId);
         return appJson({ ok: true, started: !!r.ok, startError: r.ok ? null : r.error, notion: await stuNotionPayload(sid) });
       }
@@ -12267,6 +12300,15 @@ async function handleAppApi(body) {
         // убираем только привязку и список: ученик перестает видеть задания, сами страницы в Notion не трогаем
         for (const k of ["link", "index", "status"]) { try { await courseStore().delete(stuKey(sid, k)); } catch (e) { /* уже нет */ } }
         return appJson({ ok: true, notion: await stuNotionPayload(sid) });
+      }
+      case "notionSeed": {
+        if (!(await isAdmin(chatId))) return appJson({ ok: false, error: "forbidden" }, 403);
+        const r = await seedStudentNotion(chatId);
+        return appJson({ ...r, list: await seedStudentNotionStatus() }, r.ok ? 200 : 400);
+      }
+      case "notionSeedStatus": {
+        if (!(await isAdmin(chatId))) return appJson({ ok: false, error: "forbidden" }, 403);
+        return appJson({ ok: true, list: await seedStudentNotionStatus() });
       }
       case "notionSync": {
         // преподаватель — для ученика (chatId), ученик — только для себя
