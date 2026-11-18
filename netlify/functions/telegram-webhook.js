@@ -11647,11 +11647,49 @@ async function readCourseTopic(id) {
   }
   return { ...t, ...built };
 }
+// --- Ошибки ученика в упражнениях (идея Маргариты 18.11.2026) ---
+// Приложение присылает, в каких заданиях ученик ошибся и с каким счетом закончил упражнение.
+// Храним по ученику: mist:<chatId> = { topics: { <topicId>: { title, at, items: { <drillId>: {ex,q,key,a,n,at} }, results: { <ex>: {ok,total,at} } } } }.
+// Преподаватель видит это в карточке ученика. Верный ответ всегда из ключа — здесь только запись фактов.
+const MIST_TOPICS = 40, MIST_ITEMS = 40;
+const mcut = (v, n) => String(v === undefined || v === null ? "" : v).replace(/\s+/g, " ").trim().slice(0, n);
+async function saveMistakes(chatId, body) {
+  const id = mcut(body.id, 48); if (!/^[A-Za-z0-9_:-]{1,48}$/.test(id)) return { ok: false, error: "bad_id" };
+  const items = Array.isArray(body.items) ? body.items.slice(0, 30) : []; const results = Array.isArray(body.results) ? body.results.slice(0, 30) : [];
+  if (!items.length && !results.length) return { ok: true, saved: 0 };
+  const key = `mist:${chatId}`; const now = new Date().toISOString();
+  let data = null; try { data = await courseStore().get(key, { type: "json" }); } catch (e) { data = null; }
+  if (!data || typeof data !== "object" || !data.topics) data = { topics: {} };
+  const t = data.topics[id] || { title: "", at: now, items: {}, results: {} };
+  t.title = mcut(body.title, 120) || t.title; t.at = now;
+  for (const it of items) {
+    const did = mcut(it && it.d, 64); if (!did) continue;
+    const prev = t.items[did];
+    t.items[did] = { ex: Number(it.ex) || 0, q: mcut(it.q, 220), key: mcut(it.key, 220), a: mcut(it.a, 160), n: (prev ? prev.n : 0) + 1, at: now };
+  }
+  for (const r of results) { const ex = Number(r && r.ex); const ok = Number(r && r.ok); const total = Number(r && r.total); if (ex > 0 && total > 0 && ok >= 0 && ok <= total) t.results[ex] = { ok, total, at: now }; }
+  const keep = Object.entries(t.items).sort((a, b) => String(b[1].at).localeCompare(String(a[1].at))).slice(0, MIST_ITEMS); t.items = Object.fromEntries(keep);
+  data.topics[id] = t;
+  const tk = Object.entries(data.topics).sort((a, b) => String(b[1].at).localeCompare(String(a[1].at))).slice(0, MIST_TOPICS); data.topics = Object.fromEntries(tk);
+  await courseStore().setJSON(key, data);
+  return { ok: true, saved: items.length };
+}
+async function mistakesPayload(chatId) {
+  let data = null; try { data = await courseStore().get(`mist:${chatId}`, { type: "json" }); } catch (e) { data = null; }
+  if (!data || !data.topics) return [];
+  return Object.entries(data.topics).sort((a, b) => String(b[1].at).localeCompare(String(a[1].at))).slice(0, 12).map(([id, t]) => {
+    const items = Object.values(t.items || {}).sort((a, b) => b.n - a.n || String(b.at).localeCompare(String(a.at)));
+    return { id, title: t.title || "", at: t.at || null, count: items.reduce((a, m) => a + (m.n || 1), 0), results: Object.entries(t.results || {}).map(([ex, r]) => ({ ex: Number(ex), ok: r.ok, total: r.total })).sort((a, b) => a.ex - b.ex), items: items.slice(0, 15) };
+  }).filter((t) => t.items.length || t.results.length);
+}
+
 // --- Задания ученика из Notion ---
 // Преподаватель привязывает к ученику его страницу «Домашнее» в Notion (кабинет → карточка ученика).
 // Фоновая функция (mode "student") превращает подстраницы в темы с интерактивными заданиями: stu:<chatId>:*.
 // Привязка не дает и не меняет прав доступа; ученик видит только свои страницы.
 const stuKey = (chatId, k) => `stu:${chatId}:${k}`;
+// «2026-11-13T…» → «13.11.2026» по московскому времени
+function ruDate(iso) { if (!iso) return ""; const d = new Date(Date.parse(iso) + 3 * 3600 * 1000); if (isNaN(d)) return ""; return `${String(d.getUTCDate()).padStart(2, "0")}.${String(d.getUTCMonth() + 1).padStart(2, "0")}.${d.getUTCFullYear()}`; }
 async function readStuIndex(chatId) { try { const v = await courseStore().get(stuKey(chatId, "index"), { type: "json" }); return v && Array.isArray(v.topics) ? v : null; } catch (e) { return null; } }
 async function readStuLink(chatId) { try { return await courseStore().get(stuKey(chatId, "link"), { type: "json" }); } catch (e) { return null; } }
 async function readStuTopic(chatId, id) {
@@ -11660,6 +11698,24 @@ async function readStuTopic(chatId, id) {
   let t = null; try { t = await courseStore().get(stuKey(chatId, `topic:${id}`), { type: "json" }); } catch (e) { t = null; }
   if (!t || !t.id) return null;
   try { const r = buildTopicDrills(t); return { ...t, drills: r.drills, drillLeads: r.leads }; } catch (e) { console.error("stu drills", id, e && e.message); return { ...t, drills: [], drillLeads: {} }; }
+}
+// Сообщение ученику о новых заданиях из Notion. Шлем только тем, кого пускает бот; обращение — как выбрано в «Аккаунте».
+async function sendStudentTaskNotice(chatId) {
+  if (!/^\d{1,20}$/.test(chatId)) return false;
+  let note = null; try { note = await courseStore().get(stuKey(chatId, "notify"), { type: "json" }); } catch (e) { note = null; }
+  if (!note || !Array.isArray(note.pages) || !note.pages.length) return false;
+  try { await courseStore().delete(stuKey(chatId, "notify")); } catch (e) { /* не критично */ }
+  const identity = await readIdentity(chatId);
+  if (!identity || (identity.approved === false && !identity.phrasesAccess)) return false;
+  if (!(await readStuLink(chatId))) return false;
+  const formal = !!identity.formal; const pages = note.pages.slice(0, 5);
+  const head = pages.length === 1 ? (formal ? "📒 У вас новое задание" : "📒 У тебя новое задание") : (formal ? `📒 У вас новые задания: ${note.pages.length}` : `📒 У тебя новые задания: ${note.pages.length}`);
+  const list = pages.map((p) => `• ${String(p.title || "").slice(0, 120)}`).join("\n") + (note.pages.length > pages.length ? "\n…" : "");
+  const tail = formal ? "Откройте «Учеба → Мои задания» в приложении." : "Открой «Учеба → Мои задания» в приложении.";
+  const appUrl = miniAppUrl(chatId);
+  const url = appUrl ? appUrl + (appUrl.includes("?") ? "&" : "?") + "page=study&go=mine" : "";
+  try { await tg("sendMessage", { chat_id: chatId, text: `${head}\n\n${list}\n\n${tail}`, ...(url ? { reply_markup: { inline_keyboard: [[{ text: "Открыть задания", web_app: { url } }]] } } : {}) }); return true; }
+  catch (e) { await log("[stunotify] send failed", chatId, String(e && e.message)); return false; }
 }
 async function stuNotionPayload(chatId) {
   const safe = (k) => courseStore().get(stuKey(chatId, k), { type: "json" }).catch(() => null);
@@ -11833,7 +11889,8 @@ async function appCoursePayload(chatId) {
   const stuIndex = (await readStuLink(chatId)) ? await readStuIndex(chatId) : null;
   let mine = null;
   if (stuIndex && stuIndex.topics.length) {
-    const topics = stuIndex.topics.slice().reverse().map((t) => ({ id: t.id, n: t.n, emoji: t.emoji || "📒", title: t.title, kind: "topic", description: t.exercises ? `${t.exercises} упр.` : "материал", contains: "", level: "", mine: true, status: courseTopicStatus(null, t.id, progress), updatedAt: (progress.topics[t.id] || {}).updatedAt || null }));
+    const byDate = stuIndex.topics.slice().reverse().sort((x, y) => String(y.createdAt || "").localeCompare(String(x.createdAt || "")));
+    const topics = byDate.map((t) => ({ id: t.id, n: t.n, emoji: t.emoji || "📒", title: t.title, kind: "topic", createdAt: t.createdAt || null, description: `${ruDate(t.createdAt)}${t.createdAt ? " · " : ""}${t.exercises ? `${t.exercises} упр.` : "материал"}`, contains: "", level: "", mine: true, status: courseTopicStatus(null, t.id, progress), updatedAt: (progress.topics[t.id] || {}).updatedAt || null }));
     mine = { key: "mine", title: "📒 Мои задания", outline: "задания от преподавателя из Notion", topics, total: topics.length, done: topics.filter((t) => t.status === "done").length, status: categoryStatus(topics), builtAt: stuIndex.builtAt };
     categories.unshift(mine);
   }
@@ -12007,7 +12064,7 @@ async function teacherStudentPayload(studentId, nowMs = Date.now()) {
   if (course.ok) for (const l of course.levels) for (const t of l.topics) if (t.status === "done" || t.status === "started") topics.push({ id: t.id, title: t.title, emoji: t.emoji || null, level: l.code, status: t.status, updatedAt: t.updatedAt });
   topics.sort((a, b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")));
   const stats = await getStats(studentId);
-  return { profile, topics, courseLevel: course.ok ? course.level : null, courseDone: course.ok ? course.done : 0, courseTotal: course.ok ? course.total : 0, homework: hw, victories: (stats.victories || []).slice(-10), notion: await stuNotionPayload(studentId) };
+  return { profile, topics, courseLevel: course.ok ? course.level : null, courseDone: course.ok ? course.done : 0, courseTotal: course.ok ? course.total : 0, homework: hw, victories: (stats.victories || []).slice(-10), notion: await stuNotionPayload(studentId), mistakes: await mistakesPayload(studentId) };
 }
 async function setCourseLevel(chatId, level) {
   const track = courseTrackOf(await readCourseProgress(chatId));
@@ -12145,8 +12202,14 @@ async function handleAppApi(body) {
   const user = verifyInitData(body.initData) || verifyAppToken(body.appToken);
   if (!user || !user.id) return appJson({ ok: false, error: "auth" }, 401);
   const chatId = user.id;
-  const identity = (await readIdentity(chatId)) || {};
-  const hasAccess = !(identity.approved === false && !identity.phrasesAccess) && (identity.approved === true || identity.phrasesAccess || (await isAdmin(chatId)));
+  const identityRaw = await readIdentity(chatId);
+  const identity = identityRaw || {};
+  // Решение Маргариты 18.11.2026: в приложение пускаем тех же, кого пускает бот.
+  // Бот не пускает только тех, у кого доступ явно закрыт (approved === false без пригласительной ссылки на фразы).
+  // Давние учетные записи без поля approved бот считает одобренными — приложение теперь тоже.
+  // Человек, который ни разу не писал боту (записи нет вовсе), в приложение не попадает.
+  const blocked = identity.approved === false && !identity.phrasesAccess;
+  const hasAccess = (await isAdmin(chatId)) || (!!identityRaw && !blocked);
   if (!hasAccess) return appJson({ ok: false, error: "no_access" }, 403);
   try {
     switch (body.action) {
@@ -12271,6 +12334,7 @@ async function handleAppApi(body) {
         return appJson({ ok: true, ...(await teacherStudentPayload(sid)) });
       }
       // Задания ученика из Notion: привязать / отвязать может только преподаватель
+      case "courseMistakes": return appJson(await saveMistakes(chatId, body));
       case "notionLink": {
         if (!(await isAdmin(chatId))) return appJson({ ok: false, error: "forbidden" }, 403);
         const sid = String(body.chatId || "");
@@ -12498,6 +12562,12 @@ export default async (req) => {
           status: 200,
           headers: { "content-type": "application/json; charset=utf-8" },
         });
+      }
+      // GET ?stunotify=<секрет>&chat=<id> — фоновая функция нашла у ученика новые задания в Notion:
+      // пишем ему «новое задание» с кнопкой. Список страниц лежит в stu:<id>:notify.
+      if (url.searchParams.get("stunotify") === WEBHOOK_SECRET) {
+        const sent = await sendStudentTaskNotice(String(url.searchParams.get("chat") || ""));
+        return new Response(JSON.stringify({ ok: true, sent }), { status: 200, headers: { "content-type": "application/json; charset=utf-8" } });
       }
       // GET ?seedshared=<секрет> — единоразовая автозагрузка стартового
       // набора общей библиотеки (см. SEED_SHARED_LIBRARY выше).

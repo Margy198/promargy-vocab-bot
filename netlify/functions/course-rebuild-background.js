@@ -248,7 +248,7 @@ async function childPagesDeep(blockId, depth = 0, out = []) {
   }
   return out;
 }
-const STU_VERSION = 1; // менять при правке разбора — тогда страницы пересоберутся, даже если не менялись
+const STU_VERSION = 2; // менять при правке разбора — тогда страницы пересоберутся, даже если не менялись
 const STU_MAX_PAGES = 60;
 async function runStudent(body) {
   const chatId = String(body.chatId || "");
@@ -289,21 +289,35 @@ async function runStudent(body) {
         const pt = pageTitle(p);
         const title = (pt.title || pg.title).replace(/<[^>]+>/g, "").replace(/\s*\(1\)\s*$/, "").trim();
         const editedAt = p.last_edited_time || "";
+        const createdAt = p.created_time || ""; // дата создания материала в Notion — показываем ученику
         const old = prevById.get(pg.id);
-        if (old && old.editedAt === editedAt) { topics.push({ ...old, n: i + 1, title }); continue; }
+        if (old && old.editedAt === editedAt) { topics.push({ ...old, n: i + 1, title, createdAt }); continue; }
         const tree = await blockTree(pg.id);
         const tt = new Map(); const w2 = (bs) => { for (const b of bs) { if (b.type === "child_page") tt.set(nid(b.id), { title: b.child_page.title, emoji: "" }); if (b.children) w2(b.children); } }; w2(tree);
         const norm = normalizeHomework(blocksToMarkdown(tree, tt), title);
         const topic = buildTopic({ id: pg.id, level: "", n: i + 1, emoji: pt.emoji || "📒", title, kind: "topic", description: "", contains: "" }, norm.md);
-        topic.source = "notion-student";
+        topic.source = "notion-student"; topic.createdAt = createdAt;
         await store().setJSON(key(`topic:${pg.id}`), topic);
         rebuilt += 1;
         for (const l of norm.log) log.push(`«${title.slice(0, 40)}»: ${l}`);
-        topics.push({ id: pg.id, n: i + 1, emoji: topic.emoji, title, editedAt, exercises: topic.exercises.length, withKey: topic.exercises.filter((e) => e.answers).length, theory: topic.sections.length > 0 });
+        topics.push({ id: pg.id, n: i + 1, emoji: topic.emoji, title, editedAt, createdAt, exercises: topic.exercises.length, withKey: topic.exercises.filter((e) => e.answers).length, theory: topic.sections.length > 0 });
       } catch (e) { log.push(`«${pg.title.slice(0, 40)}»: не прочитана — ${String((e && e.message) || e).slice(0, 120)}`); }
     }
     if (!topics.length) throw new Error("ни одна страница не прочиталась");
-    await store().setJSON(key("index"), { v: STU_VERSION, builtAt: new Date().toISOString(), rootId, topics });
+    // Новые страницы → уведомление ученику. Только если список уже собирался раньше (первая сборка — без сообщений)
+    // и только про свежие материалы (созданы за последние 7 дней): старые страницы молча.
+    const known = new Set([...(prev.topics || []).map((t) => t.id), ...(prev.seen || [])]);
+    const fresh = Array.isArray(prev.topics) ? topics.filter((t) => !known.has(t.id) && t.createdAt && Date.now() - Date.parse(t.createdAt) < 7 * 24 * 3600 * 1000) : [];
+    const seen = [...new Set([...known, ...topics.map((t) => t.id)])].slice(-400);
+    await store().setJSON(key("index"), { v: STU_VERSION, builtAt: new Date().toISOString(), rootId, topics, seen });
+    if (fresh.length) {
+      try {
+        await store().setJSON(key("notify"), { at: new Date().toISOString(), pages: fresh.map((t) => ({ id: t.id, title: t.title })) });
+        const base = (process.env.URL || "").replace(/\/+$/, "");
+        const r = await fetch(`${base}/telegram-webhook?stunotify=${encodeURIComponent(process.env.TELEGRAM_WEBHOOK_SECRET || "")}&chat=${chatId}`);
+        log.push(`новых заданий: ${fresh.length} — уведомление ученику ${r.ok ? "отправлено" : "не отправлено (" + r.status + ")"}`);
+      } catch (e) { log.push(`уведомление не отправлено: ${String((e && e.message) || e).slice(0, 80)}`); }
+    }
     log.push(`готово: страниц ${topics.length}, обновлено ${rebuilt}`);
     await setSt({ status: "done", startedAt, finishedAt: new Date().toISOString(), pages: topics.length, rebuilt });
   } catch (e) {

@@ -465,7 +465,7 @@
     const levels = idx.levels.map((lv) => { const topics = lv.topics.map(ws); const main = topics.filter((t) => t.kind === "topic"); return { code: lv.code, title: lv.title, emoji: lv.emoji, intro: lv.intro, checkpoint: lv.checkpoint, topics, total: main.length, done: main.filter((t) => t.status === "done").length, started: main.filter((t) => t.status === "started").length }; });
     const categories = idx.categories.map((c) => { const topics = c.topics.map((id) => byId.get(id)).filter(Boolean).map(ws); const status = topics.every((t) => t.status === "done") ? "done" : topics.some((t) => t.status === "done" || t.status === "started") ? "started" : topics.some((t) => t.status === "available") ? "available" : "locked"; return { key: c.key, title: c.title, outline: c.outline, topics, total: topics.length, done: topics.filter((t) => t.status === "done").length, status }; });
     let mine = null;
-    if (window.__demoMine) { const topics = window.__demoMine.topics.map((t, i) => ws({ id: t.id, n: i + 1, emoji: t.emoji || "📒", title: t.title, kind: "topic", description: `${t.exercises.length} упр.`, contains: "", level: "", mine: true })).map((t) => ({ ...t, status: t.status === "locked" ? "available" : t.status })); categories.unshift({ key: "mine", title: "📒 Мои задания", outline: "задания от преподавателя из Notion", topics, total: topics.length, done: topics.filter((t) => t.status === "done").length, status: "available" }); mine = { total: topics.length, done: topics.filter((t) => t.status === "done").length }; }
+    if (window.__demoMine) { const topics = window.__demoMine.topics.map((t, i) => ws({ id: t.id, n: i + 1, emoji: t.emoji || "📒", title: t.title, kind: "topic", createdAt: t.createdAt || null, description: `${t.createdAt ? new Date(t.createdAt).toLocaleDateString("ru-RU") + " · " : ""}${t.exercises.length} упр.`, contains: "", level: "", mine: true })).map((t) => ({ ...t, status: t.status === "locked" ? "available" : t.status })); categories.unshift({ key: "mine", title: "📒 Мои задания", outline: "задания от преподавателя из Notion", topics, total: topics.length, done: topics.filter((t) => t.status === "done").length, status: "available" }); mine = { total: topics.length, done: topics.filter((t) => t.status === "done").length }; }
     const all = levels.flatMap((l) => l.topics.filter((t) => t.kind === "topic"));
     demoHomework(); for (const h of demoCourse.hw) if (!h.topicId) { const t = all.find((x) => x.title === h.title) || all[0]; h.topicId = t.id; }
     return { ok: true, track: demoCourse.track || "general", businessAvailable: true, plan: demoCourse.plan || { 1: { theory: "2026-07-05T10:00:00Z", practice: "2026-07-06T10:00:00Z" }, 3: { theory: "2026-07-05T10:00:00Z" } }, levels, categories, level: demoCourse.level, total: all.length, done: all.filter((t) => t.status === "done").length, homework: demoHomework(), mine };
@@ -485,7 +485,7 @@
       case "planMark": { demoCourse.plan = demoCourse.plan || { 1: { theory: "2026-07-05T10:00:00Z", practice: "2026-07-06T10:00:00Z" }, 3: { theory: "2026-07-05T10:00:00Z" } }; const c = { ...(demoCourse.plan[extra.n] || {}) }; if (extra.on) c[extra.kind] = new Date().toISOString(); else delete c[extra.kind]; demoCourse.plan[extra.n] = c; return { ok: true, plan: demoCourse.plan }; }
       case "homework": return { ok: true, homework: demoHomework() };
       case "teacherStudents": return demoStudents();
-      case "teacherStudent": { const st = demoStudents().students.find((x) => x.chatId === extra.chatId) || demoStudents().students[0]; const me = await demo("me", {}); const c = await demoCoursePayload(); const topics = c.levels.flatMap((l) => l.topics.filter((t) => t.kind === "topic").map((t) => ({ ...t, level: l.code }))).slice(2, 2 + st.topicsDone + st.topicsStarted).map((t, i) => ({ id: t.id, title: t.title, emoji: t.emoji, level: t.level, status: i < st.topicsDone ? "done" : "started", updatedAt: new Date(Date.now() - i * 2 * 864e5).toISOString() })); return { ok: true, profile: { ...me, user: { ...me.user, firstName: st.firstName, username: st.username, avatar: st.avatar, chatId: st.chatId }, xp: st.xp, streak: st.streak, xpWeek: st.xpWeek, vocabCount: st.vocabCount, answered: st.answered, correct: st.correct, level: { ...me.level, name: st.level } }, topics, courseLevel: st.courseLevel, courseDone: st.topicsDone, courseTotal: c.total, homework: demoHomework(), victories: ["reluctant", "endure", "stave off"], notion: demoNotion }; }
+      case "teacherStudent": { const st = demoStudents().students.find((x) => x.chatId === extra.chatId) || demoStudents().students[0]; const me = await demo("me", {}); const c = await demoCoursePayload(); const topics = c.levels.flatMap((l) => l.topics.filter((t) => t.kind === "topic").map((t) => ({ ...t, level: l.code }))).slice(2, 2 + st.topicsDone + st.topicsStarted).map((t, i) => ({ id: t.id, title: t.title, emoji: t.emoji, level: t.level, status: i < st.topicsDone ? "done" : "started", updatedAt: new Date(Date.now() - i * 2 * 864e5).toISOString() })); return { ok: true, profile: { ...me, user: { ...me.user, firstName: st.firstName, username: st.username, avatar: st.avatar, chatId: st.chatId }, xp: st.xp, streak: st.streak, xpWeek: st.xpWeek, vocabCount: st.vocabCount, answered: st.answered, correct: st.correct, level: { ...me.level, name: st.level } }, topics, courseLevel: st.courseLevel, courseDone: st.topicsDone, courseTotal: c.total, homework: demoHomework(), victories: ["reluctant", "endure", "stave off"], notion: demoNotion, mistakes: [{ id: "x", title: "Too или very", count: 3, at: new Date().toISOString(), results: [{ ex: 1, ok: 1, total: 3 }], items: [{ ex: 1, q: "The soup is ... hot — I can't eat it.", key: "too", a: "very", n: 2 }, { ex: 2, q: "It is very cold today.", key: "ошибки нет", a: "", n: 1 }] }] }; }
       case "hwAssign": { demoCourse.hw = demoHomework().items; for (const id of extra.chatIds || [extra.chatId]) { const st = demoStudents().students.find((x) => x.chatId === id); if (st) st.hwOpen += 1; } const c = await demoCoursePayload(); const t = c.levels.flatMap((l) => l.topics).find((x) => x.id === extra.topicId); demoCourse.hw.push({ id: Math.random().toString(36).slice(2), topicId: extra.topicId, title: t ? t.title : "Тема", emoji: t ? t.emoji : null, level: t ? t.level : null, deadline: extra.deadline || null, note: extra.note || null, doneAt: null }); return { ok: true, assigned: extra.chatIds || [extra.chatId], topic: t }; }
       case "contentStatus": return demoContent();
       case "contentRebuild": { demoCourse.content = demoCourse.content || (await demoContent()); demoCourse.content.rebuild = { mode: extra.what, status: "running", startedAt: new Date().toISOString(), total: 6, done: ["A0", "A1"], log: ["19:40:01 ищу страницы уровней в Notion…", "19:40:02 уровни: A0, A1, A2, B1, B2, C1", "19:40:02 уровень A0: читаю страницы…", "19:40:31 уровень A0: 5 тем записано", "19:40:31 уровень A1: читаю страницы…", "19:41:40 уровень A1: 14 тем записано", "19:41:40 уровень A2: читаю страницы…"] }; setTimeout(() => { demoCourse.content.rebuild.status = "done"; demoCourse.content.rebuild.done = ["A0", "A1", "A2", "B1", "B2", "C1"]; demoCourse.content.course.source = "notion"; demoCourse.content.course.builtAt = new Date().toISOString(); }, 9000); return { ok: true, ...demoCourse.content }; }
@@ -1043,9 +1043,11 @@
   function syncBackButton() { if (!tg || !tg.BackButton) return; try { if (state.study.view === "home") tg.BackButton.hide(); else tg.BackButton.show(); } catch (e) {} }
   function backLink(label) { return `<button class="back" id="study-back">← ${esc(label)}</button>`; }
 
+  let startGo = new URLSearchParams(location.search).get("go");
   function renderStudy() {
     const root = $("#page-study"); syncBackButton();
     if (!state.course) { root.innerHTML = state.courseError ? `<div class="notice">Не удалось загрузить курс.<br><span class="muted">${esc(state.courseError)}</span><div style="margin-top:12px"><button class="btn" id="course-retry">Попробовать ещё раз</button></div></div>` : `<div class="notice">Загружаю курс…</div>`; const rb = $("#course-retry"); if (rb) rb.addEventListener("click", async () => { state.courseError = null; renderStudy(); await loadCourse(); renderStudy(); }); return; }
+    if (startGo === "mine") { startGo = null; if ((state.course.categories || []).some((c) => c.key === "mine")) state.study = { view: "category", key: "mine", from: "home" }; }
     const v = state.study.view;
     try { renderStudyInner(root, v); } catch (e) { root.innerHTML = `<div class="notice">Ошибка на экране «${esc(v)}».<br><span class="muted">${esc(String(e && e.message || e))}</span><div style="margin-top:12px"><button class="btn" id="study-home">На главную</button></div></div>`; $("#study-home").addEventListener("click", () => go("home")); }
   }
@@ -1193,6 +1195,14 @@
     clearTimeout(seedPoll);
     if (tcache.seedList && tcache.seedList.some((r) => r.status === "running")) seedPoll = setTimeout(async () => { if (state.study.view !== "teacher") return; const r = await api("notionSeedStatus"); if (r && r.ok) { tcache.seedList = r.list; again(); } }, 6000);
   }
+  // Ошибки ученика по темам (последние темы сверху): вопрос → верный ответ, что ответил ученик, сколько раз ошибся
+  function mistakesHtml(list) {
+    if (!list || !list.length) return `<div class="empty" style="padding:14px">Пока нет записанных ошибок. Они появляются, когда ученик ошибается в упражнениях курса или в «Моих заданиях».</div>`;
+    const day = (iso) => (iso ? `${iso.slice(8, 10)}.${iso.slice(5, 7)}` : "");
+    return list.map((t, i) => `<details class="card" style="margin-top:8px;padding:12px 14px"${i === 0 ? " open" : ""}><summary style="cursor:pointer;font-size:14px"><b>${esc(t.title || "Тема")}</b> <span class="muted">· ошибок ${t.count}${t.at ? " · " + day(t.at) : ""}</span></summary>
+      ${t.results && t.results.length ? `<div class="muted" style="font-size:12px;margin-top:6px">Результаты: ${t.results.map((r) => `упр. ${r.ex} — ${r.ok}/${r.total}`).join(", ")}</div>` : ""}
+      ${t.items.map((m) => `<div style="margin-top:8px;font-size:13px;line-height:1.4;border-top:1px solid var(--line, rgba(0,0,0,.07));padding-top:8px"><div class="muted" style="font-size:12px">упр. ${m.ex}${m.n > 1 ? ` · ошибок: ${m.n}` : ""}</div><div>${esc(m.q)}</div><div>✅ ${esc(m.key)}</div>${m.a ? `<div>❌ ${esc(m.a)}</div>` : ""}</div>`).join("")}</details>`).join("");
+  }
   let notionPoll = null; const notionWait = {};
   function bindNotionBlock(root, id, d) {
     const fail = (r) => toast(NOTION_ERR[(r && (r.error || r.startError)) || ""] || "Не получилось — проверь интернет");
@@ -1221,6 +1231,8 @@
       <div class="row between" style="margin-top:18px"><h2>📚 Домашка</h2><button class="btn small" id="t-assign">+ Задать</button></div>
       ${open.length ? open.map((i) => hwRowHtml(i, `<button class="btn small" data-rm="${i.id}" style="flex:none;padding:6px 9px;font-size:12px">✕</button>`)).join("") : `<div class="muted" style="margin-top:8px">Открытых заданий нет.</div>`}
       ${done.length ? `<div class="muted" style="margin-top:10px;font-size:13px">Сдано: ${done.map((i) => `${esc(i.title)} (${fmtDay((i.doneAt || "").slice(0, 10))})`).join(", ")}</div>` : ""}
+      <h2 style="margin-top:18px">Ошибки в упражнениях</h2>
+      ${mistakesHtml(d.mistakes)}
       <h2 style="margin-top:18px">📒 Задания из Notion</h2>
       ${notionBlockHtml(d.notion)}
       <h2 style="margin-top:18px">Темы курса</h2>
@@ -1459,7 +1471,7 @@
     const status = meta ? meta.status : "started";
     const rows = lessons.map((l, i) => `<div class="lesson ${read.has(lessonKey(l)) ? "read" : ""}" data-i="${i}"><div class="ic">${l.icon}</div><div><div class="k">Шаг ${i + 1}</div><div class="t">${esc(l.title)}</div></div><div class="ln"></div></div>`).join("");
     root.innerHTML = `
-      <div class="head"><div class="row between"><div>${backLink(catTitle)}<div class="ttl" style="margin-top:6px">${esc(t.emoji || "")} ${esc(t.title)}</div><div class="sub">${esc(catTitle)} · ${lv && lv.code ? esc(lvName(lv.code)) + " · " : ""}${lessons.length} ${plural(lessons.length, ["шаг", "шага", "шагов"])} · ${read.size} пройдено</div></div><button class="fab ghost" id="t-notes" title="Заметки" style="margin-top:22px">📝${state.topicNotes.length ? `<span class="pill" style="position:absolute;margin:-40px 0 0 30px;padding:1px 6px;font-size:11px">${state.topicNotes.length}</span>` : ""}</button></div>
+      <div class="head"><div class="row between"><div>${backLink(catTitle)}<div class="ttl" style="margin-top:6px">${esc(t.emoji || "")} ${esc(t.title)}</div><div class="sub">${esc(catTitle)} · ${lv && lv.code ? esc(lvName(lv.code)) + " · " : ""}${meta && meta.mine && meta.createdAt ? "материал от " + new Date(meta.createdAt).toLocaleDateString("ru-RU") + " · " : ""}${lessons.length} ${plural(lessons.length, ["шаг", "шага", "шагов"])} · ${read.size} пройдено</div></div><button class="fab ghost" id="t-notes" title="Заметки" style="margin-top:22px">📝${state.topicNotes.length ? `<span class="pill" style="position:absolute;margin:-40px 0 0 30px;padding:1px 6px;font-size:11px">${state.topicNotes.length}</span>` : ""}</button></div>
         <div style="margin-top:10px"><span class="tag ${status}">${STATUS_LABEL[status] || "В процессе"}</span></div></div>
       ${t.intro ? `<div class="card content" style="font-size:14px">${t.intro}</div>` : ""}
       ${(t.drills || []).length ? `<div class="card aqua train-card" id="t-train" style="margin-top:12px"><div><div style="font-size:17px">🎯 Тренировка</div><div class="muted" style="color:var(--text-2);opacity:.8;margin-top:2px">${t.drills.length} ${plural(t.drills.length, ["задание", "задания", "заданий"])} из ${t.exercises.length} ${plural(t.exercises.length, ["упражнения", "упражнений", "упражнений"])} · по 20 вперемешку</div></div><button class="fab">${iconArrow()}</button></div>` : ""}
@@ -1815,6 +1827,35 @@
     const own = root.querySelector("#dr-own"); if (own) own.addEventListener("click", () => { haptic("medium"); onDone(true); });
     const nx = root.querySelector("#dr-next"); if (nx) nx.addEventListener("click", () => { haptic(); onDone(!!st.result); });
   }
+  // ---------- Ошибки ученика по теме: записываем на сервер, преподаватель видит их в кабинете ----------
+  const mistakeBuf = { id: null, title: "", items: [], results: [], timer: null };
+  function drillGiven(d, st) {
+    try {
+      if (d.type === "choice") return st.picked === null || st.picked === undefined ? "" : String(d.options[st.picked] || "");
+      if (d.type === "build") { const pool = drillPool(d); return (st.built || []).map((k) => (pool.find((x) => x.k === k) || {}).w || "").join(" "); }
+      if (d.type === "type") return String(st.typed || "");
+    } catch (e) {}
+    return "";
+  }
+  function flushMistakes() {
+    clearTimeout(mistakeBuf.timer); mistakeBuf.timer = null;
+    if (!mistakeBuf.id || (!mistakeBuf.items.length && !mistakeBuf.results.length)) return;
+    const body = { id: mistakeBuf.id, title: mistakeBuf.title, items: mistakeBuf.items.splice(0), results: mistakeBuf.results.splice(0) };
+    if (DEMO) { window.__demoMistakes = (window.__demoMistakes || []).concat([body]); return; }
+    api("courseMistakes", body); // без ожидания: запись ошибок не должна тормозить занятие
+  }
+  function noteMistake(t, d, st) {
+    if (!t || !d) return;
+    if (mistakeBuf.id && mistakeBuf.id !== t.id) flushMistakes();
+    mistakeBuf.id = t.id; mistakeBuf.title = t.title || "";
+    const plain = (x) => String(x || "").replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+    mistakeBuf.items.push({ d: d.id, ex: d.ex, q: plain(d.q).slice(0, 220), key: plain(drillCorrectText(d) || d.key).slice(0, 220), a: plain(drillGiven(d, st)).slice(0, 160) });
+    clearTimeout(mistakeBuf.timer); mistakeBuf.timer = setTimeout(flushMistakes, 3000);
+  }
+  function noteExerciseResult(t, exN, ok, total) {
+    if (!t) return; if (mistakeBuf.id && mistakeBuf.id !== t.id) flushMistakes();
+    mistakeBuf.id = t.id; mistakeBuf.title = t.title || ""; mistakeBuf.results.push({ ex: exN, ok, total }); flushMistakes();
+  }
   // ---------- 5 ошибок подряд → назад к теории (идея Маргариты) ----------
   const WRONG_RUN_LIMIT = 5;
   function trackWrongRun(st, ok) { st.wrongRun = ok ? 0 : (st.wrongRun || 0) + 1; if (st.wrongRun >= WRONG_RUN_LIMIT) { st.wrongRun = 0; st.theoryPrompt = true; } }
@@ -1858,7 +1899,7 @@
   function renderExerciseDrills(root, t, e, list, hdr, exBar, title, total) {
     const st = state.study; const n = list.length;
     if (st.item >= n) {
-      lsSet(exKey(t.id, e.n), { ok: st.score, total: n });
+      lsSet(exKey(t.id, e.n), { ok: st.score, total: n }); if (st.reported !== `${e.n}:${st.score}`) { st.reported = `${e.n}:${st.score}`; noteExerciseResult(t, e.n, st.score, n); }
       root.innerHTML = `${hdr}${exBar}<h2 style="margin-top:0">${esc(title)}</h2><div class="card aqua" style="text-align:center"><div class="big">${st.score}<span style="font-size:20px;color:var(--muted)"> / ${n}</span></div><div style="margin-top:6px">${st.score === n ? "Без ошибок!" : st.score >= n * 0.7 ? "Хорошо!" : "Стоит повторить"}</div></div>
         <div class="navbtns"><button class="btn" id="ex-retry">Ещё раз</button><button class="btn primary" id="ex-next">${st.ex + 1 >= total ? "Готово" : "Следующее упражнение"}</button></div>`;
       $("#ex-retry").addEventListener("click", () => { st.item = 0; st.score = 0; drillReset(st); renderStudy(); });
@@ -1870,7 +1911,7 @@
     root.innerHTML = `${hdr}${exBar}<h2 style="margin-top:0">${esc(title)}</h2><div class="bar" style="margin:6px 0 12px"><i style="width:${Math.round((st.item / n) * 100)}%"></i></div>
       ${drillHtml(d, st, e, `Задание ${st.item + 1} из ${n}`)}
       <div class="navbtns" style="margin-top:10px"><button class="btn" id="ex-prev" ${st.item === 0 && st.ex === 0 ? "disabled" : ""}>Назад</button><button class="btn" id="ex-skip">Пропустить</button></div><div style="height:16px"></div>`;
-    bindDrill(root, d, st, (ok) => { if (ok) st.score++; st.item++; trackWrongRun(st, ok); drillReset(st); renderStudy(); window.scrollTo(0, 0); });
+    bindDrill(root, d, st, (ok) => { if (ok) st.score++; else noteMistake(t, d, st); st.item++; trackWrongRun(st, ok); drillReset(st); renderStudy(); window.scrollTo(0, 0); });
     $("#ex-skip").addEventListener("click", () => { st.item++; drillReset(st); renderStudy(); });
   }
   // «Тренировка темы»: 20 заданий вперемешку из всех упражнений; ошибки возвращаются в конец один раз
@@ -1898,6 +1939,7 @@
       ${drillHtml(d, st, e, repeat ? "Повторяем ошибку" : `${st.pos + 1} из ${st.firstTotal} · упр. ${d.ex}`)}<div style="height:16px"></div>`;
     bindDrill(root, d, st, (ok) => {
       if (!repeat && ok) st.score++;
+      if (!ok) noteMistake(t, d, st);
       if (!ok && !st.requeued.includes(d.id)) { st.requeued.push(d.id); st.queue.push(d.id); }
       st.pos++; trackWrongRun(st, ok); drillReset(st); renderStudy(); window.scrollTo(0, 0);
     });
@@ -1935,7 +1977,7 @@
       const it = p.items[st.item]; const n = p.items.length;
       const done = st.item >= n;
       if (done) {
-        lsSet(exKey(t.id, e.n), { ok: st.score, total: n });
+        lsSet(exKey(t.id, e.n), { ok: st.score, total: n }); if (st.reported !== `${e.n}:${st.score}`) { st.reported = `${e.n}:${st.score}`; noteExerciseResult(t, e.n, st.score, n); }
         root.innerHTML = `${hdr}${exBar}<h2 style="margin-top:0">${esc(title)}</h2><div class="card aqua" style="text-align:center"><div class="big">${st.score}<span style="font-size:20px;color:var(--muted)"> / ${n}</span></div><div style="margin-top:6px">${st.score === n ? "Идеально! 🎉" : st.score >= n * 0.7 ? "Хорошо, ещё чуть-чуть 💪" : "Повтори теорию и попробуй снова"}</div></div>
           <div class="navbtns"><button class="btn" id="ex-retry">Ещё раз</button><button class="btn primary" id="ex-next">${st.ex + 1 >= total ? "Готово" : "Следующее упражнение"}</button></div>`;
         $("#ex-retry").addEventListener("click", () => { st.item = 0; st.shown = false; st.score = 0; renderStudy(); });
