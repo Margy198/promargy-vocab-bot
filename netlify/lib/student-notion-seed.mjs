@@ -16,4 +16,9 @@ export const STUDENT_NOTION_SEED = [
   { chatId: "1028107720", pageId: "4022f2f8690d8037b179f3880a769c1c", name: "Станислав" },
   { chatId: "152840069", pageId: "3902f2f8690d806d91b0c5a160408df5", name: "Mikhail Batin" },
   { chatId: "712505479", pageId: "1f52f2f8690d804d9e1ff8b914a8d06d", name: "Анастасия" },
+  // добавлены 18.11 по списку /students от Маргариты и сверке с базой «Ученики»
+  { chatId: "183531", pageId: "3c32f2f8690d808f9642f95372856418", name: "Мусалав" },
+  { chatId: "279460529", pageId: "3c02f2f8690d80f7ac76f9313e3db67b", name: "Алина" },
+  { chatId: "238242758", pageId: "40e2f2f8690d8042aa9cc75b00ca3450", name: "Павел" },
+  { chatId: "1347576192", pageId: "3f52f2f8690d80699264e653bb24b7b3", name: "Дмитрий" },
 ];
