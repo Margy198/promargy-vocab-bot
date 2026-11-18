@@ -23,7 +23,7 @@ import { VOCAB as DEFAULT_VOCAB } from "../../data/vocab.mjs";
 import { PREP_ITEMS_A, PREP_ITEMS_B, COND_ITEMS, GERUND_PREP_ITEMS } from "../../data/grammar-extra.mjs";
 // Индексы курса и тем по интересам попадают в бандл статически (не зависят от included_files)
 import COURSE_INDEX from "../../data/course/index.mjs";
-import { guideMenu, guideFromCallback, helpMenu, helpFromCallback } from "../lib/guide.mjs";
+import { guideMenu, guideFromCallback, helpMenu, helpFromCallback, say, ONBOARD_HELLO, ONBOARD_DONE, WELCOME, onboardQuestion } from "../lib/guide.mjs";
 import { STUDENT_NOTION_SEED } from "../lib/student-notion-seed.mjs";
 import { buildTopicDrills } from "../lib/drill-builder.mjs";
 import INTEREST_INDEX from "../../data/interests/index.mjs";
@@ -8495,33 +8495,62 @@ async function mainReplyKeyboard(chatId) {
   };
 }
 
-async function handleStart(chatId) {
-  await tg("sendMessage", {
-    chat_id: chatId,
-    text:
-      "Привет! Это тренажёр 🎓\n\n" +
-      "Показываю слово, фразу или упражнение — выбираешь верный вариант из вариантов. " +
-      "То, в чём ошибаешься, будет попадаться чаще.\n\n" +
-      "Чтобы добавить новые слова — просто вставь сюда строки вида «English . перевод» " +
-      "(можно сразу много строк за раз), я сама их разберу.\n\n" +
-      "Как тут все устроено и ответы на частые вопросы — /help.",
-    reply_markup: await mainReplyKeyboard(chatId),
-  });
-  // Инструкция «в три кнопки» — один раз, при первом /start после ее появления (идея Маргариты 18.11.2026)
-  try {
-    const idn = await readIdentity(chatId);
-    if (idn && !idn.guideSeen) {
-      const g = guideMenu(); await tg("sendMessage", { chat_id: chatId, text: g.text, reply_markup: g.reply_markup });
-      await updateIdentity(chatId, (cur) => ({ ...cur, guideSeen: new Date().toISOString() }));
-    }
-  } catch (e) { /* инструкция не должна мешать запуску */ }
-  // Личная кнопка меню у поля ввода: такой запуск передаёт данные пользователя,
+// Обращение и род ученика для текстов инструкции и приветствия
+const whoOf = (identity) => ({ formal: !!(identity && identity.formal), gender: (identity && identity.gender) || null });
+// Какой вопрос знакомства еще не отвечен: 1 — «ты/вы», 2 — мужчина/женщина, 0 — все выбрано
+const onboardStep = (identity) => (!identity || identity.formal === undefined || identity.formal === null ? 1 : !identity.gender ? 2 : 0);
+
+async function refreshPersonalMenuButton(chatId) {
+  // Личная кнопка меню у поля ввода: такой запуск передает данные пользователя,
   // плюс в адресе своя подпись. Обновляется при каждом /start, поэтому не устаревает.
   try {
     const personalUrl = miniAppUrl(chatId);
     if (personalUrl) await tg("setChatMenuButton", { chat_id: chatId, menu_button: { type: "web_app", text: "Приложение", web_app: { url: personalUrl } } });
   } catch (e) { /* не критично */ }
+}
+
+// Приветствие, инструкция в три кнопки (один раз) и выбор режима
+async function sendWelcome(chatId, { withKeyboard = true } = {}) {
+  const identity = await readIdentity(chatId); const who = whoOf(identity);
+  await tg("sendMessage", { chat_id: chatId, text: `${who.formal ? "Здравствуйте!" : "Привет!"} ${say(WELCOME, who)}`, ...(withKeyboard ? { reply_markup: await mainReplyKeyboard(chatId) } : {}) });
+  try {
+    if (identity && !identity.guideSeen) {
+      const g = guideMenu("", who); await tg("sendMessage", { chat_id: chatId, text: g.text, reply_markup: g.reply_markup });
+      await updateIdentity(chatId, (cur) => ({ ...cur, guideSeen: new Date().toISOString() }));
+    }
+  } catch (e) { /* инструкция не должна мешать запуску */ }
   await handleMode(chatId);
+}
+
+async function handleStart(chatId) {
+  await refreshPersonalMenuButton(chatId);
+  // Знакомство (идея Маргариты 18.11.2026): при первом запуске — два вопроса, «ты/вы» и мужчина/женщина.
+  // Спрашиваем только то, что еще не выбрано; пока не выбрано обращение, пишем нейтрально.
+  const identity = await readIdentity(chatId);
+  if (identity && !identity.onboarded) {
+    const step = onboardStep(identity);
+    if (step) {
+      await tg("sendMessage", { chat_id: chatId, text: ONBOARD_HELLO, reply_markup: await mainReplyKeyboard(chatId) });
+      const q = onboardQuestion(step); await tg("sendMessage", { chat_id: chatId, text: q.text, reply_markup: q.reply_markup });
+      return;
+    }
+    await updateIdentity(chatId, (cur) => ({ ...cur, onboarded: new Date().toISOString() }));
+  }
+  await sendWelcome(chatId);
+}
+
+// Ответ на вопрос знакомства: «ob:f:0|1» — на «ты» / на «вы», «ob:g:m|f» — мужчина / женщина
+async function handleOnboardAnswer(chatId, messageId, data) {
+  const m = String(data).match(/^ob:(f):([01])$|^ob:(g):([mf])$/); if (!m) return;
+  const updated = await updateIdentity(chatId, (cur) => (m[1] ? { ...cur, formal: m[2] === "1" } : { ...cur, gender: m[4] }));
+  const identity = updated || (await readIdentity(chatId));
+  const step = onboardStep(identity);
+  const edit = async (view) => { try { await tg("editMessageText", { chat_id: chatId, message_id: messageId, text: view.text, ...(view.reply_markup ? { reply_markup: view.reply_markup } : {}) }); } catch (e) { await tg("sendMessage", { chat_id: chatId, text: view.text, ...(view.reply_markup ? { reply_markup: view.reply_markup } : {}) }); } };
+  if (step) return edit(onboardQuestion(step));
+  const first = !identity.onboarded;
+  await updateIdentity(chatId, (cur) => ({ ...cur, onboarded: cur.onboarded || new Date().toISOString() }));
+  await edit({ text: ONBOARD_DONE });
+  if (first) await sendWelcome(chatId, { withKeyboard: false });
 }
 
 // Показывает выбор режима тренировки — кнопками, а не текстом, чтобы не
@@ -8891,12 +8920,12 @@ const GUIDE_TEXT =
   "• Что-то не работает или непонятно — напиши преподавателю.";
 
 async function handleGuide(chatId) {
-  const g = guideMenu(); await tg("sendMessage", { chat_id: chatId, text: g.text, reply_markup: g.reply_markup });
+  const g = guideMenu("", whoOf(await readIdentity(chatId))); await tg("sendMessage", { chat_id: chatId, text: g.text, reply_markup: g.reply_markup });
 }
 
 // /help — три кнопки: почитать про приложение, самые задаваемые вопросы, все команды
 async function handleHelp(chatId) {
-  const h = helpMenu(); await tg("sendMessage", { chat_id: chatId, text: h.text, reply_markup: h.reply_markup });
+  const h = helpMenu(whoOf(await readIdentity(chatId))); await tg("sendMessage", { chat_id: chatId, text: h.text, reply_markup: h.reply_markup });
 }
 
 async function handleCommandList(chatId) {
@@ -10081,11 +10110,13 @@ async function handleCallback(callbackQuery) {
 
   // Инструкция в три кнопки, частые вопросы, список команд
   if (data.startsWith("g:") || data.startsWith("f:") || data === "h:menu") {
-    const view = data.startsWith("g:") ? guideFromCallback(data) : helpFromCallback(data);
+    const who = whoOf(gateIdentity);
+    const view = data.startsWith("g:") ? guideFromCallback(data, who) : helpFromCallback(data, who);
     if (view) { try { await tg("editMessageText", { chat_id: chatId, message_id: messageId, text: view.text, reply_markup: view.reply_markup }); } catch (e) { await tg("sendMessage", { chat_id: chatId, text: view.text, reply_markup: view.reply_markup }); } }
     return;
   }
   if (data === "h:cmds") { await handleCommandList(chatId); return; }
+  if (data.startsWith("ob:")) { await handleOnboardAnswer(chatId, messageId, data); return; }
   if (data === "vlessons") {
     await sendLessonPicker(chatId);
     return;
