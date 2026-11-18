@@ -5,7 +5,7 @@
 // Отключить автообновление можно, удалив этот файл: кнопка «Обновить» в кабинете останется.
 import { getStore } from "@netlify/blobs";
 
-const store = () => getStore("vocab-bot-course");
+const store = () => getStore("vocab-bot-course", { consistency: "strong" });
 
 export default async () => {
   const base = (process.env.URL || "").replace(/\/+$/, "");

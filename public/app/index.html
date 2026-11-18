@@ -1165,7 +1165,7 @@
     n = n || { linked: false };
     const stt = n.status || null; const fmtAt = (iso) => { if (!iso) return "—"; try { return new Date(iso).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).replace(",", ""); } catch (e) { return iso.slice(0, 10); } };
     if (!n.linked) return `<div class="card" style="margin-top:8px;padding:12px 14px"><div class="muted" style="font-size:13px;line-height:1.4">Вставь ссылку на страницу «Домашнее» этого ученика в Notion. Ее подстраницы появятся у ученика в «Учеба → Мои задания», а упражнения с ключом станут заданиями с проверкой.</div><input id="n-url" class="tl-input" placeholder="https://www.notion.so/…" style="margin:10px 0 0;width:100%" /><div style="margin-top:10px"><button class="btn primary small" id="n-link">Привязать</button></div></div>`;
-    const line = stt && stt.status === "running" ? "⏳ Читаю страницы из Notion…" : stt && stt.status === "error" ? `⚠️ ${esc(stt.error || "ошибка")}` : n.pages ? `✅ ${n.pages} ${plural(n.pages, ["страница", "страницы", "страниц"])} · ${n.exercises} упр. · обновлено ${fmtAt(n.builtAt)}` : "Пока ничего не собрано";
+    const line = stt && stt.status === "running" ? "⏳ Читаю страницы из Notion…" : stt && stt.status === "error" ? `⚠️ ${esc(stt.error || "ошибка")}` : n.pages ? `✅ ${n.pages} ${plural(n.pages, ["страница", "страницы", "страниц"])} · ${n.exercises} упр. · обновлено ${fmtAt(n.builtAt)}` : stt ? "Страницы прочитаны, но заданий не найдено — посмотри журнал" : "Чтение еще не запускалось. Нажми «Обновить» — обычно это занимает 1–3 минуты.";
     const log = stt && stt.log && stt.log.length ? `<details style="margin-top:8px"><summary class="muted" style="font-size:13px;cursor:pointer">Журнал</summary><div class="muted" style="font-size:12px;line-height:1.45;margin-top:6px">${stt.log.map((l) => esc(l)).join("<br>")}</div></details>` : "";
     return `<div class="card" style="margin-top:8px;padding:12px 14px"><div style="font-size:14px;line-height:1.4">${line}</div><div class="muted" style="font-size:12px;margin-top:4px;word-break:break-all">${esc(n.url || "")}</div>${log}<div class="row" style="gap:8px;margin-top:10px"><button class="btn primary small" id="n-sync">Обновить</button><button class="btn small" id="n-unlink">Отвязать</button></div></div>`;
   }
@@ -1192,16 +1192,18 @@
     clearTimeout(seedPoll);
     if (tcache.seedList && tcache.seedList.some((r) => r.status === "running")) seedPoll = setTimeout(async () => { if (state.study.view !== "teacher") return; const r = await api("notionSeedStatus"); if (r && r.ok) { tcache.seedList = r.list; again(); } }, 6000);
   }
-  let notionPoll = null;
+  let notionPoll = null; const notionWait = {};
   function bindNotionBlock(root, id, d) {
     const fail = (r) => toast(NOTION_ERR[(r && (r.error || r.startError)) || ""] || "Не получилось — проверь интернет");
     const apply = (r) => { d.notion = r.notion; tcache.student[id] = d; if (state.study.view === "tstudent" && state.study.chatId === id) renderStudy(); };
-    const lk = $("#n-link"); if (lk) lk.addEventListener("click", async () => { const url = ($("#n-url").value || "").trim(); if (!url) return toast("Вставь ссылку на страницу"); haptic(); lk.disabled = true; const r = await api("notionLink", { chatId: id, url }); if (!r || !r.ok) { lk.disabled = false; return fail(r); } if (r.startError) fail(r); apply(r); });
-    const sy = $("#n-sync"); if (sy) sy.addEventListener("click", async () => { haptic(); sy.disabled = true; const r = await api("notionSync", { chatId: id }); if (r && r.notion) apply(r); if (!r || !r.ok) fail(r); });
+    const lk = $("#n-link"); if (lk) lk.addEventListener("click", async () => { const url = ($("#n-url").value || "").trim(); if (!url) return toast("Вставь ссылку на страницу"); haptic(); lk.disabled = true; const r = await api("notionLink", { chatId: id, url }); if (!r || !r.ok) { lk.disabled = false; return fail(r); } if (r.startError) fail(r); else notionWait[id] = Date.now() + 180000; apply(r); });
+    const sy = $("#n-sync"); if (sy) sy.addEventListener("click", async () => { haptic(); sy.disabled = true; const r = await api("notionSync", { chatId: id }); if (r && r.ok) notionWait[id] = Date.now() + 180000; if (r && r.notion) apply(r); if (!r || !r.ok) fail(r); });
     const ul = $("#n-unlink"); if (ul) ul.addEventListener("click", async () => { if (!(await confirmSheet("Отвязать страницу Notion? Ученик перестанет видеть «Мои задания». Страницы в Notion останутся.", "Отвязать"))) return; const r = await api("notionUnlink", { chatId: id }); if (r && r.ok) { apply(r); toast("Отвязано"); } else fail(r); });
     // пока идет сборка — раз в 4 секунды спрашиваем статус
     clearTimeout(notionPoll);
-    if (d.notion && d.notion.status && d.notion.status.status === "running") notionPoll = setTimeout(async () => { if (state.study.view !== "tstudent" || state.study.chatId !== id) return; const r = await api("notionStatus", { chatId: id }); if (r && r.ok) apply(r); }, 4000);
+    const waiting = notionWait[id] && Date.now() < notionWait[id];
+    if (d.notion && d.notion.status && d.notion.status.status !== "running" && d.notion.pages) delete notionWait[id];
+    if (d.notion && d.notion.linked && ((d.notion.status && d.notion.status.status === "running") || waiting)) notionPoll = setTimeout(async () => { if (state.study.view !== "tstudent" || state.study.chatId !== id) return; const r = await api("notionStatus", { chatId: id }); if (r && r.ok) apply(r); }, 4000);
   }
   let demoNotion = { linked: false }; let demoSeed = [];
   async function renderTeacherStudent(root) {
