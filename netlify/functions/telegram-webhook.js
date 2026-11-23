@@ -11757,7 +11757,7 @@ function appPrefsOf(identity) {
 }
 
 async function appProfilePayload(chatId, identity, nowMs = Date.now()) {
-  const [stats, vocab] = await Promise.all([getStats(chatId), getVocab(chatId)]);
+  const [stats, vocab, act] = await Promise.all([getStats(chatId), getVocab(chatId), readActivity(chatId)]);
   const today = mskNow(nowMs).date;
   const goal = dailyGoalOf(identity);
   const todayCount = (stats.daily || {})[today] || 0;
@@ -11775,12 +11775,9 @@ async function appProfilePayload(chatId, identity, nowMs = Date.now()) {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
     .map(([en, n]) => ({ en, ru: (vocab.find((w) => w.en === en) || {}).ru || null, errors: n }));
-  const days = [];
-  for (let i = 13; i >= 0; i--) {
-    const d = mskNow(nowMs - i * DAY_MS).date;
-    days.push({ date: d, answers: (stats.daily || {})[d] || 0, xp: (stats.xpDaily || {})[d] || 0 });
-  }
+  const days = activityDays(act, stats, nowMs, 14);
   return {
+    appLastAt: act.lastAt || null,
     user: {
       chatId: String(chatId),
       firstName: identity.firstName || null,
@@ -12026,6 +12023,46 @@ async function mistakesPayload(chatId) {
     const items = Object.values(t.items || {}).sort((a, b) => b.n - a.n || String(b.at).localeCompare(String(a.at)));
     return { id, title: t.title || "", at: t.at || null, count: items.reduce((a, m) => a + (m.n || 1), 0), results: Object.entries(t.results || {}).map(([ex, r]) => ({ ex: Number(ex), ok: r.ok, total: r.total })).sort((a, b) => a.ex - b.ex), items: items.slice(0, 15) };
   }).filter((t) => t.items.length || t.results.length);
+}
+
+// --- Активность в приложении: сколько минут и заданий в день ---
+// Приложение раз в минуту (и при закрытии) присылает, сколько секунд ученик реально занимался
+// (экран открыт, были нажатия) и сколько заданий решил. Храним по дням: act:<chatId> =
+// { days: { "YYYY-MM-DD": { sec, drills, ok, words } }, lastAt }. Ответы в чате бота считаются отдельно (stats.daily).
+const ACT_DAYS = 60, ACT_MAX_SEC = 600, ACT_MAX_ITEMS = 300;
+function emptyActivity() { return { days: {}, lastAt: null }; }
+async function readActivity(chatId) {
+  let v = null; try { v = await courseStore().get(`act:${chatId}`, { type: "json" }); } catch (e) { v = null; }
+  return v && typeof v === "object" && v.days ? v : emptyActivity();
+}
+async function saveActivity(chatId, body) {
+  const num = (x, max) => { const n = Math.floor(Number(x)); return Number.isFinite(n) && n > 0 ? Math.min(n, max) : 0; };
+  const sec = num(body.seconds, ACT_MAX_SEC), drills = num(body.drills, ACT_MAX_ITEMS), ok = Math.min(num(body.correct, ACT_MAX_ITEMS), drills), words = num(body.words, ACT_MAX_ITEMS);
+  if (!sec && !drills && !words) return { ok: true, saved: false };
+  const nowMs = Date.now(); const today = mskNow(nowMs).date; const cutoff = mskNow(nowMs - ACT_DAYS * DAY_MS).date;
+  await withOptimisticUpdate(courseStore(), `act:${chatId}`, emptyActivity, (current) => {
+    const next = { ...emptyActivity(), ...current, days: { ...((current && current.days) || {}) } };
+    const d = { sec: 0, drills: 0, ok: 0, words: 0, ...(next.days[today] || {}) };
+    d.sec += sec; d.drills += drills; d.ok += ok; d.words += words;
+    next.days[today] = d; next.lastAt = new Date(nowMs).toISOString();
+    for (const day of Object.keys(next.days)) if (day < cutoff) delete next.days[day];
+    return next;
+  });
+  return { ok: true, saved: true };
+}
+// Сводка по дням для карточки ученика и кабинета: приложение (минуты, задания) + ответы в чате бота
+function activityDays(act, stats, nowMs, n) {
+  const out = [];
+  for (let i = n - 1; i >= 0; i--) {
+    const d = mskNow(nowMs - i * DAY_MS).date; const a = (act.days || {})[d] || {};
+    out.push({ date: d, answers: (stats.daily || {})[d] || 0, xp: (stats.xpDaily || {})[d] || 0, sec: a.sec || 0, drills: a.drills || 0, ok: a.ok || 0, words: a.words || 0 });
+  }
+  return out;
+}
+function activitySince(act, fromDate) {
+  let sec = 0, drills = 0, days = 0;
+  for (const [d, a] of Object.entries(act.days || {})) if (d >= fromDate) { sec += a.sec || 0; drills += a.drills || 0; if ((a.sec || 0) >= 60 || (a.drills || 0) > 0) days++; }
+  return { sec, drills, days };
 }
 
 // --- Задания ученика из Notion ---
@@ -12379,12 +12416,13 @@ async function teacherStudentsPayload(nowMs = Date.now()) {
       const info = await readIdentity(key);
       if (!info || (info.approved === false && !info.phrasesAccess)) return null;
       if (await isAdmin(key)) return null;
-      const [stats, progress, hw, vocab] = await Promise.all([getStats(key), readCourseProgress(key), readHomework(key), getVocab(key)]);
+      const [stats, progress, hw, vocab, act] = await Promise.all([getStats(key), readCourseProgress(key), readHomework(key), getVocab(key), readActivity(key)]);
       const daily = stats.daily || {}; const xpDaily = stats.xpDaily || {};
-      const activeDates = Object.keys(daily).filter((k) => daily[k] > 0).sort();
+      const activeDates = Object.keys(daily).filter((k) => daily[k] > 0).concat(Object.keys(act.days || {}).filter((k) => (act.days[k].sec || 0) >= 60 || act.days[k].drills > 0)).sort();
       const lastActive = activeDates.length ? activeDates[activeDates.length - 1] : (info.lastSeen ? mskNow(new Date(info.lastSeen).getTime()).date : null);
-      let answersWeek = 0, xpWeek = 0;
-      for (const [d, n] of Object.entries(daily)) if (d >= weekStart) answersWeek += n;
+      const app7 = activitySince(act, mskNow(nowMs - 6 * DAY_MS).date);
+      let answersWeek = 0, xpWeek = 0, answers7 = 0; const from7 = mskNow(nowMs - 6 * DAY_MS).date;
+      for (const [d, n] of Object.entries(daily)) { if (d >= weekStart) answersWeek += n; if (d >= from7) answers7 += n; }
       for (const [d, n] of Object.entries(xpDaily)) if (d >= weekStart) xpWeek += n;
       const topics = Object.values(progress.topics || {});
       const hwItems = hw.items.map((it) => ({ ...it, status: hwStatus(it, today) }));
@@ -12392,6 +12430,7 @@ async function teacherStudentsPayload(nowMs = Date.now()) {
         chatId: String(key), firstName: info.firstName || null, username: info.username || null, avatar: avatarOf(info) || null,
         lastActive, daysSilent: lastActive ? daysBetweenDates(lastActive, today) : null,
         streak: currentDayStreak(stats, nowMs), xp: stats.xp || 0, xpWeek, answersWeek, level: levelOf(stats.xp || 0).name,
+        appSec7: app7.sec, appDrills7: app7.drills, appDays7: app7.days, answers7, appLastAt: act.lastAt || null,
         answered: stats.answered || 0, correct: stats.correct || 0, vocabCount: vocab.length,
         topicsDone: topics.filter((t) => t.status === "done").length, topicsStarted: topics.filter((t) => t.status === "started").length, courseLevel: progress.level || null,
         hwOpen: hwItems.filter((h) => h.status === "open").length, hwOverdue: hwItems.filter((h) => h.status === "overdue").length, hwDone: hwItems.filter((h) => h.status === "done").length,
@@ -12680,6 +12719,7 @@ async function handleAppApi(body) {
       }
       // Задания ученика из Notion: привязать / отвязать может только преподаватель
       case "courseMistakes": return appJson(await saveMistakes(chatId, body));
+      case "activity": return appJson(await saveActivity(chatId, body));
       case "notionLink": {
         if (!(await isAdmin(chatId))) return appJson({ ok: false, error: "forbidden" }, 403);
         const sid = String(body.chatId || "");

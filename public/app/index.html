@@ -449,7 +449,7 @@
   }
   function demoStudents() {
     if (!demoCourse.teacher) demoCourse.teacher = [
-      { chatId: "101", firstName: "Вера", username: "vera_k", avatar: "🦊", lastActive: demoDay(0), daysSilent: 0, streak: 14, xp: 2140, xpWeek: 320, answersWeek: 64, level: "Advanced", answered: 812, correct: 701, vocabCount: 238, topicsDone: 9, topicsStarted: 1, courseLevel: "A2", hwOpen: 1, hwOverdue: 0, hwDone: 4 },
+      { chatId: "101", firstName: "Вера", username: "vera_k", avatar: "🦊", lastActive: demoDay(0), daysSilent: 0, streak: 14, xp: 2140, xpWeek: 320, answersWeek: 64, level: "Advanced", answered: 812, correct: 701, vocabCount: 238, appSec7: 3300, appDrills7: 44, answers7: 64, appLastAt: new Date(Date.now() - 36e5).toISOString(), topicsDone: 9, topicsStarted: 1, courseLevel: "A2", hwOpen: 1, hwOverdue: 0, hwDone: 4 },
       { chatId: "102", firstName: "Борис", username: null, avatar: "🐼", lastActive: demoDay(-1), daysSilent: 1, streak: 0, xp: 640, xpWeek: 90, answersWeek: 18, level: "Confident", answered: 240, correct: 180, vocabCount: 96, topicsDone: 3, topicsStarted: 2, courseLevel: "A1", hwOpen: 1, hwOverdue: 1, hwDone: 1 },
       { chatId: "103", firstName: "Катя", username: "kate_eng", avatar: null, lastActive: demoDay(-9), daysSilent: 9, streak: 0, xp: 310, xpWeek: 0, answersWeek: 0, level: "Starter", answered: 120, correct: 80, vocabCount: 40, topicsDone: 1, topicsStarted: 1, courseLevel: null, hwOpen: 0, hwOverdue: 2, hwDone: 0 },
       { chatId: "104", firstName: "Олег", username: null, avatar: "🚀", lastActive: null, daysSilent: null, streak: 0, xp: 0, xpWeek: 0, answersWeek: 0, level: "Newbie", answered: 0, correct: 0, vocabCount: 12, topicsDone: 0, topicsStarted: 0, courseLevel: null, hwOpen: 0, hwOverdue: 0, hwDone: 0 },
@@ -506,12 +506,12 @@
   function demo(action, extra) {
     if (["course", "topic", "courseSet", "courseLevel", "courseTrack", "planMark", "notes", "noteAdd", "noteEdit", "noteDelete", "slang", "interests", "interestsSet", "feed", "interestsAddWords", "homework", "teacherStudents", "teacherStudent", "hwAssign", "hwRemove", "contentStatus", "contentRebuild", "contentReset", "notionLink", "notionUnlink", "notionSync", "notionStatus", "notionSeed", "notionSeedStatus"].includes(action)) return demoAsync(action, extra);
     const today = new Date(); const days = [];
-    for (let i = 13; i >= 0; i--) { const d = new Date(today.getTime() - i * 864e5); days.push({ date: d.toISOString().slice(0, 10), answers: [12, 20, 0, 15, 24, 18, 9, 30, 22, 0, 16, 25, 19, 7][13 - i] }); }
+    for (let i = 13; i >= 0; i--) { const d = new Date(today.getTime() - i * 864e5); days.push({ date: d.toISOString().slice(0, 10), answers: [12, 20, 0, 15, 24, 18, 9, 30, 22, 0, 16, 25, 19, 7][13 - i], sec: [0, 600, 0, 0, 1500, 240, 0, 0, 900, 0, 0, 2100, 0, 420][13 - i], drills: [0, 8, 0, 0, 22, 3, 0, 0, 14, 0, 0, 30, 0, 6][13 - i] }); }
     const id = demoState.identity;
     const me = { ok: true, user: { firstName: "Аня", avatar: id.avatar, gender: id.gender, formal: !!id.formal, callName: id.callName, cheers: id.cheers, wordOfDay: id.wordOfDay !== false }, streak: 12, bestStreak: 23, practicedToday: false, freezes: 2, freezesMax: 2, xp: 1240, level: { number: 3, name: "Confident", next: "Advanced", toNext: 260, progress: 0.65 }, xpToday: 70, xpWeek: 410, goal: id.goal, todayCount: 7, answered: 1480, correct: 1210, vocabCount: demoState.words.length, dueCount: 3, victories: 6, blitzBest: { correct: 8, seconds: 47 }, challenge: { correct: 9, seconds: 45 },
       quests: [{ title: "Ответить на 15 вопросов", target: 15, progress: 7, done: false }, { title: "5 верных подряд", target: 5, progress: 5, done: true }, { title: "Победить 1 слово из списка ошибок", target: 1, progress: 0, done: false }],
       achievements: [["💯", "Первые 100 слов", "2026-10-02"], ["🚀", "Пятьсот", "2026-10-21"], ["🏔", "Тысяча", null], ["🎯", "Снайпер", "2026-10-11"], ["🔥", "Неделя без пропусков", "2026-10-09"], ["🌟", "Месяц без пропусков", null], ["💎", "Сто дней", null], ["👑", "Год без пропусков", null], ["🏆", "Победитель", "2026-10-30"], ["📁", "Папка пройдена", "2026-10-15"], ["⚡", "Блиц-мастер", null], ["🗓", "Идеальная неделя", null], ["🛡", "Десять побед", null]].map(([emoji, title, date]) => ({ emoji, title, date })),
-      wrongTop: [{ en: "reluctant", ru: "неохотный", errors: 4 }, { en: "stave off", ru: "предотвращать", errors: 3 }, { en: "endure", ru: "терпеть; выдерживать", errors: 2 }], days,
+      wrongTop: [{ en: "reluctant", ru: "неохотный", errors: 4 }, { en: "stave off", ru: "предотвращать", errors: 3 }, { en: "endure", ru: "терпеть; выдерживать", errors: 2 }], days, appLastAt: new Date(Date.now() - 36e5).toISOString(),
       reminders: { enabled: id.remindersEnabled, everyDays: id.everyDays, hours: id.hours }, league: { optIn: id.leagueOptIn, anon: id.leagueAnon } };
     const league = () => ({ ok: true, weekStart: "2026-11-02", optIn: id.leagueOptIn, anon: id.leagueAnon, rows: [{ place: 1, name: "🦊 Вера", xp: 870 }, { place: 2, name: (id.avatar ? id.avatar + " " : "") + (id.leagueAnon ? "Ученик №412" : "Аня"), xp: 410, me: true }, { place: 3, name: "🐼 Борис", xp: 390 }, { place: 4, name: "Ученик №118", xp: 120 }].filter((r) => id.leagueOptIn || !r.me), classGoal: { target: 5000, progress: 3240 } });
     switch (action) {
@@ -611,6 +611,7 @@
     const ach = d.achievements.map((a) => `<div class="ach ${a.date ? "" : "locked"}"><div class="e">${a.emoji}</div><div class="n">${esc(a.title)}</div></div>`).join("");
     const wrong = d.wrongTop.length ? d.wrongTop.map((w) => `<div class="word"><span class="en">${esc(w.en)}<span class="n">×${w.errors}</span></span><span class="ru">${esc(w.ru || "")}</span></div>`).join("") : `<div class="muted">Список ошибок пуст — так держать.</div>`;
     const accuracy = d.answered ? Math.round((d.correct / d.answered) * 100) : 0;
+    const appSec = d.days.reduce((a, x) => a + (x.sec || 0), 0), appDrills = d.days.reduce((a, x) => a + (x.drills || 0), 0);
     $("#page-progress").innerHTML = `
       <div class="row between" style="margin-bottom:14px">
         <div><h1>${avatar}Привет${name}</h1><div class="muted">уровень ${d.level.number} · ${esc(d.level.name)}</div></div>
@@ -638,7 +639,7 @@
       <h2>Квесты дня <span class="muted" style="font-weight:400">${done}/${d.quests.length}</span></h2>
       <div class="card" style="padding:4px 16px">${quests}</div>
       <h2>Две недели</h2>
-      <div class="card"><div class="chart">${chart}</div><div class="muted" style="margin-top:8px">ответов в день · всего ${d.answered}, точность ${accuracy}%</div></div>
+      <div class="card"><div class="chart">${chart}</div><div class="muted" style="margin-top:8px">ответов в день · всего ${d.answered}, точность ${accuracy}%</div>${appSec || appDrills ? `<div class="muted" style="margin-top:4px">в приложении: ${fmtMin(appSec)} · ${appDrills} ${plural(appDrills, ["задание", "задания", "заданий"])}</div>` : ""}</div>
       <h2>Повторение</h2>
       <div class="card pink"><div class="row between">
         <div><div style="font-size:15px">📅 Пора повторить</div><div class="muted" style="margin-top:2px">${d.dueCount ? `${d.dueCount} ${plural(d.dueCount, ["слово", "слова", "слов"])} из ${d.vocabCount}` : "на сегодня всё повторено"}</div></div>
@@ -1138,6 +1139,7 @@
   // --- Кабинет учителя ---
   const tcache = { students: null, student: {}, seedList: undefined };
   function studentName(s) { return s.firstName || (s.username ? "@" + s.username : "Ученик " + s.chatId); }
+  function week7Label(s) { const parts = [(s.appSec7 || 0) >= 60 ? fmtMin(s.appSec7) : "", s.appDrills7 ? `${s.appDrills7} зад.` : "", s.answers7 ? `${s.answers7} сл. в боте` : ""].filter(Boolean); return parts.length ? `за 7 дней: ${parts.join(" · ")}` : "за 7 дней: ничего"; }
   function silentLabel(s) { if (s.daysSilent == null) return "ещё не занимался"; if (s.daysSilent === 0) return "сегодня"; if (s.daysSilent === 1) return "вчера"; return `${s.daysSilent} ${plural(s.daysSilent, ["день", "дня", "дней"])} назад`; }
   async function renderTeacher(root) {
     const st = state.study; const q = (st.q || "").toLowerCase();
@@ -1151,7 +1153,7 @@
       <div class="row" style="gap:10px;margin-top:12px;align-items:center"><button class="btn" id="t-assign-all" style="flex:1;white-space:nowrap">📚 Задать домашку</button><button class="btn" id="t-content" style="flex:1;white-space:nowrap">🛠 Контент</button><button class="fab ghost" id="t-refresh" title="Обновить" style="flex:none">↻</button></div>
       ${notionSeedHtml(st)}
       <div class="search" style="margin-top:12px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="t-q" value="${esc(st.q || "")}" placeholder="Найти ученика" /></div>
-      ${rows.map((s) => `<div class="stud ${s.daysSilent == null || s.daysSilent >= 7 ? "silent" : ""}" data-sid="${s.chatId}"><div class="av">${esc(s.avatar || "🙂")}</div><div style="flex:1;min-width:0"><div class="nm">${esc(studentName(s))}${s.streak ? ` · 🔥${s.streak}` : ""}</div><div class="k">${esc(silentLabel(s))} · тем пройдено ${s.topicsDone} · слов ${s.vocabCount}${s.hwOverdue ? ` · <span style="color:var(--bad-fg)">домашка просрочена</span>` : s.hwOpen ? ` · домашка: ${s.hwOpen}` : ""}</div></div><div class="r"><b>${s.xpWeek} XP</b>за неделю</div></div>`).join("") || `<div class="notice" style="margin-top:12px">Никого не нашла.</div>`}
+      ${rows.map((s) => `<div class="stud ${s.daysSilent == null || s.daysSilent >= 7 ? "silent" : ""}" data-sid="${s.chatId}"><div class="av">${esc(s.avatar || "🙂")}</div><div style="flex:1;min-width:0"><div class="nm">${esc(studentName(s))}${s.streak ? ` · 🔥${s.streak}` : ""}</div><div class="k">${esc(silentLabel(s))} · ${week7Label(s)}${s.hwOverdue ? ` · <span style="color:var(--bad-fg)">домашка просрочена</span>` : s.hwOpen ? ` · домашка: ${s.hwOpen}` : ""}</div></div><div class="r"><b>${s.xpWeek} XP</b>за неделю</div></div>`).join("") || `<div class="notice" style="margin-top:12px">Никого не нашла.</div>`}
       <div style="height:16px"></div>`}`;
     if (st.loading) return;
     $("#t-q").addEventListener("input", (e) => { st.q = e.target.value; renderStudy(); setTimeout(() => { const i = $("#t-q"); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }, 0); });
@@ -1221,13 +1223,12 @@
     const st = state.study; const id = st.chatId; let d = tcache.student[id];
     if (!d) { root.innerHTML = `<div style="margin-top:4px">${backLink("Ученики")}</div><div class="notice" style="margin-top:14px">Загружаю…</div>`; $("#study-back").addEventListener("click", () => studyBack()); const r = await api("teacherStudent", { chatId: id }); if (!r || !r.ok) { toast("Не удалось открыть карточку"); return go("teacher"); } d = tcache.student[id] = r; if (state.study.view !== "tstudent" || state.study.chatId !== id) return; }
     const p = d.profile; const u = p.user; const acc = p.answered ? Math.round((p.correct / p.answered) * 100) : 0;
-    const max = Math.max(1, ...p.days.map((x) => x.answers));
-    const chart = p.days.map((x) => `<div class="col"><div class="b ${x.answers ? "" : "empty"}" style="height:${Math.max(4, Math.round((x.answers / max) * 60))}px"></div><div class="d">${x.date.slice(8).replace(/^0/, "")}</div></div>`).join("");
     const hw = d.homework || { items: [] }; const open = hw.items.filter((i) => i.status !== "done"), done = hw.items.filter((i) => i.status === "done");
     const wrong = p.wrongTop.length ? p.wrongTop.map((w) => `<div class="word"><span class="en">${esc(w.en)}<span class="n">×${w.errors}</span></span><span class="ru">${esc(w.ru || "")}</span></div>`).join("") : `<div class="muted">ошибок нет</div>`;
     root.innerHTML = `<div class="head lavender"><div>${backLink("Ученики")}<div class="ttl" style="margin-top:6px">${esc(u.avatar || "")} ${esc(u.firstName || "Ученик")}</div><div class="sub">${u.username ? `@${esc(u.username)} · ` : ""}уровень ${esc(p.level.name)} · ${p.xp} XP${d.courseLevel ? ` · курс ${esc(d.courseLevel)}` : ""}</div></div></div>
       <div class="kpi"><div><b>🔥 ${p.streak}</b><span>${plural(p.streak, ["день", "дня", "дней"])} подряд</span></div><div><b>${p.xpWeek}</b><span>XP за неделю</span></div><div><b>${acc}%</b><span>точность · ${p.answered} отв.</span></div><div><b>${d.courseDone}</b><span>тем из ${d.courseTotal}</span></div><div><b>${p.vocabCount}</b><span>слов · ${p.dueCount || 0} к повтору</span></div><div><b>${p.victories}</b><span>побед над ошибками</span></div></div>
-      <div class="card" style="margin-top:12px;padding:12px 14px"><div class="muted" style="font-size:13px">Две недели · ответов в день</div><div class="chart" style="margin-top:8px">${chart}</div></div>
+      <h2 style="margin-top:18px">⏱ Занятия за две недели</h2>
+      ${activityHtml(p.days, { who: u.firstName ? esc(u.firstName) : "ученик", fem: u.gender === "f", lastAt: p.appLastAt })}
       <div class="row between" style="margin-top:18px"><h2>📚 Домашка</h2><button class="btn small" id="t-assign">+ Задать</button></div>
       ${open.length ? open.map((i) => hwRowHtml(i, `<button class="btn small" data-rm="${i.id}" style="flex:none;padding:6px 9px;font-size:12px">✕</button>`)).join("") : `<div class="muted" style="margin-top:8px">Открытых заданий нет.</div>`}
       ${done.length ? `<div class="muted" style="margin-top:10px;font-size:13px">Сдано: ${done.map((i) => `${esc(i.title)} (${fmtDay((i.doneAt || "").slice(0, 10))})`).join(", ")}</div>` : ""}
@@ -1805,7 +1806,8 @@
     }
     return head + body + fb;
   }
-  function bindDrill(root, d, st, onDone) {
+  function bindDrill(root, d, st, onDoneRaw) {
+    const onDone = (ok) => { actNote(!!ok, d.type === "recall"); onDoneRaw(ok); };
     const finish = (ok) => { st.result = ok; if (ok) haptic("medium"); else { try { tg && tg.HapticFeedback && tg.HapticFeedback.notificationOccurred("error"); } catch (err) {} } };
     const sh = root.querySelector("#dr-show"); if (sh) sh.addEventListener("click", () => { haptic(); st.shown = true; renderStudy(); });
     const y = root.querySelector("#dr-yes"); if (y) y.addEventListener("click", () => { haptic("medium"); onDone(true); });
@@ -1827,6 +1829,44 @@
     const own = root.querySelector("#dr-own"); if (own) own.addEventListener("click", () => { haptic("medium"); onDone(true); });
     const nx = root.querySelector("#dr-next"); if (nx) nx.addEventListener("click", () => { haptic(); onDone(!!st.result); });
   }
+  // ---------- Активность: сколько минут и заданий — преподаватель видит это в кабинете ----------
+  // Время идет, пока экран открыт и ученик что-то нажимал за последние 2 минуты; раз в минуту и при сворачивании отправляем на сервер.
+  const act = { sec: 0, drills: 0, correct: 0, words: 0, lastTick: Date.now(), lastInput: Date.now() };
+  const ACT_IDLE_MS = 120000;
+  ["pointerdown", "keydown", "touchstart", "scroll"].forEach((ev) => window.addEventListener(ev, () => { act.lastInput = Date.now(); }, { passive: true }));
+  function actTick() {
+    const now = Date.now(); const dt = Math.min(30, Math.max(0, Math.round((now - act.lastTick) / 1000))); act.lastTick = now;
+    if (document.visibilityState === "visible" && now - act.lastInput < ACT_IDLE_MS) act.sec += dt;
+  }
+  function actNote(ok, word) { act.lastInput = Date.now(); actTick(); act.drills++; if (ok) act.correct++; if (word) act.words++; }
+  function actFlush(final) {
+    actTick();
+    if (act.sec < 5 && !act.drills && !act.words) return;
+    const body = { seconds: act.sec, drills: act.drills, correct: act.correct, words: act.words };
+    act.sec = 0; act.drills = 0; act.correct = 0; act.words = 0;
+    if (DEMO) { window.__demoAct = (window.__demoAct || []).concat([body]); return; }
+    try { fetch(API, { method: "POST", keepalive: true, headers: { "content-type": "application/json" }, body: JSON.stringify(Object.assign({ initData, appToken, action: "activity" }, body)) }).catch(() => {}); } catch (e) {}
+  }
+  setInterval(actTick, 15000); setInterval(() => actFlush(false), 60000);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") actFlush(true); else { act.lastTick = Date.now(); act.lastInput = Date.now(); } });
+  window.addEventListener("pagehide", () => actFlush(true));
+  const fmtMin = (sec) => { const m = Math.round((sec || 0) / 60); if (m < 1) return sec > 0 ? "меньше минуты" : "0 мин"; if (m < 60) return `${m} мин`; return `${Math.floor(m / 60)} ч ${m % 60 ? `${m % 60} мин` : ""}`.trim(); };
+  const WD = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"];
+  const fmtWd = (d) => { try { return WD[new Date(d + "T12:00:00").getDay()]; } catch (e) { return ""; } };
+  const fmtAtFull = (iso) => { if (!iso) return ""; try { return new Date(iso).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).replace(",", ""); } catch (e) { return iso.slice(0, 10); } };
+  // Таблица занятий за две недели: только дни, когда что-то было (новые сверху)
+  function activityHtml(days, opts) {
+    const o = opts || {}; const who = o.who || "ученик";
+    days = (days || []).map((x) => ({ date: x.date, sec: x.sec || 0, drills: x.drills || 0, answers: x.answers || 0 }));
+    const rows = days.slice().reverse().filter((x) => x.sec >= 60 || x.drills || x.answers);
+    const sum = days.reduce((a, x) => ({ sec: a.sec + x.sec, drills: a.drills + x.drills, answers: a.answers + x.answers, days: a.days + (x.sec >= 60 || x.drills || x.answers ? 1 : 0) }), { sec: 0, drills: 0, answers: 0, days: 0 });
+    const kpi = `<div class="kpi" style="margin-top:8px;grid-template-columns:repeat(2,1fr)"><div><b>${fmtMin(sum.sec)}</b><span>в приложении</span></div><div><b>${sum.drills}</b><span>${plural(sum.drills, ["задание", "задания", "заданий"])}</span></div><div><b>${sum.answers}</b><span>${plural(sum.answers, ["слово в боте", "слова в боте", "слов в боте"])}</span></div><div><b>${sum.days}</b><span>${plural(sum.days, ["день из 14", "дня из 14", "дней из 14"])}</span></div></div>`;
+    const list = rows.length ? rows.map((x) => `<div class="row between" style="padding:7px 0;border-top:1px solid var(--line, rgba(0,0,0,.07));font-size:13px;line-height:1.4"><div><b>${fmtWd(x.date)} ${fmtDay(x.date)}</b></div><div class="muted" style="text-align:right">${[x.sec >= 60 ? fmtMin(x.sec) : "", x.drills ? `${x.drills} ${plural(x.drills, ["задание", "задания", "заданий"])}` : "", x.answers ? `${x.answers} ${plural(x.answers, ["слово в боте", "слова в боте", "слов в боте"])}` : ""].filter(Boolean).join(" · ")}</div></div>`).join("") : `<div class="muted" style="margin-top:8px;font-size:13px">За две недели ${who} не ${o.fem ? "занималась" : "занимался"} ни в приложении, ни в боте.</div>`;
+    const last = o.lastAt ? `<div class="muted" style="font-size:12px;margin-top:8px">Последний раз в приложении: ${fmtAtFull(o.lastAt)}</div>` : "";
+    const note = `<div class="muted" style="font-size:12px;margin-top:8px;line-height:1.4">Время идет, пока приложение открыто и ${who} что-то нажимает. «Задания» — решенные задания в курсе и «Моих заданиях», «слова в боте» — ответы на вопросы бота в чате. Время и задания записываются с 23.11.2026.</div>`;
+    return `<div class="card" style="margin-top:8px;padding:12px 14px">${kpi}<div style="margin-top:10px">${list}</div>${last}${o.note === false ? "" : note}</div>`;
+  }
+
   // ---------- Ошибки ученика по теме: записываем на сервер, преподаватель видит их в кабинете ----------
   const mistakeBuf = { id: null, title: "", items: [], results: [], timer: null };
   function drillGiven(d, st) {
@@ -2158,7 +2198,7 @@
       <div class="card"><div class="muted" style="margin-bottom:6px">Вставь слово</div><div class="sent">${qEn}</div><div class="sent-ru">${esc(it.ru)}</div></div>
       ${opts.map((o, k) => `<button class="opt ${answered ? (o.ok ? "ok" : k === st.picked ? "bad" : "dim") : ""}" data-k="${k}" ${answered ? "disabled" : ""}>${esc(o.text)}</button>`).join("")}
       ${answered ? `<div class="card" style="margin-top:14px;background:${opts[st.picked].ok ? "var(--ok-bg)" : "var(--bad-bg)"}"><div style="font-size:15px;font-weight:500;color:${opts[st.picked].ok ? "var(--ok-fg)" : "var(--bad-fg)"}">${opts[st.picked].ok ? "Верно! ✓" : "Не совсем"}</div><div class="sent" style="font-size:16px;margin-top:6px">${esc(it.en).replace(new RegExp(esc(target.en).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), (m) => `<b>${m}</b>`)}</div><div class="muted" style="margin-top:4px">${esc(target.en)} — ${esc(target.ru)}</div></div><div style="margin-top:12px"><button class="btn primary" id="q-next">${i + 1 >= items.length ? "Итог" : "Далее"}</button></div>` : ""}`;
-    root.querySelectorAll(".opt").forEach((b) => b.addEventListener("click", () => { st.picked = Number(b.dataset.k); if (opts[st.picked].ok) { st.score = (st.score || 0) + 1; haptic("medium"); } renderStudy(); }));
+    root.querySelectorAll(".opt").forEach((b) => b.addEventListener("click", () => { st.picked = Number(b.dataset.k); actNote(opts[st.picked].ok, true); if (opts[st.picked].ok) { st.score = (st.score || 0) + 1; haptic("medium"); } renderStudy(); }));
     const n = $("#q-next"); if (n) n.addEventListener("click", () => { st.i = i + 1; st.picked = null; renderStudy(); window.scrollTo(0, 0); });
   }
 
