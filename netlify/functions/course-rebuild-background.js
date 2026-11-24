@@ -243,7 +243,7 @@ async function selfInvoke(body) {
 const STU_CONTAINERS = new Set(["column_list", "column", "toggle", "synced_block", "callout", "quote", "bulleted_list_item", "numbered_list_item", "paragraph", "heading_1", "heading_2", "heading_3"]);
 async function childPagesDeep(blockId, depth = 0, out = []) {
   for (const b of await allChildren(blockId)) {
-    if (b.type === "child_page") { out.push({ id: nid(b.id), title: ((b.child_page && b.child_page.title) || "").trim() }); continue; }
+    if (b.type === "child_page") { out.push({ id: nid(b.id), title: ((b.child_page && b.child_page.title) || "").trim(), createdAt: b.created_time || "" }); continue; }
     if (b.has_children && STU_CONTAINERS.has(b.type) && depth < 4) await childPagesDeep(b.id, depth + 1, out);
   }
   return out;
@@ -278,7 +278,12 @@ async function runStudent(body) {
     const skipped = pages.filter((p) => /для преподавателя/i.test(p.title));
     pages = pages.filter((p) => p.title && !/для преподавателя/i.test(p.title));
     if (skipped.length) log.push(`пропущено страниц «для преподавателя»: ${skipped.length}`);
-    if (pages.length > STU_MAX_PAGES) { log.push(`страниц ${pages.length} — беру последние ${STU_MAX_PAGES}`); pages = pages.slice(-STU_MAX_PAGES); }
+    // Лимит — по дате создания, а не по месту на странице: новое задание попадает в список, куда бы его ни вставили
+    if (pages.length > STU_MAX_PAGES) {
+      const newest = new Set(pages.slice().sort((x, y) => String(y.createdAt).localeCompare(String(x.createdAt))).slice(0, STU_MAX_PAGES).map((p) => p.id));
+      log.push(`страниц ${pages.length} — беру ${STU_MAX_PAGES} самых новых по дате создания`);
+      pages = pages.filter((p) => newest.has(p.id));
+    }
     if (!pages.length) throw new Error("на привязанной странице нет подстраниц с заданиями");
     const prev = (await store().get(key("index"), { type: "json" })) || {};
     const prevById = new Map((prev.v === STU_VERSION ? prev.topics || [] : []).map((t) => [t.id, t]));

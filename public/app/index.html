@@ -353,7 +353,7 @@
   const DEMO = !initData && !appToken; // вне Telegram — демо-данные, чтобы смотреть дизайн в браузере
   // Приложение открыто внутри Telegram, но Telegram не передал ни данных пользователя, ни подписанной ссылки
   // (так бывает со старой кнопкой клавиатуры). Демо показывать нельзя — ведем ученика за новой кнопкой входа.
-  const BOT_NAME = "promargy_toolkitbot";
+  const BOT_NAME = "lexis_exercise_bot"; // учебный бот; @promargy_toolkitbot — отдельный бот продаж на SendPulse
   const NO_LOGIN = (() => { if (!DEMO) return false; const pf = String((window.__tgBridge || {}).platform || ""); return !!pf && pf !== "?" && pf !== "unknown"; })();
   function showNoLogin() {
     const link = `https://t.me/${BOT_NAME}?start=app`;
