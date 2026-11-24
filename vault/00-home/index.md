@@ -49,6 +49,7 @@ Telegram-бот **@lexis_exercise_bot** (учебный; @promargy_toolkitbot �
 
 ## Баги и уроки
 - [[учебный бот это lexis_exercise_bot, а не promargy_toolkitbot]]
+- [[мои темы — пустая лента, темы не читались с диска на Netlify]]
 - [[SDK Telegram стирает tgWebAppData — забирать параметры до SDK]]
 - [[пропуск-прочерк в артиклях ломал сборку из слов]]
 - [[ключ шире ошибки удваивал слова в исправлении]]

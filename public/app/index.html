@@ -2191,14 +2191,22 @@
   }
 
   // --- мои темы: интересы ученика → предложения и лексика ---
-  async function loadInterests() { const r = await api("interests"); if (r && r.ok) state.interests = r; return state.interests; }
-  async function loadFeed() { const r = await api("feed"); if (r && r.ok) state.feed = r; return state.feed; }
+  // при ошибке сети не перезапрашиваем бесконечно (раньше экран «Мои темы» мог зациклиться и грузить сервер) — показываем «Повторить»
+  async function loadInterests() { const r = await api("interests"); if (r && r.ok) { state.interests = r; state.interestsErr = null; } else state.interestsErr = (r && r.error) || "нет связи"; return state.interests; }
+  async function loadFeed() { const r = await api("feed"); if (r && r.ok) { state.feed = r; state.feedErr = null; } else state.feedErr = (r && r.error) || "нет связи"; return state.feed; }
+  const retryHtml = (id, err) => `<div class="notice" style="margin-top:12px">Не удалось загрузить (${esc(err)}).<div style="margin-top:8px"><button class="btn small" id="${id}">Повторить</button></div></div>`;
   function renderInterests(root) {
     const hdr = `<div class="head lavender"><div class="row between"><div>${backLink("Учёба")}<div class="ttl" style="margin-top:6px">🎯 Мои темы</div><div class="sub">предложения и слова по твоим интересам</div></div><button class="fab ghost" id="i-edit" title="Выбрать темы" style="margin-top:22px">✏️</button></div></div>`;
-    if (!state.interests) { root.innerHTML = `${hdr}<div class="notice">Загружаю…</div>`; loadInterests().then(() => renderStudy()); return; }
+    if (!state.interests) {
+      if (state.interestsErr) { root.innerHTML = `${hdr}${retryHtml("i-retry", state.interestsErr)}`; $("#i-retry").addEventListener("click", () => { state.interestsErr = null; renderStudy(); }); return; }
+      root.innerHTML = `${hdr}<div class="notice">Загружаю…</div>`; loadInterests().then(() => renderStudy()); return;
+    }
     const ints = state.interests; const has = ints.picked.length || ints.custom.length;
     if (!has) return go("ipick");
-    if (!state.feed) { root.innerHTML = `${hdr}<div class="notice">Подбираю предложения…</div>`; loadFeed().then(() => renderStudy()); return; }
+    if (!state.feed) {
+      if (state.feedErr) { root.innerHTML = `${hdr}${retryHtml("f-retry", state.feedErr)}`; $("#f-retry").addEventListener("click", () => { state.feedErr = null; renderStudy(); }); return; }
+      root.innerHTML = `${hdr}<div class="notice">Подбираю предложения…</div>`; loadFeed().then(() => renderStudy()); return;
+    }
     const f = state.feed;
     const chips = ints.picked.map((k) => { const c = ints.catalog.find((x) => x.key === k); return c ? `<span class="chip on">${c.emoji} ${esc(c.title)}</span>` : ""; }).join("") + ints.custom.map((c) => `<span class="chip ${c.status === "ready" ? "on" : c.status === "pending" ? "pending" : "err"}">✨ ${esc(c.name)}${c.status === "pending" ? " · готовится" : c.status === "ready" ? "" : c.status === "unavailable" ? " · генерация выключена" : " · ошибка"}</span>`).join("");
     const cards = f.items.map((it, i) => {
@@ -2216,7 +2224,10 @@
     const all = $("#i-addall"); if (all) all.addEventListener("click", async () => { const items = f.items.flatMap((it) => it.vocab.map((v) => ({ en: v.en, ru: v.ru, topic: it.topic }))); const r = await api("interestsAddWords", { items }); if (r && r.ok) { state.vocab = null; toast(`Добавлено: ${r.added}${r.moved ? `, перенесено: ${r.moved}` : ""}`); } });
   }
   function renderInterestPicker(root) {
-    if (!state.interests) { root.innerHTML = `<div class="notice">Загружаю…</div>`; loadInterests().then(() => renderStudy()); return; }
+    if (!state.interests) {
+      if (state.interestsErr) { root.innerHTML = retryHtml("i-retry", state.interestsErr); $("#i-retry").addEventListener("click", () => { state.interestsErr = null; renderStudy(); }); return; }
+      root.innerHTML = `<div class="notice">Загружаю…</div>`; loadInterests().then(() => renderStudy()); return;
+    }
     const ints = state.interests; const st = state.study;
     if (!st.sel) { st.sel = new Set(ints.picked); st.custom = ints.custom.map((c) => c.name); }
     const ORDER = ["Работа и карьера", "Жизнь", "Хобби", "Мир вокруг"];

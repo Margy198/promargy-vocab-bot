@@ -28,6 +28,7 @@ import { STUDENT_NOTION_SEED } from "../lib/student-notion-seed.mjs";
 import { buildTopicDrills } from "../lib/drill-builder.mjs";
 import { dropTranslation } from "../lib/course-builder.mjs";
 import INTEREST_INDEX from "../../data/interests/index.mjs";
+import INTEREST_TOPICS from "../../data/interests/topics.mjs";
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET; // опционально, но рекомендуется
@@ -12589,6 +12590,8 @@ async function readInterestIndex() {
 const interestTopicCache = new Map();
 async function readInterestTopic(key) {
   if (interestTopicCache.has(key)) return interestTopicCache.get(key);
+  // темы вшиты в бандл (topics.mjs) — на Netlify чтение через fs давало пустую ленту
+  if (INTEREST_TOPICS && INTEREST_TOPICS[key]) { interestTopicCache.set(key, INTEREST_TOPICS[key]); return INTEREST_TOPICS[key]; }
   const dir = interestsDir(); if (!dir || !/^[a-z0-9_-]{1,40}$/.test(key)) return null;
   const file = join(dir, `${key}.json`); if (!existsSync(file)) return null;
   const t = JSON.parse(await readFile(file, "utf8")); interestTopicCache.set(key, t); return t;
