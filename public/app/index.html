@@ -1067,18 +1067,27 @@
     for (const l of state.course.levels) for (const t of l.topics) if (t.status === "started" && (!best || (t.updatedAt || "") > (best.t.updatedAt || ""))) best = { l, t: { ...t, level: l.code } };
     return best;
   }
+  // Режим для преподавателя: «Учитель» — вкладка «Учеба» открывается сразу кабинетом; «Ученик» — обычный вид ученика
+  // (курс, «Мои задания» из Notion, свои слова), без карточек учителя. Выбор запоминается на устройстве.
+  const roleGet = () => { try { return localStorage.getItem("role") || "teacher"; } catch (e) { return "teacher"; } };
+  const roleSet = (r) => { try { localStorage.setItem("role", r); } catch (e) {} };
+  const isTeacherMode = () => !!(state.me && state.me.isAdmin) && roleGet() === "teacher";
+  function roleBarHtml() { const r = roleGet(); return `<div class="seg track-seg" id="role-seg" style="justify-content:center"><button data-role="teacher" class="${r === "teacher" ? "on" : ""}">👩‍🏫 Учитель</button><button data-role="student" class="${r === "student" ? "on" : ""}">🎓 Ученик</button></div>`; }
+  function bindRoleBar(root) { root.querySelectorAll("#role-seg button").forEach((b) => b.addEventListener("click", () => { haptic(); roleSet(b.dataset.role); tcache.students = null; go("home"); })); }
   function renderStudyHome(root) {
+    if (isTeacherMode()) return renderTeacher(root, true);
     const c = state.course; const [qe, qr, qa] = quoteOfDay();
     const pct = c.total ? Math.round((c.done / c.total) * 100) : 0;
     const cont = lastStartedTopic();
     const outline = c.categories.filter((x) => x.key !== "bridges").map((x, i) => `<div style="margin-bottom:14px"><div>${i + 1}. ${esc(x.title)}:</div><div class="muted" style="font-size:14px;line-height:1.35">${esc(x.outline)}</div></div>`).join("");
     root.innerHTML = `
+      ${state.me && state.me.isAdmin ? `<div style="margin-bottom:14px">${roleBarHtml()}</div>` : ""}
       <div class="quote"><i>${esc(qe)} — ${esc(qr)}</i><span class="au">©${esc(qa)}</span></div>
       ${c.businessAvailable ? `<div class="seg track-seg" id="track" style="margin-top:14px;justify-content:center"><button data-track="general" class="${c.track !== "business" ? "on" : ""}">📘 Обычный</button><button data-track="business" class="${c.track === "business" ? "on" : ""}">💼 Для работы</button></div>` : ""}
       <div style="text-align:center;margin-top:16px"><h1 style="font-weight:400;font-size:24px">${c.track === "business" ? "Английский для работы" : "Английский"}</h1><div class="muted" style="margin-top:6px;font-size:15px">Всего ${c.total} ${plural(c.total, ["тема", "темы", "тем"])}${c.done ? ` · пройдено ${c.done}` : ""}</div></div>
       <div class="bar" style="margin-top:14px"><i style="width:${Math.max(2, pct)}%"></i></div>
       ${hwCardHtml(c.homework)}
-      ${state.me && state.me.isAdmin ? `<div class="card cream" style="margin-top:14px;cursor:pointer" id="go-teacher"><div class="row between"><div><div style="font-size:17px">👩‍🏫 Кабинет учителя</div><div class="muted" style="color:var(--text-2);opacity:.75;margin-top:2px">ученики, прогресс, домашка</div></div><button class="fab">${iconArrow()}</button></div></div>` : ""}
+      ${false ? `<div class="card cream" style="margin-top:14px;cursor:pointer" id="go-teacher"><div class="row between"><div><div style="font-size:17px">👩‍🏫 Кабинет учителя</div><div class="muted" style="color:var(--text-2);opacity:.75;margin-top:2px">ученики, прогресс, домашка</div></div><button class="fab">${iconArrow()}</button></div></div>` : ""}
       <div class="card outline" style="margin-top:18px">${outline}</div>
       <div style="margin-top:18px"><button class="btn" id="go-topics" style="background:var(--g-aqua);font-size:15px">Далее</button></div>
       ${cont ? `<div class="card aqua" style="margin-top:14px;cursor:pointer" id="continue"><div class="row between"><div><div class="muted" style="color:var(--text-2);opacity:.7">Продолжить · ${esc(lvName(cont.t.level || ""))}</div><div style="font-size:17px;margin-top:2px">${esc(cont.t.emoji || "")} ${esc(cont.t.title)}</div></div><button class="fab">${iconArrow()}</button></div></div>` : ""}
@@ -1106,6 +1115,7 @@
     }));
     const gh = $("#go-hw"); if (gh) gh.addEventListener("click", () => { haptic(); go("homework"); });
     const gt = $("#go-teacher"); if (gt) gt.addEventListener("click", () => { haptic(); go("teacher"); });
+    bindRoleBar(root);
     $("#go-topics").addEventListener("click", () => { haptic(); go("topics"); });
     const cnt = $("#continue"); if (cnt) cnt.addEventListener("click", () => { haptic(); openTopic(cont.t.id); });
     $("#go-notes").addEventListener("click", () => go("notes"));
@@ -1145,13 +1155,13 @@
   function studentName(s) { return s.firstName || (s.username ? "@" + s.username : "Ученик " + s.chatId); }
   function week7Label(s) { const parts = [(s.appSec7 || 0) >= 60 ? fmtMin(s.appSec7) : "", s.appDrills7 ? `${s.appDrills7} зад.` : "", s.answers7 ? `${s.answers7} сл. в боте` : ""].filter(Boolean); return parts.length ? `за 7 дней: ${parts.join(" · ")}` : "за 7 дней: ничего"; }
   function silentLabel(s) { if (s.daysSilent == null) return "ещё не занимался"; if (s.daysSilent === 0) return "сегодня"; if (s.daysSilent === 1) return "вчера"; return `${s.daysSilent} ${plural(s.daysSilent, ["день", "дня", "дней"])} назад`; }
-  async function renderTeacher(root) {
+  async function renderTeacher(root, asHome) {
     const st = state.study; const q = (st.q || "").toLowerCase();
     if (!tcache.students && !st.loading) { st.loading = true; renderStudy(); const r = await api("teacherStudents"); st.loading = false; if (!r || !r.ok) { toast(r && r.error === "forbidden" ? "Кабинет доступен только преподавателю" : "Не удалось загрузить учеников"); return go("home"); } tcache.students = r.students; return renderStudy(); }
     const list = tcache.students || [];
     const rows = list.filter((s) => !q || studentName(s).toLowerCase().includes(q) || (s.username || "").toLowerCase().includes(q));
     const active = list.filter((s) => s.daysSilent != null && s.daysSilent <= 1).length, gone = list.filter((s) => s.daysSilent == null || s.daysSilent >= 7).length, hwOver = list.reduce((a, s) => a + s.hwOverdue, 0);
-    root.innerHTML = `<div class="head cream"><div>${backLink("Учёба")}<div class="ttl" style="margin-top:6px">👩‍🏫 Кабинет учителя</div><div class="sub">${list.length} ${plural(list.length, ["ученик", "ученика", "учеников"])} · по последней активности</div></div></div>
+    root.innerHTML = `<div class="head cream"><div>${asHome ? roleBarHtml() : backLink("Учёба")}<div class="ttl" style="margin-top:6px">👩‍🏫 Кабинет учителя</div><div class="sub">${list.length} ${plural(list.length, ["ученик", "ученика", "учеников"])} · по последней активности</div></div></div>
       ${st.loading ? `<div class="notice" style="margin-top:14px">Загружаю учеников…</div>` : `
       <div class="kpi"><div><b>${active}</b><span>занимались сегодня-вчера</span></div><div><b>${gone}</b><span>пропали 7+ дней</span></div><div><b>${hwOver}</b><span>просроченных домашек</span></div></div>
       <div class="row" style="gap:10px;margin-top:12px;align-items:center"><button class="btn" id="t-assign-all" style="flex:1;white-space:nowrap">📚 Задать домашку</button><button class="btn" id="t-content" style="flex:1;white-space:nowrap">🛠 Контент</button><button class="fab ghost" id="t-refresh" title="Обновить" style="flex:none">↻</button></div>
@@ -1162,6 +1172,7 @@
     if (st.loading) return;
     $("#t-q").addEventListener("input", (e) => { st.q = e.target.value; renderStudy(); setTimeout(() => { const i = $("#t-q"); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }, 0); });
     $("#t-refresh").addEventListener("click", () => { tcache.students = null; tcache.student = {}; renderStudy(); });
+    bindRoleBar(root);
     $("#t-assign-all").addEventListener("click", () => { haptic(); go("hwassign", { chatIds: [] }); });
     bindNotionSeed(st);
     $("#t-content").addEventListener("click", () => { haptic(); go("content"); });
