@@ -1,3 +1,4 @@
+import { splitItems } from "./drill-builder.mjs";
 // Сборка контента курса из Notion — общий модуль для фоновой функции
 // course-rebuild-background и локального скрипта. Это порт scripts/build-course.py
 // на JS: тот же Notion-flavored Markdown на входе (как отдаёт Notion MCP «fetch»),
@@ -201,6 +202,30 @@ function flattenH2Toggles(lines) {
   }
   return out;
 }
+// Упражнения на перевод (RU → EN) в приложение не берем — решение Маргариты (24.11.2026).
+// Признаки: в названии «перевод / переведи / translate», либо большинство пунктов написаны по-русски, а ключ — по-английски.
+const TRANSLATION_TITLE_RX = /перев[ео]д|переведи|translat/i;
+function letters(s, rx) { return (String(s).match(rx) || []).length; }
+export function isTranslationExercise(ex) {
+  const title = stripTags(ex.title || "");
+  if (TRANSLATION_TITLE_RX.test(title)) return true;
+  if (!ex.answers) return false;
+  // творческие задания (ответ — пример, пункты-подсказки по-русски) переводом не считаем
+  if (/творческ|о себе|расскажи|письмо|истори|воспоминан|напиши|составь|ответь|опиши|реплик/i.test(title)) return false;
+  const items = splitItems(ex.html || "").map((h) => stripTags(h).trim()).filter(Boolean);
+  const keys = splitItems(ex.answers || "").map((h) => stripTags(h).trim());
+  if (items.length < 3 || keys.length !== items.length) return false;
+  // перевод: пункт — целое русское предложение без пропусков и без английских слов, ключ — целое английское предложение
+  const ruSentence = (l) => !/_{2,}|…|\.\.\./.test(l) && letters(l, /[A-Za-z]/g) === 0 && (l.match(/[А-Яа-я]{2,}/g) || []).length >= 3;
+  const enSentence = (k) => (k.match(/[A-Za-z']{2,}/g) || []).length >= 3 && letters(k, /[A-Za-z]/g) > letters(k, /[А-Яа-я]/g);
+  const n = items.filter((l, i) => ruSentence(l) && enSentence(keys[i])).length;
+  return n / items.length >= 0.6;
+}
+export function dropTranslation(exercises) {
+  const kept = exercises.filter((e) => !isTranslationExercise(e));
+  return { exercises: kept, dropped: exercises.length - kept.length };
+}
+
 export function buildTopic(meta, body) {
   const lines = flattenH2Toggles(body.split("\n"));
   let k = 0; const pre = [];
@@ -232,10 +257,11 @@ export function buildTopic(meta, body) {
     }
     s.pages = pages;
   }
+  const dt = dropTranslation(exercises);
   return {
     id: meta.id, level: meta.level, n: meta.n, emoji: meta.emoji || "", title: meta.title, kind: meta.kind,
     description: meta.description || "", contains: meta.contains || "",
-    intro, sections, exercises, selfcheck, selfcheckNote,
+    intro, sections, exercises: dt.exercises, selfcheck, selfcheckNote, droppedTranslation: dt.dropped,
   };
 }
 

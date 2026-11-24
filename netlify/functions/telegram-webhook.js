@@ -26,6 +26,7 @@ import COURSE_INDEX from "../../data/course/index.mjs";
 import { guideMenu, guideFromCallback, helpMenu, helpFromCallback, say, ONBOARD_HELLO, ONBOARD_DONE, WELCOME, onboardQuestion } from "../lib/guide.mjs";
 import { STUDENT_NOTION_SEED } from "../lib/student-notion-seed.mjs";
 import { buildTopicDrills } from "../lib/drill-builder.mjs";
+import { dropTranslation } from "../lib/course-builder.mjs";
 import INTEREST_INDEX from "../../data/interests/index.mjs";
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -11983,8 +11984,11 @@ async function readCourseTopicRaw(id) {
 // при отдаче: так они всегда соответствуют текущему тексту в Notion после пересборки.
 const drillCache = new Map();
 async function readCourseTopic(id) {
-  const t = await readCourseTopicRaw(id);
-  if (!t || Array.isArray(t.drills)) return t;
+  let t = await readCourseTopicRaw(id);
+  if (!t) return t;
+  // упражнения на перевод в приложение не берем (решение Маргариты 24.11) — режем и у уже собранных тем
+  if (Array.isArray(t.exercises)) { const dt = dropTranslation(t.exercises); if (dt.dropped) t = { ...t, exercises: dt.exercises, drills: undefined }; }
+  if (Array.isArray(t.drills)) return t;
   const sig = `${t.id}:${(t.exercises || []).length}:${JSON.stringify(t.exercises || []).length}`;
   let built = drillCache.get(sig);
   if (!built) {
@@ -12092,8 +12096,9 @@ async function notionReport() {
     const [identity, st, idx, notify] = await Promise.all([readIdentity(id).catch(() => null), courseStore().get(stuKey(id, "status"), { type: "json" }).catch(() => null), readStuIndex(id), courseStore().get(stuKey(id, "notify"), { type: "json" }).catch(() => null)]);
     const name = identity ? ((identity.registeredName || [identity.firstName, identity.lastName].filter(Boolean).join(" ")) || id) : id;
     const gate = !identity ? " ⛔ не писал боту" : (identity.approved === false && !identity.phrasesAccess ? " ⛔ нет доступа в бота" : "");
-    const n = idx ? idx.topics.length : 0;
-    const last = idx && idx.topics.length ? idx.topics.map((t) => t.createdAt || "").filter(Boolean).sort().slice(-1)[0] : "";
+    const live = idx ? idx.topics.filter((t) => !t.skipped) : [];
+    const n = live.length;
+    const last = live.length ? live.map((t) => t.createdAt || "").filter(Boolean).sort().slice(-1)[0] : "";
     let state;
     if (!st) state = "еще не собиралось";
     else if (st.status === "running") state = `собирается с ${ruStamp(st.startedAt)}`;
@@ -12111,6 +12116,7 @@ async function readStuTopic(chatId, id) {
   const link = await readStuLink(chatId); if (!link) return null;
   let t = null; try { t = await courseStore().get(stuKey(chatId, `topic:${id}`), { type: "json" }); } catch (e) { t = null; }
   if (!t || !t.id) return null;
+  if (Array.isArray(t.exercises)) t = { ...t, exercises: dropTranslation(t.exercises).exercises };
   try { const r = buildTopicDrills(t); return { ...t, drills: r.drills, drillLeads: r.leads }; } catch (e) { console.error("stu drills", id, e && e.message); return { ...t, drills: [], drillLeads: {} }; }
 }
 // Сообщение ученику о новых заданиях из Notion. Шлем только тем, кого пускает бот; обращение — как выбрано в «Аккаунте».
@@ -12136,8 +12142,8 @@ async function stuNotionPayload(chatId) {
   const [link, rawIndex, status] = await Promise.all([safe("link"), safe("index"), safe("status")]);
   if (!link) return { linked: false };
   const index = rawIndex && Array.isArray(rawIndex.topics) ? rawIndex : null;
-  return { linked: true, url: link.url || "", linkedAt: link.at || null, builtAt: index ? index.builtAt : null, pages: index ? index.topics.length : 0,
-    exercises: index ? index.topics.reduce((a, t) => a + (t.exercises || 0), 0) : 0, status: status ? { status: status.status, error: status.error || null, updatedAt: status.updatedAt, log: (status.log || []).slice(-12) } : null };
+  return { linked: true, url: link.url || "", linkedAt: link.at || null, builtAt: index ? index.builtAt : null, pages: index ? index.topics.filter((t) => !t.skipped).length : 0,
+    exercises: index ? index.topics.reduce((a, t) => a + (t.exercises || 0), 0) : 0, skipped: index ? index.topics.filter((t) => t.skipped).length : 0, status: status ? { status: status.status, error: status.error || null, updatedAt: status.updatedAt, log: (status.log || []).slice(-12) } : null };
 }
 // Ссылка Notion → id страницы. У строки базы, открытой сбоку, адрес «<база>?v=…&p=<страница>» — страница в p.
 function notionPageIdFromUrl(url) {
@@ -12303,7 +12309,7 @@ async function appCoursePayload(chatId) {
   const stuIndex = (await readStuLink(chatId)) ? await readStuIndex(chatId) : null;
   let mine = null;
   if (stuIndex && stuIndex.topics.length) {
-    const byDate = stuIndex.topics.slice().reverse().sort((x, y) => String(y.createdAt || "").localeCompare(String(x.createdAt || "")));
+    const byDate = stuIndex.topics.filter((t) => !t.skipped).slice().reverse().sort((x, y) => String(y.createdAt || "").localeCompare(String(x.createdAt || "")));
     const topics = byDate.map((t) => ({ id: t.id, n: t.n, emoji: t.emoji || "📒", title: t.title, kind: "topic", createdAt: t.createdAt || null, description: `${ruDate(t.createdAt)}${t.createdAt ? " · " : ""}${t.exercises ? `${t.exercises} упр.` : "материал"}`, contains: "", level: "", mine: true, status: courseTopicStatus(null, t.id, progress), updatedAt: (progress.topics[t.id] || {}).updatedAt || null }));
     mine = { key: "mine", title: "📒 Мои задания", outline: "задания от преподавателя из Notion", topics, total: topics.length, done: topics.filter((t) => t.status === "done").length, status: categoryStatus(topics), builtAt: stuIndex.builtAt };
     categories.unshift(mine);

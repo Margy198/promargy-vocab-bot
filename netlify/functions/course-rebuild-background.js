@@ -264,7 +264,7 @@ async function deliverStudentNotice(chatId, log) {
   }
   log.push(`уведомление не отправлено (${last}) — повторю при следующем обновлении`);
 }
-const STU_VERSION = 2; // менять при правке разбора — тогда страницы пересоберутся, даже если не менялись
+const STU_VERSION = 3; // менять при правке разбора — тогда страницы пересоберутся, даже если не менялись
 const STU_MAX_PAGES = 60;
 async function runStudent(body) {
   const chatId = String(body.chatId || "");
@@ -318,6 +318,13 @@ async function runStudent(body) {
         const norm = normalizeHomework(blocksToMarkdown(tree, tt), title);
         const topic = buildTopic({ id: pg.id, level: "", n: i + 1, emoji: pt.emoji || "📒", title, kind: "topic", description: "", contains: "" }, norm.md);
         topic.source = "notion-student"; topic.createdAt = createdAt;
+        if (topic.droppedTranslation) log.push(`«${title.slice(0, 40)}»: упражнений на перевод пропущено: ${topic.droppedTranslation} (в приложение не берем)`);
+        if (!topic.exercises.length && !topic.sections.length) {
+          log.push(`«${title.slice(0, 40)}»: только перевод — страницу в приложение не берем`);
+          try { await store().delete(key(`topic:${pg.id}`)); } catch (e) {}
+          topics.push({ id: pg.id, n: i + 1, emoji: topic.emoji, title, editedAt, createdAt, exercises: 0, withKey: 0, theory: false, skipped: true });
+          continue;
+        }
         await store().setJSON(key(`topic:${pg.id}`), topic);
         rebuilt += 1;
         for (const l of norm.log) log.push(`«${title.slice(0, 40)}»: ${l}`);
