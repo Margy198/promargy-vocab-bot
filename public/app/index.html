@@ -1088,7 +1088,7 @@
       <div class="bar" style="margin-top:14px"><i style="width:${Math.max(2, pct)}%"></i></div>
       ${hwCardHtml(c.homework)}
       ${c.mine ? `<div class="card pink" style="margin-top:14px;cursor:pointer" id="go-mine"><div class="row between"><div><div style="font-size:17px">📒 Задания из Notion</div><div class="muted" style="color:var(--text-2);opacity:.75;margin-top:2px">основные задания от преподавателя · ${c.mine.total} ${plural(c.mine.total, ["страница", "страницы", "страниц"])}${c.mine.done ? ` · пройдено ${c.mine.done}` : ""}</div></div><button class="fab">${iconArrow()}</button></div></div>` : ""}
-      ${!c.mine ? `<div class="card pink" style="margin-top:14px"><div style="font-size:17px">📒 Задания из Notion</div><div class="muted" style="color:var(--text-2);opacity:.75;margin-top:2px">здесь будут основные задания от преподавателя — страница Notion пока не привязана</div></div>` : ""}
+      ${!c.mine ? `<div class="card pink" style="margin-top:14px"><div style="font-size:17px">📒 Задания из Notion</div><div class="muted" style="color:var(--text-2);opacity:.75;margin-top:2px">${state.me && state.me.isAdmin ? "к этому аккаунту страница Notion не привязана — вставь ссылку на свою страницу (или «Домашнее»)" : "здесь будут основные задания от преподавателя — страница Notion пока не привязана"}</div>${state.me && state.me.isAdmin ? `<div class="row" style="margin-top:8px"><input class="txt" id="self-url" placeholder="https://www.notion.so/…" /><button class="btn small" id="self-link">Привязать</button></div>` : ""}</div>` : ""}
       ${c.mistakes14 ? `<div class="card lavender" style="margin-top:14px;cursor:pointer" id="go-mist"><div class="row between"><div><div style="font-size:17px">🔁 Мои ошибки</div><div class="muted" style="color:var(--text-2);opacity:.75;margin-top:2px">${c.mistakes14} ${plural(c.mistakes14, ["задание", "задания", "заданий"])} за две недели, где ${gend("ошибся", "ошиблась")} — повтори</div></div><button class="fab">${iconArrow()}</button></div></div>` : ""}
       ${cont ? `<div class="card aqua" style="margin-top:14px;cursor:pointer" id="continue"><div class="row between"><div><div class="muted" style="color:var(--text-2);opacity:.7">Продолжить · ${esc(lvName(cont.t.level || ""))}</div><div style="font-size:17px;margin-top:2px">${esc(cont.t.emoji || "")} ${esc(cont.t.title)}</div></div><button class="fab">${iconArrow()}</button></div></div>` : ""}
       <div class="card aqua" style="margin-top:14px;cursor:pointer" id="go-topics"><div class="row between"><div><div style="font-size:17px">📚 Отработать другие темы</div><div class="muted" style="color:var(--text-2);opacity:.75;margin-top:2px">курс A0–C1 · ${c.total} ${plural(c.total, ["тема", "темы", "тем"])} · пройдено ${c.done}</div></div><button class="fab">${iconArrow()}</button></div></div>
@@ -1099,6 +1099,14 @@
     const gp = $("#go-plan"); if (gp) gp.addEventListener("click", () => { haptic(); go("plan"); });
     // «Обычный / Для работы»: та же грамматика, примеры и упражнения из рабочей среды; прогресс у каждой версии свой
     const gmi = $("#go-mist"); if (gmi) gmi.addEventListener("click", () => { haptic(); openMistakes(); });
+    // преподаватель в режиме ученика: привязать страницу Notion к своему аккаунту (его нет в списке учеников кабинета)
+    const sl = $("#self-link"); if (sl) sl.addEventListener("click", async () => {
+      const url = ($("#self-url").value || "").trim(); if (!url) return toast("Вставь ссылку на страницу");
+      haptic(); sl.disabled = true; const r = await api("notionLink", { chatId: state.me.user.chatId, url });
+      if (!r || !r.ok) { sl.disabled = false; return toast(r && r.error ? `Не привязалось: ${r.error}` : "Не привязалось"); }
+      toast("Привязано — читаю страницы, 1–3 минуты"); $("#self-url").value = ""; sl.textContent = "Читаю…";
+      setTimeout(async () => { const n = await api("course"); if (n && n.ok) { state.course = n; cacheSet("course", n); if (state.study.view === "home") renderStudy(); } }, 60000);
+    });
     const gm = $("#go-mine"); if (gm) gm.addEventListener("click", () => {
       haptic(); go("category", { key: "mine", from: "home" });
       // список старше получаса — тихо перечитываем Notion, чтобы новые задания появились без участия преподавателя
