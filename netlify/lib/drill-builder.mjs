@@ -215,6 +215,35 @@ const ADJ_VERB = new Set(["open", "close", "clean", "clear", "dry", "empty", "fr
 const SUBJ_BE = { i: "am", he: "is", she: "is", it: "is", we: "are", you: "are", they: "are" };
 const BOTH_GER_INF = new Set(["like", "love", "hate", "prefer", "start", "begin", "continue", "intend", "bother", "propose"]);
 // Возвращает список заведомо неверных вариантов (без правильного)
+// ---------- варианты для короткого ответа из подсказки: «(I + OWN)» → my own / I own / own / me own ----------
+// Маргарита (24.11): пропуск с подсказкой в скобках должен стать выбором из вариантов, а не полем ввода.
+const PRON = [["i", "me", "my", "mine", "myself"], ["you", "you", "your", "yours", "yourself"], ["he", "him", "his", "his", "himself"], ["she", "her", "her", "hers", "herself"], ["it", "it", "its", "its", "itself"], ["we", "us", "our", "ours", "ourselves"], ["they", "them", "their", "theirs", "themselves"]];
+const SWAP_SETS = [["in", "on", "at"], ["for", "since", "during"], ["some", "any", "no"], ["few", "little", "a few", "a little"], ["much", "many", "a lot of"], ["who", "which", "that", "whose"], ["a", "an", "the"], ["to", "for", "of"], ["by", "with"], ["if", "whether", "unless"], ["so", "such"], ["too", "enough", "very"], ["other", "another", "others", "the other"], ["still", "yet", "already"], ["as", "like"], ["because", "because of", "due to"], ["despite", "although", "in spite of"], ["can", "could", "be able to"], ["must", "have to", "should"], ["used to", "would", "get used to"]];
+export function hintDistractors(ans, hint, ctx) {
+  const c = ans.toLowerCase().replace(/\s+/g, " ").trim();
+  const words = c.split(" ");
+  const out = [];
+  // трансформации («→») и длинные ответы — это сборка из слов, не выбор
+  if (words.length > 3 || (ctx && ctx.arrow)) return out;
+  const push = (v) => { v = String(v).replace(/\s+/g, " ").trim(); if (v && v !== c) out.push(v); };
+  // 1) подсказка как есть: (I + OWN) → «I own», «own»; слова подсказки в другом порядке
+  const hw = hint && hint.words ? hint.words.map((x) => x.replace(/[+,]/g, "").trim()).filter((x) => /^[a-z'’-]+$/i.test(x)) : [];
+  if (hint && hint.words && hw.length !== hint.words.filter((x) => x.replace(/[+,]/g, "").trim()).length) hw.length = 0; // подсказка с русским текстом — не вариант
+  if (hw.length >= 2) { push(hw.join(" ")); push(hw[hw.length - 1]); }
+  if (hw.length === 1 && words.length >= 2 && !words.includes(hw[0])) push(hw[0]);
+  // 2) формы местоимений: my own → me own / mine own
+  words.forEach((w, i) => { for (const row of PRON) if (row.includes(w)) for (const f of [...new Set(row)]) if (f !== w) push([...words.slice(0, i), f, ...words.slice(i + 1)].join(" ")); });
+  if (hw.length >= 2) push(hw.slice().reverse().join(" "));
+  // 3) служебные слова: in/on/at, some/any, a/an/the…
+  const badSwap = (w, x) => (w === "a" && x === "an") || (w === "an" && x === "a"); // «an piece» — не ошибка, а мусор
+  words.forEach((w, i) => { for (const g of SWAP_SETS) if (g.includes(w)) for (const x of g) if (x !== w && !badSwap(w, x)) push([...words.slice(0, i), x, ...words.slice(i + 1)].join(" ")); });
+  for (const g of SWAP_SETS) if (g.includes(c)) for (const x of g) if (!badSwap(c, x)) push(x);
+  // 4) без одного слова — только когда есть подсказка (иначе получается мусор)
+  if (hw.length >= 2 && words.length >= 2) { push(words.slice(1).join(" ")); push(words.slice(0, -1).join(" ")); }
+  const okSet = new Set((ctx && ctx.ok) || []);
+  const capI = (v) => v.replace(/(^|\s)i(?=\s|$)/g, "$1I");
+  return [...new Set(out)].filter((w) => !okSet.has(w) && /^[A-Za-z'’ -]+$/.test(w)).map(capI);
+}
 const MODALS = new Set(["will", "would", "can", "could", "must", "should", "may", "might", "shall", "ought", "need", "dare"]);
 export function verbDistractors(correct, ctx) {
   const c = correct.toLowerCase().replace(/\s+/g, " ").trim();
@@ -620,9 +649,16 @@ export function buildDrill(ex, i, qHtml, aHtml, meta) {
         if (swap[c] && !okSet.has(norm(swap[c]))) wrongs.unshift(swap[c]);
       }
     }
+    // мало вариантов → добираем из подсказки и форм слов (my own / I own / own / me own)
+    let cap = 2;
+    if (!skipGen && wrongs.length < 2 && ans.split(" ").length <= 4 && /^[A-Za-z' ]+$/.test(ans)) {
+      cap = 3;
+      const okSet = new Set([ans, ...key.alts, ...key.main.split(/\s*\/\s*/)].map(norm));
+      wrongs = wrongs.concat(hintDistractors(ans, hint, { ok: [...okSet], arrow: /→|->/.test(qText) }).filter((w) => !okSet.has(norm(w))));
+    }
     // регистр как у правильного ответа (в начале предложения — с заглавной)
     if (/^[A-Z]/.test(ans)) wrongs = wrongs.map((w) => w.charAt(0).toUpperCase() + w.slice(1));
-    wrongs = [...new Set(wrongs)].filter((w) => norm(w) !== norm(ans)).slice(0, 2);
+    wrongs = [...new Set(wrongs)].filter((w) => norm(w) !== norm(ans)).slice(0, cap);
     if (wrongs.length >= 1) {
       const opts = [ans, ...wrongs];
       return { ...base, type: "choice", options: opts, correct: 0, src: "gen", hint: hint ? hint.raw : "" };
@@ -680,6 +716,13 @@ function typeDrill(base, key, blanks) {
   const variants = main.split(/\s+\/\s+|\s+или\s+/).flatMap((x) => (x.split(/\s+/).length > 1 ? expand(x) : x.split("/"))).map((x) => x.replace(/[.!?]$/, "").replace(/^-/, "").trim()).filter(Boolean).concat(key.alts || []);
   const eng = variants.filter((v) => /^['’]?[A-Za-z][A-Za-z'’ -]*$/.test(v) && v.split(/\s+/).length <= 4);
   if (!eng.length || eng.length !== variants.length) return null;
+  // сначала пробуем сделать выбор: варианты из подсказки и форм слов
+  const okSet = new Set(eng.map((x) => x.toLowerCase()));
+  const ans = eng[0]; const hint = parseHint(htmlToText(base.q || ""));
+  let wrongs = hintDistractors(ans, hint, { ok: [...okSet], arrow: /→|->/.test(htmlToText(base.q || "")) }).filter((w) => !okSet.has(w.toLowerCase()));
+  if (/^[A-Z]/.test(ans)) wrongs = wrongs.map((w) => w.charAt(0).toUpperCase() + w.slice(1));
+  wrongs = [...new Set(wrongs)].slice(0, 3);
+  if (wrongs.length >= 2) return { ...base, type: "choice", options: [ans, ...wrongs], correct: 0, src: "hint", accept: [...new Set(eng)] };
   return { ...base, type: "type", answer: eng[0], accept: [...new Set(eng)] };
 }
 
