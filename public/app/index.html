@@ -465,7 +465,7 @@
     const levels = idx.levels.map((lv) => { const topics = lv.topics.map(ws); const main = topics.filter((t) => t.kind === "topic"); return { code: lv.code, title: lv.title, emoji: lv.emoji, intro: lv.intro, checkpoint: lv.checkpoint, topics, total: main.length, done: main.filter((t) => t.status === "done").length, started: main.filter((t) => t.status === "started").length }; });
     const categories = idx.categories.map((c) => { const topics = c.topics.map((id) => byId.get(id)).filter(Boolean).map(ws); const status = topics.every((t) => t.status === "done") ? "done" : topics.some((t) => t.status === "done" || t.status === "started") ? "started" : topics.some((t) => t.status === "available") ? "available" : "locked"; return { key: c.key, title: c.title, outline: c.outline, topics, total: topics.length, done: topics.filter((t) => t.status === "done").length, status }; });
     let mine = null;
-    if (window.__demoMine) { const topics = window.__demoMine.topics.map((t, i) => ws({ id: t.id, n: i + 1, emoji: t.emoji || "📒", title: t.title, kind: "topic", createdAt: t.createdAt || null, description: `${t.createdAt ? new Date(t.createdAt).toLocaleDateString("ru-RU") + " · " : ""}${t.exercises.length} упр.`, contains: "", level: "", mine: true })).map((t) => ({ ...t, status: t.status === "locked" ? "available" : t.status })); categories.unshift({ key: "mine", title: "📒 Мои задания", outline: "задания от преподавателя из Notion", topics, total: topics.length, done: topics.filter((t) => t.status === "done").length, status: "available" }); mine = { total: topics.length, done: topics.filter((t) => t.status === "done").length }; }
+    if (window.__demoMine) { const topics = window.__demoMine.topics.map((t, i) => ws({ id: t.id, n: i + 1, emoji: t.emoji || "📒", title: t.title, kind: "topic", createdAt: t.createdAt || null, description: `${t.createdAt ? new Date(t.createdAt).toLocaleDateString("ru-RU") + " · " : ""}${t.exercises.length} упр.`, contains: "", level: "", mine: true })).map((t) => ({ ...t, status: t.status === "locked" ? "available" : t.status })); categories.unshift({ key: "mine", title: "📒 Задания из Notion", outline: "задания от преподавателя из Notion", topics, total: topics.length, done: topics.filter((t) => t.status === "done").length, status: "available" }); mine = { total: topics.length, done: topics.filter((t) => t.status === "done").length }; }
     const all = levels.flatMap((l) => l.topics.filter((t) => t.kind === "topic"));
     demoHomework(); for (const h of demoCourse.hw) if (!h.topicId) { const t = all.find((x) => x.title === h.title) || all[0]; h.topicId = t.id; }
     return { ok: true, track: demoCourse.track || "general", businessAvailable: true, plan: demoCourse.plan || { 1: { theory: "2026-07-05T10:00:00Z", practice: "2026-07-06T10:00:00Z" }, 3: { theory: "2026-07-05T10:00:00Z" } }, levels, categories, level: demoCourse.level, total: all.length, done: all.filter((t) => t.status === "done").length, homework: demoHomework(), mine, mistakes14: window.__demoMistakes ? window.__demoMistakes.total : 0 };
@@ -1026,7 +1026,7 @@
   }
   // сквозные бизнес-блоки лежат в «уровне» BIZ
   const lvName = (code) => (code === "BIZ" ? "💼 Блоки" : code || "");
-  function findTopicMeta(id) { for (const l of state.course.levels) for (const t of l.topics) if (t.id === id) return { level: l, meta: t }; const mine = (state.course.categories || []).find((c) => c.key === "mine"); const mt = mine && mine.topics.find((t) => t.id === id); return mt ? { level: { code: "", title: "Мои задания" }, meta: mt } : null; }
+  function findTopicMeta(id) { for (const l of state.course.levels) for (const t of l.topics) if (t.id === id) return { level: l, meta: t }; const mine = (state.course.categories || []).find((c) => c.key === "mine"); const mt = mine && mine.topics.find((t) => t.id === id); return mt ? { level: { code: "", title: "Задания из Notion" }, meta: mt } : null; }
   function categoryOfTopic(id) { for (const c of state.course.categories) if (c.topics.some((t) => t.id === id)) return c.key; return null; }
   function findCategory(key) { return state.course.categories.find((c) => c.key === key) || null; }
   function topicCardsHtml(topics, withLevel) {
@@ -1068,7 +1068,7 @@
     return best;
   }
   // Режим для преподавателя: «Учитель» — вкладка «Учеба» открывается сразу кабинетом; «Ученик» — обычный вид ученика
-  // (курс, «Мои задания» из Notion, свои слова), без карточек учителя. Выбор запоминается на устройстве.
+  // (курс, «Задания из Notion» из Notion, свои слова), без карточек учителя. Выбор запоминается на устройстве.
   const roleGet = () => { try { return localStorage.getItem("role") || "teacher"; } catch (e) { return "teacher"; } };
   const roleSet = (r) => { try { localStorage.setItem("role", r); } catch (e) {} };
   const isTeacherMode = () => !!(state.me && state.me.isAdmin) && roleGet() === "teacher";
@@ -1087,14 +1087,12 @@
       <div style="text-align:center;margin-top:16px"><h1 style="font-weight:400;font-size:24px">${c.track === "business" ? "Английский для работы" : "Английский"}</h1><div class="muted" style="margin-top:6px;font-size:15px">Всего ${c.total} ${plural(c.total, ["тема", "темы", "тем"])}${c.done ? ` · пройдено ${c.done}` : ""}</div></div>
       <div class="bar" style="margin-top:14px"><i style="width:${Math.max(2, pct)}%"></i></div>
       ${hwCardHtml(c.homework)}
-      ${false ? `<div class="card cream" style="margin-top:14px;cursor:pointer" id="go-teacher"><div class="row between"><div><div style="font-size:17px">👩‍🏫 Кабинет учителя</div><div class="muted" style="color:var(--text-2);opacity:.75;margin-top:2px">ученики, прогресс, домашка</div></div><button class="fab">${iconArrow()}</button></div></div>` : ""}
-      <div class="card outline" style="margin-top:18px">${outline}</div>
-      <div style="margin-top:18px"><button class="btn" id="go-topics" style="background:var(--g-aqua);font-size:15px">Далее</button></div>
-      ${cont ? `<div class="card aqua" style="margin-top:14px;cursor:pointer" id="continue"><div class="row between"><div><div class="muted" style="color:var(--text-2);opacity:.7">Продолжить · ${esc(lvName(cont.t.level || ""))}</div><div style="font-size:17px;margin-top:2px">${esc(cont.t.emoji || "")} ${esc(cont.t.title)}</div></div><button class="fab">${iconArrow()}</button></div></div>` : ""}
-      ${c.track !== "business" ? `<div class="card aqua" style="margin-top:14px;cursor:pointer" id="go-plan"><div class="row between"><div><div style="font-size:17px">🗺 Мой план</div><div class="muted" style="color:var(--text-2);opacity:.75;margin-top:2px">${STUDY_PLAN.length} тем по порядку · отмечено ${STUDY_PLAN.filter((x) => planDone(x).theory && planDone(x).practice).length}</div></div><button class="fab">${iconArrow()}</button></div></div>` : ""}
+      ${c.mine ? `<div class="card pink" style="margin-top:14px;cursor:pointer" id="go-mine"><div class="row between"><div><div style="font-size:17px">📒 Задания из Notion</div><div class="muted" style="color:var(--text-2);opacity:.75;margin-top:2px">основные задания от преподавателя · ${c.mine.total} ${plural(c.mine.total, ["страница", "страницы", "страниц"])}${c.mine.done ? ` · пройдено ${c.mine.done}` : ""}</div></div><button class="fab">${iconArrow()}</button></div></div>` : ""}
+      ${!c.mine ? `<div class="card pink" style="margin-top:14px"><div style="font-size:17px">📒 Задания из Notion</div><div class="muted" style="color:var(--text-2);opacity:.75;margin-top:2px">здесь будут основные задания от преподавателя — страница Notion пока не привязана</div></div>` : ""}
       ${c.mistakes14 ? `<div class="card lavender" style="margin-top:14px;cursor:pointer" id="go-mist"><div class="row between"><div><div style="font-size:17px">🔁 Мои ошибки</div><div class="muted" style="color:var(--text-2);opacity:.75;margin-top:2px">${c.mistakes14} ${plural(c.mistakes14, ["задание", "задания", "заданий"])} за две недели, где ${gend("ошибся", "ошиблась")} — повтори</div></div><button class="fab">${iconArrow()}</button></div></div>` : ""}
-      ${c.mine ? `<div class="card pink" style="margin-top:14px;cursor:pointer" id="go-mine"><div class="row between"><div><div style="font-size:17px">📒 Мои задания</div><div class="muted" style="color:var(--text-2);opacity:.75;margin-top:2px">от преподавателя · ${c.mine.total} ${plural(c.mine.total, ["страница", "страницы", "страниц"])}${c.mine.done ? ` · пройдено ${c.mine.done}` : ""}</div></div><button class="fab">${iconArrow()}</button></div></div>` : ""}
-      <div class="card lavender" style="margin-top:14px;cursor:pointer" id="go-interests"><div class="row between"><div><div style="font-size:17px">🎯 Мои темы</div><div class="muted" style="color:var(--text-2);opacity:.75;margin-top:2px">предложения и слова по тому, что интересно именно тебе</div></div><button class="fab">${iconArrow()}</button></div></div>
+      ${cont ? `<div class="card aqua" style="margin-top:14px;cursor:pointer" id="continue"><div class="row between"><div><div class="muted" style="color:var(--text-2);opacity:.7">Продолжить · ${esc(lvName(cont.t.level || ""))}</div><div style="font-size:17px;margin-top:2px">${esc(cont.t.emoji || "")} ${esc(cont.t.title)}</div></div><button class="fab">${iconArrow()}</button></div></div>` : ""}
+      <div class="card aqua" style="margin-top:14px;cursor:pointer" id="go-topics"><div class="row between"><div><div style="font-size:17px">📚 Отработать другие темы</div><div class="muted" style="color:var(--text-2);opacity:.75;margin-top:2px">курс A0–C1 · ${c.total} ${plural(c.total, ["тема", "темы", "тем"])} · пройдено ${c.done}</div></div><button class="fab">${iconArrow()}</button></div></div>
+      <div class="card lavender" style="margin-top:14px;cursor:pointer" id="go-interests"><div class="row between"><div><div style="font-size:17px">✨ Темы для генерации предложений</div><div class="muted" style="color:var(--text-2);opacity:.75;margin-top:2px">предложения и слова по тому, что интересно именно тебе</div></div><button class="fab">${iconArrow()}</button></div></div>
       <div class="row" style="margin-top:12px;gap:10px"><button class="btn" id="go-notes" style="flex:1">📝 Заметки</button><button class="btn" id="go-slang" style="flex:1">💬 Сленг</button></div>
       <div style="height:8px"></div>`;
     $("#go-interests").addEventListener("click", () => { haptic(); go("interests"); });
@@ -1226,7 +1224,7 @@
     const apply = (r) => { d.notion = r.notion; tcache.student[id] = d; if (state.study.view === "tstudent" && state.study.chatId === id) renderStudy(); };
     const lk = $("#n-link"); if (lk) lk.addEventListener("click", async () => { const url = ($("#n-url").value || "").trim(); if (!url) return toast("Вставь ссылку на страницу"); haptic(); lk.disabled = true; const r = await api("notionLink", { chatId: id, url }); if (!r || !r.ok) { lk.disabled = false; return fail(r); } if (r.startError) fail(r); else notionWait[id] = Date.now() + 180000; apply(r); });
     const sy = $("#n-sync"); if (sy) sy.addEventListener("click", async () => { haptic(); sy.disabled = true; const r = await api("notionSync", { chatId: id }); if (r && r.ok) notionWait[id] = Date.now() + 180000; if (r && r.notion) apply(r); if (!r || !r.ok) fail(r); });
-    const ul = $("#n-unlink"); if (ul) ul.addEventListener("click", async () => { if (!(await confirmSheet("Отвязать страницу Notion? Ученик перестанет видеть «Мои задания». Страницы в Notion останутся.", "Отвязать"))) return; const r = await api("notionUnlink", { chatId: id }); if (r && r.ok) { apply(r); toast("Отвязано"); } else fail(r); });
+    const ul = $("#n-unlink"); if (ul) ul.addEventListener("click", async () => { if (!(await confirmSheet("Отвязать страницу Notion? Ученик перестанет видеть «Задания из Notion». Страницы в Notion останутся.", "Отвязать"))) return; const r = await api("notionUnlink", { chatId: id }); if (r && r.ok) { apply(r); toast("Отвязано"); } else fail(r); });
     // пока идет сборка — раз в 4 секунды спрашиваем статус
     clearTimeout(notionPoll);
     const waiting = notionWait[id] && Date.now() < notionWait[id];
@@ -2196,7 +2194,7 @@
   async function loadFeed() { const r = await api("feed"); if (r && r.ok) { state.feed = r; state.feedErr = null; } else state.feedErr = (r && r.error) || "нет связи"; return state.feed; }
   const retryHtml = (id, err) => `<div class="notice" style="margin-top:12px">Не удалось загрузить (${esc(err)}).<div style="margin-top:8px"><button class="btn small" id="${id}">Повторить</button></div></div>`;
   function renderInterests(root) {
-    const hdr = `<div class="head lavender"><div class="row between"><div>${backLink("Учёба")}<div class="ttl" style="margin-top:6px">🎯 Мои темы</div><div class="sub">предложения и слова по твоим интересам</div></div><button class="fab ghost" id="i-edit" title="Выбрать темы" style="margin-top:22px">✏️</button></div></div>`;
+    const hdr = `<div class="head lavender"><div class="row between"><div>${backLink("Учёба")}<div class="ttl" style="margin-top:6px">✨ Темы для генерации предложений</div><div class="sub">предложения и слова по твоим интересам</div></div><button class="fab ghost" id="i-edit" title="Выбрать темы" style="margin-top:22px">✏️</button></div></div>`;
     if (!state.interests) {
       if (state.interestsErr) { root.innerHTML = `${hdr}${retryHtml("i-retry", state.interestsErr)}`; $("#i-retry").addEventListener("click", () => { state.interestsErr = null; renderStudy(); }); return; }
       root.innerHTML = `${hdr}<div class="notice">Загружаю…</div>`; loadInterests().then(() => renderStudy()); return;
@@ -2232,7 +2230,7 @@
     if (!st.sel) { st.sel = new Set(ints.picked); st.custom = ints.custom.map((c) => c.name); }
     const ORDER = ["Работа и карьера", "Жизнь", "Хобби", "Мир вокруг"];
     const groups = [...new Set(ints.catalog.map((c) => c.group))].sort((a, b) => (ORDER.indexOf(a) + 99) % 99 - (ORDER.indexOf(b) + 99) % 99);
-    root.innerHTML = `<div class="head lavender"><div>${backLink("Мои темы")}<div class="ttl" style="margin-top:6px">Что тебе интересно?</div><div class="sub">выбери несколько тем — предложения и слова будут про это</div></div></div>
+    root.innerHTML = `<div class="head lavender"><div>${backLink("Темы для предложений")}<div class="ttl" style="margin-top:6px">Что тебе интересно?</div><div class="sub">выбери несколько тем — предложения и слова будут про это</div></div></div>
       ${groups.map((g) => `<h2 style="margin:14px 0 8px">${esc(g)}</h2><div>${ints.catalog.filter((c) => c.group === g).map((c) => `<span class="chip ${st.sel.has(c.key) ? "on" : ""}" data-k="${c.key}">${c.emoji} ${esc(c.title)}</span>`).join("")}</div>`).join("")}
       <h2 style="margin:16px 0 8px">Своя тема</h2>
       <div>${st.custom.map((n, i) => `<span class="chip on" data-c="${i}">✨ ${esc(n)} ✕</span>`).join("")}</div>
@@ -2248,7 +2246,7 @@
   function renderInterestQuiz(root) {
     const f = state.feed; const st = state.study; if (!f || !f.items.length) return go("interests");
     const items = f.items; const i = st.i || 0;
-    if (i >= items.length) { root.innerHTML = `<div class="head lavender"><div>${backLink("Мои темы")}<div class="ttl" style="margin-top:6px">⚡ Итог</div></div></div><div class="card aqua" style="text-align:center"><div class="big">${st.score}<span style="font-size:20px;color:var(--muted)"> / ${items.length}</span></div><div style="margin-top:6px">${st.score === items.length ? "Идеально! 🎉" : "Хорошо — завтра будут новые предложения"}</div></div><div class="navbtns"><button class="btn" id="q-again">Ещё раз</button><button class="btn primary" id="q-back">К предложениям</button></div>`; $("#q-again").addEventListener("click", () => go("iquiz", { i: 0, score: 0 })); $("#q-back").addEventListener("click", () => go("interests")); return; }
+    if (i >= items.length) { root.innerHTML = `<div class="head lavender"><div>${backLink("Темы для предложений")}<div class="ttl" style="margin-top:6px">⚡ Итог</div></div></div><div class="card aqua" style="text-align:center"><div class="big">${st.score}<span style="font-size:20px;color:var(--muted)"> / ${items.length}</span></div><div style="margin-top:6px">${st.score === items.length ? "Идеально! 🎉" : "Хорошо — завтра будут новые предложения"}</div></div><div class="navbtns"><button class="btn" id="q-again">Ещё раз</button><button class="btn primary" id="q-back">К предложениям</button></div>`; $("#q-again").addEventListener("click", () => go("iquiz", { i: 0, score: 0 })); $("#q-back").addEventListener("click", () => go("interests")); return; }
     const it = items[i]; const target = it.vocab[(i + (st.score || 0)) % it.vocab.length] || it.vocab[0];
     const re = new RegExp(target.en.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
     const qEn = esc(it.en).replace(new RegExp(esc(target.en).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), `<code>${"_".repeat(Math.min(10, Math.max(4, target.en.length)))}</code>`);
@@ -2259,7 +2257,7 @@
     const opts = st.opts && st.optsFor === i ? st.opts : seededShuffle([target.en, ...seededShuffle(others, i * 13 + 7).slice(0, 2)], i * 31 + 3).map((t) => ({ text: t, ok: t === target.en }));
     st.opts = opts; st.optsFor = i;
     const answered = st.picked !== null && st.picked !== undefined;
-    root.innerHTML = `<div class="head lavender"><div>${backLink("Мои темы")}<div class="ttl" style="margin-top:6px">⚡ Тренировка</div><div class="sub">${esc(it.emoji || "")} ${esc(it.topic)} · ${i + 1} из ${items.length}</div></div></div>
+    root.innerHTML = `<div class="head lavender"><div>${backLink("Темы для предложений")}<div class="ttl" style="margin-top:6px">⚡ Тренировка</div><div class="sub">${esc(it.emoji || "")} ${esc(it.topic)} · ${i + 1} из ${items.length}</div></div></div>
       <div class="bar" style="margin:4px 0 12px"><i style="width:${Math.round((i / items.length) * 100)}%"></i></div>
       <div class="card"><div class="muted" style="margin-bottom:6px">Вставь слово</div><div class="sent">${qEn}</div><div class="sent-ru">${esc(it.ru)}</div></div>
       ${opts.map((o, k) => `<button class="opt ${answered ? (o.ok ? "ok" : k === st.picked ? "bad" : "dim") : ""}" data-k="${k}" ${answered ? "disabled" : ""}>${esc(o.text)}</button>`).join("")}

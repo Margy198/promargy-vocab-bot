@@ -12143,7 +12143,7 @@ async function sendStudentTaskNotice(chatId) {
   const formal = !!identity.formal; const pages = note.pages.slice(0, 5);
   const head = pages.length === 1 ? (formal ? "📒 У вас новое задание" : "📒 У тебя новое задание") : (formal ? `📒 У вас новые задания: ${note.pages.length}` : `📒 У тебя новые задания: ${note.pages.length}`);
   const list = pages.map((p) => `• ${String(p.title || "").slice(0, 120)}`).join("\n") + (note.pages.length > pages.length ? "\n…" : "");
-  const tail = formal ? "Откройте «Учеба → Мои задания» в приложении." : "Открой «Учеба → Мои задания» в приложении.";
+  const tail = formal ? "Откройте «Учеба → Задания из Notion» в приложении." : "Открой «Учеба → Задания из Notion» в приложении.";
   const appUrl = miniAppUrl(chatId);
   const url = appUrl ? appUrl + (appUrl.includes("?") ? "&" : "?") + "page=study&go=mine" : "";
   try { await tg("sendMessage", { chat_id: chatId, text: `${head}\n\n${list}\n\n${tail}`, ...(url ? { reply_markup: { inline_keyboard: [[{ text: "Открыть задания", web_app: { url } }]] } } : {}) }); return true; }
@@ -12358,7 +12358,7 @@ async function appCoursePayload(chatId) {
   if (stuIndex && stuIndex.topics.length) {
     const byDate = stuIndex.topics.filter((t) => !t.skipped).slice().reverse().sort((x, y) => String(y.createdAt || "").localeCompare(String(x.createdAt || "")));
     const topics = byDate.map((t) => ({ id: t.id, n: t.n, emoji: t.emoji || "📒", title: t.title, kind: "topic", createdAt: t.createdAt || null, description: `${ruDate(t.createdAt)}${t.createdAt ? " · " : ""}${t.exercises ? `${t.exercises} упр.` : "материал"}`, contains: "", level: "", mine: true, status: courseTopicStatus(null, t.id, progress), updatedAt: (progress.topics[t.id] || {}).updatedAt || null }));
-    mine = { key: "mine", title: "📒 Мои задания", outline: "задания от преподавателя из Notion", topics, total: topics.length, done: topics.filter((t) => t.status === "done").length, status: categoryStatus(topics), builtAt: stuIndex.builtAt };
+    mine = { key: "mine", title: "📒 Задания из Notion", outline: "задания от преподавателя из Notion", topics, total: topics.length, done: topics.filter((t) => t.status === "done").length, status: categoryStatus(topics), builtAt: stuIndex.builtAt };
     categories.unshift(mine);
   }
   const all = levels.flatMap((l) => l.topics.filter((t) => t.kind === "topic"));
