@@ -258,6 +258,16 @@ export function buildTopic(meta, body) {
     s.pages = pages;
   }
   const dt = dropTranslation(exercises);
+  // Перевод, который не распознался как упражнение (страница из Notion: «## Переведи на английский» + «## Ответы»),
+  // попадает в разделы теории — тоже убираем, вместе с идущим следом разделом ответов
+  let afterTranslation = false; const kept = [];
+  for (const sec of sections) {
+    const t = stripTags(sec.title || "");
+    if (TRANSLATION_TITLE_RX.test(t)) { afterTranslation = true; dt.dropped += 1; continue; }
+    if (afterTranslation && /^\W*(ответы|ключи|ключ|answers?|key)(\s|$)/i.test(t)) { afterTranslation = false; continue; }
+    afterTranslation = false; kept.push(sec);
+  }
+  sections.length = 0; sections.push(...kept);
   return {
     id: meta.id, level: meta.level, n: meta.n, emoji: meta.emoji || "", title: meta.title, kind: meta.kind,
     description: meta.description || "", contains: meta.contains || "",

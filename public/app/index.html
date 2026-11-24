@@ -1568,8 +1568,10 @@
     for (const w of strip(e.title || "").split(/[^a-zа-яё'’-]+/)) add(w, 1);
     return [...kw.entries()];
   }
-  function explainHtml(e, it) {
+  function explainHtml(e, it, lead) {
     const t = state.topic; if (!t) return "";
+    // страница из Notion без теории: правило — это вводная к упражнению (Маргарита пишет его над заданиями)
+    const leadRule = () => { const txt = strip(String(lead || "")).replace(/\s+/g, " ").trim(); if (txt.length < 12) return ""; return `<div style="margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--chip-bg)"><div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:4px">📏 Правило</div><div class="content" style="font-size:14px">${esc(txt.length > 320 ? txt.slice(0, 317).replace(/\s+\S*$/, "") + "…" : txt)}</div></div>`; };
     const kws = keywordsFor(e, it);
     const th = t.sections.find((s) => s.key === "theory"); const pages = (th && th.pages && th.pages.length) ? th.pages : (th ? [{ title: "Теория", html: th.html }] : []);
     const extra = ["pitfalls", "why"].map((k) => t.sections.find((s) => s.key === k)).filter(Boolean).map((s) => ({ title: strip(s.title), html: s.html, kind: s.key }));
@@ -1582,7 +1584,8 @@
       const pageScore = score(c.title || "");
       for (const b of blocks) { const sc = pageScore + score(b.text); if (sc > bestScore) { bestScore = sc; best = c; bestBlock = b; } }
     }
-    if (!best || bestScore <= 0) { const first = cands[0]; if (!first) return ""; const doc = new DOMParser().parseFromString(`<div>${first.html}</div>`, "text/html"); const p0 = doc.body.firstChild.querySelector("p, li"); best = first; bestBlock = p0 ? { text: p0.textContent, html: p0.outerHTML } : null; }
+    if (!cands.length) return leadRule();
+    if (!best || bestScore <= 0) { const first = cands[0]; if (!first) return leadRule(); const doc = new DOMParser().parseFromString(`<div>${first.html}</div>`, "text/html"); const p0 = doc.body.firstChild.querySelector("p, li"); best = first; bestBlock = p0 ? { text: p0.textContent, html: p0.outerHTML } : null; }
     if (!bestBlock) return "";
     const lessons = lessonsOf(t); const li = best.kind === "theory" ? lessons.findIndex((l) => l.kind === "theory" && l.idx === best.idx) : lessons.findIndex((l) => l.kind === best.kind);
     // соседний блок после найденного (пример к правилу), если короткий
@@ -1765,7 +1768,7 @@
     const taskLine = d.task || (d.type === "build" ? (DRILL_TASK[d.mode] || "Собери из слов") : "");
     const lead = ((state.topic && state.topic.drillLeads) || {})[d.ex];
     const head = `<div class="card ex"><div class="muted" style="margin-bottom:6px">${esc(counter)} · ${esc(taskLine)}</div>${lead ? `<div class="content" style="font-size:14px;color:var(--text-2);margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--line)">${lead}</div>` : ""}<div class="content" style="font-size:18px">${d.q}</div></div>`;
-    const explain = () => { try { return explainHtml(e, { q: d.q, a: d.key }); } catch (err) { return ""; } };
+    const explain = () => { try { return explainHtml(e, { q: d.q, a: d.key }, lead); } catch (err) { return ""; } };
     const note = d.note ? `<div class="muted" style="margin-top:6px;font-size:14px">💡 ${esc(d.note)}</div>` : "";
     // режим «вспоминаю сама» и задания без вариантов
     if (recall && st.result === null) {
@@ -1801,7 +1804,7 @@
       const own = d.type === "type" && !ok && st.typed.trim() && !st.overruled;
       fb = `<div class="card" style="margin-top:14px;background:${ok ? "var(--ok-bg)" : "var(--bad-bg)"}"><div style="font-size:15px;font-weight:500;color:${ok ? "var(--ok-fg)" : "var(--bad-fg)"}">${ok ? "Верно!" : own ? "Сверь с ключом" : "Не совсем"}</div>
         ${!ok || d.type === "build" || (d.type === "type" && d.full) ? `<div style="margin-top:6px;font-size:16px">Правильно: <b>${esc(drillCorrectText(d))}</b></div>` : ""}
-        ${d.type === "type" && d.full && !ok ? `<div class="muted" style="margin-top:4px;font-size:14px">В пропуск: ${esc(d.accept.join(" / "))}</div>` : ""}${note}</div>${explain()}
+        ${d.type === "type" && d.full && !ok ? `<div class="muted" style="margin-top:4px;font-size:14px">В пропуск: ${esc(d.accept.join(" / "))}</div>` : ""}${note}</div>${ok ? "" : explain()}
         <div class="navbtns">${own ? `<button class="btn" id="dr-own">У меня то же самое ✓</button>` : ""}<button class="btn primary" id="dr-next">Дальше</button></div>`;
     }
     return head + body + fb;
