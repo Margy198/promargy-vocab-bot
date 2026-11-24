@@ -28,7 +28,7 @@ const BLANK = "…";
 export function cleanHtml(h) {
   return String(h || "")
     .replace(/<code>\s*_{2,}\s*<\/code>/gi, `<span class="gap">${BLANK}</span>`)
-    .replace(/_{3,}/g, `<span class="gap">${BLANK}</span>`)
+    .replace(/_{2,}/g, `<span class="gap">${BLANK}</span>`)
     .replace(/<(?!\/?(b|i|br|span)\b)[^>]*>/gi, "")
     .replace(/\s+/g, " ")
     .trim();
@@ -36,7 +36,7 @@ export function cleanHtml(h) {
 function norm(s) {
   return htmlToText(s).toLowerCase().replace(/[.!?;:,]+$/g, "").replace(/\s+/g, " ").trim();
 }
-const BLANK_RX = /<code>\s*_{2,}\s*<\/code>|_{3,}|\.{3}|…/g;
+const BLANK_RX = /<code>\s*_{2,}\s*<\/code>|_{2,}|\.{3}|…/g;
 function countBlanks(html) { return (String(html).match(BLANK_RX) || []).length; }
 
 // ---------- пункты задания и ключа ----------
@@ -435,7 +435,7 @@ function articleSetOf(ctx) {
   return null;
 }
 export function articleChoice(qText, key, blanks, ctx) {
-  const segs = qText.split(/…|\.{3}|_{3,}/);
+  const segs = qText.split(/…|\.{3}|_{2,}/);
   if (segs.length !== blanks + 1) return null;
   const keyText = (key.full || key.text || "").replace(/\s*\([^()]*\)/g, " ").replace(/[“”"]/g, "").replace(/\s+/g, " ").trim();
   const esc = (w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -482,6 +482,16 @@ export function buildDrill(ex, i, qHtml, aHtml, meta) {
   const base = { id, ex: ex.n, i, task, q: cleanHtml(qHtml), key: cleanHtml(aHtml), note: key.note || "" };
   const blanks = countBlanks(qHtml);
   if (OPEN_RX.test(task) && !/❌/.test(aHtml)) return { ...base, type: "recall", open: true };
+  // «robe — роб / робэ», «harpe — харп / арп»: варианты прямо в пункте, ключ — один из них → кнопки
+  {
+    const dm = qText.match(/^(.{1,60}?)\s[—–-]\s(.+)$/);
+    if (dm && !blanks) {
+      const opts = dm[2].split(/\s+\/\s+/).map((x) => x.trim().replace(/^\(?[а-яa-z]\)\s*/i, "")).filter(Boolean);
+      const ans = String(key.main || "").split(/\s*\/\s*/)[0].replace(/[.!?]$/, "").replace(/^\(?[а-яa-z]\)\s*/i, "").trim();
+      const k = opts.findIndex((o) => norm(o) === norm(ans));
+      if (opts.length >= 2 && opts.length <= 5 && k >= 0) return { ...base, type: "choice", options: opts, correct: k, src: "inline", q: cleanHtml(dm[1]) + " — …" };
+    }
+  }
 
   // 1) Исправь ошибку
   if (key.fix && key.fix.right) {
@@ -565,9 +575,13 @@ export function buildDrill(ex, i, qHtml, aHtml, meta) {
   const groups = parseChoices(qHtml);
   // варианты из названия упражнения: «HIS или HER?», «ever или never», «who / which / where / whose»
   {
-    const tt = task.replace(/[?!.]+$/, "").replace(/^[^A-Za-z]*?(?=[A-Za-z])/, "").trim();
+    let tt = task.replace(/[?!.]+$/, "").replace(/^[^A-Za-z]*?(?=[A-Za-z])/, "").trim();
+    // «впиши «с» или «к»», «выбери: ё или ю» — варианты в кавычках или после двоеточия, в том числе русские буквы
+    const quoted = [...task.matchAll(/«([^»]{1,12})»/g)].map((m) => m[1].trim());
+    let fromQuotes = false;
+    if (quoted.length >= 2 && quoted.length <= 5 && /или|\//.test(task) && quoted.every((x) => /^[A-Za-zА-Яа-яЁё'~-]{1,8}$/.test(x))) { tt = quoted.join(" или "); fromQuotes = true; }
     // «may/might/could или must или can't»: слитная группа через «/» — один вариант (равноценные или одна идея)
-    const okTitle = /^[A-Za-z'/ ]+(?:\s*(?:\s\/\s|или|,)\s*[A-Za-z'/ ]+){1,4}$/.test(tt) && /\/|или/.test(tt);
+    const okTitle = (fromQuotes || /^[A-Za-z'/ ]+(?:\s*(?:\s\/\s|или|,)\s*[A-Za-z'/ ]+){1,4}$/.test(tt)) && /\/|или/.test(tt);
     const pieces = okTitle ? tt.split(/\s+или\s+|\s+\/\s+|\s*,\s*/).map((x) => x.trim()).filter(Boolean) : [];
     const tg = pieces.length === 1 ? pieces[0].split("/").map((x) => [x.trim()]) : pieces.map((x) => x.split("/").map((y) => y.trim()));
     if (!groups.length && tg.length >= 2 && tg.length <= 5 && blanks === 1 && !key.both) {
@@ -595,7 +609,7 @@ export function buildDrill(ex, i, qHtml, aHtml, meta) {
   if (blanks === 1 && !key.both) {
     const ans = key.main.split(/\s*\/\s*/)[0].replace(/[.!?]$/, "").trim();
     const hint = parseHint(qText);
-    const before = qText.split(/…|\.{3}|_{3,}/)[0] || "";
+    const before = qText.split(/…|\.{3}|_{2,}/)[0] || "";
     let wrongs = []; let skipGen = false;
     // наречие от прилагательного в скобках: (slow) → slowly, (good) → well, (fast) → fast
     const hw = hint && hint.words && hint.words.length === 1 ? hint.words[0].toLowerCase() : "";
@@ -615,7 +629,7 @@ export function buildDrill(ex, i, qHtml, aHtml, meta) {
     }
     // разделительный вопрос: хвостик «aux(n't) + местоимение» → смена знака и чужой вспомогательный
     const TAG = ans.match(/^(won't|can't|shan't|do|does|did|is|are|am|was|were|have|has|had|will|would|can|could|shall|should|must)(n't)? (I|you|he|she|it|we|they|there)$/i);
-    if (!skipGen && TAG && /,\s*(…|\.{3}|_{3,})\s*\?/.test(qText)) {
+    if (!skipGen && TAG && /,\s*(…|\.{3}|_{2,})\s*\?/.test(qText)) {
       let [, aux, neg, pr] = TAG; let a = aux.toLowerCase();
       if (/n't$/.test(a)) { neg = "n't"; a = { "won't": "will", "can't": "can", "shan't": "shall" }[a]; }
       const okSet = new Set([ans, ...key.alts, ...key.main.split(/\s*\/\s*/)].map(norm));
@@ -672,7 +686,7 @@ export function buildDrill(ex, i, qHtml, aHtml, meta) {
     // «She cooks well. → She's good …» — заполняем только вторую половину
     const arrowSplit = String(qHtml).split(/→|-&gt;|->/);
     const target = arrowSplit.length === 2 && countBlanks(arrowSplit[1]) === blanks ? arrowSplit[1] : qHtml;
-    const wholeTarget = blanks === 1 && /^\s*(<[^>]+>\s*)*(<code>\s*_{2,}\s*<\/code>|_{3,}|…|\.{3})(\s*<[^>]+>)*\s*[.!?]?\s*$/.test(target);
+    const wholeTarget = blanks === 1 && /^\s*(<[^>]+>\s*)*(<code>\s*_{2,}\s*<\/code>|_{2,}|…|\.{3})(\s*<[^>]+>)*\s*[.!?]?\s*$/.test(target);
     if (wholeTarget && key.full && /^[A-Z]/.test(key.full) && /[.!?]$/.test(key.full) && isSentence(key.full)) {
       const { tokens, end } = tokenize(key.full);
       return { ...base, type: "build", mode: TRANSLATE_RX.test(task) ? "translate" : "transform", answer: key.full, accept: [key.full], tiles: tokens, end, traps: trapsFor(tokens) };
@@ -715,7 +729,7 @@ function typeDrill(base, key, blanks) {
   // «widely / generally» — варианты; «if/whether she has finished» — вариант внутри фразы
   const expand = (v) => { const m = v.match(/(\S+)\/(\S+)/); if (!m) return [v]; return [...expand(v.replace(m[0], m[1])), ...expand(v.replace(m[0], m[2]))]; };
   const variants = main.split(/\s+\/\s+|\s+или\s+/).flatMap((x) => (x.split(/\s+/).length > 1 ? expand(x) : x.split("/"))).map((x) => x.replace(/[.!?]$/, "").replace(/^-/, "").trim()).filter(Boolean).concat(key.alts || []);
-  const eng = variants.filter((v) => /^['’]?[A-Za-z][A-Za-z'’ -]*$/.test(v) && v.split(/\s+/).length <= 4);
+  const eng = variants.filter((v) => /^['’]?[A-Za-zА-Яа-яЁё][A-Za-zА-Яа-яЁё'’ -]*$/.test(v) && v.split(/\s+/).length <= 4);
   if (!eng.length || eng.length !== variants.length) return null;
   // сначала пробуем сделать выбор: варианты из подсказки и форм слов
   const okSet = new Set(eng.map((x) => x.toLowerCase()));
@@ -730,7 +744,7 @@ function typeDrill(base, key, blanks) {
 // Диалог / связный текст с пропусками «____ (1)» и ключом-списком:
 // каждый пропуск → отдельный пункт: строка диалога, где этот пропуск открыт,
 // а остальные пропуски строки уже заполнены ответами из ключа.
-const NUM_BLANK_RX = /(<code>\s*_{2,}\s*<\/code>|_{3,})\s*(?:<\/?i>\s*)*\(\s*(\d{1,2})\s*\)(?:\s*<\/i>)*/g;
+const NUM_BLANK_RX = /(<code>\s*_{2,}\s*<\/code>|_{2,})\s*(?:<\/?i>\s*)*\(\s*(\d{1,2})\s*\)(?:\s*<\/i>)*/g;
 export function splitNumberedBlanks(html, answers) {
   const lines = [...String(html || "").matchAll(/<(li|p)>([\s\S]*?)<\/\1>/g)].map((m) => m[2]);
   const keyMain = answers.map((a) => { const k = parseKey(a); return (k.main || "").split(/\s*\/\s*/)[0].replace(/^\s*(?:[A-Z][a-z]+day|the|on|in|at)\s+(?=\b)/, (x) => x); });
@@ -796,6 +810,27 @@ export function buildTopicDrills(topic) {
       // перевод в приложение не берем — ни упражнением, ни отдельным пунктом
       if (d.mode === "translate" || (!d.open && isTranslationItem(htmlToText(qs[i]), htmlToText(as[i])))) { stats.translation = (stats.translation || 0) + 1; continue; }
       drills.push(d); stats.items++; stats[d.type]++;
+    }
+    // Короткий ответ, который иначе пришлось бы печатать (транскрипция «при», буква «к», слово): варианты — ответы
+    // соседних пунктов того же упражнения. Маргарита: в каждом задании должен быть выбор кнопками.
+    {
+      const own = drills.slice(start);
+      const ansOf = (d) => String(parseKey(d.key).main || "").split(/\s*\/\s*/)[0].replace(/\s*\([^()]*\)\s*$/, "").replace(/[.!?]$/, "").trim();
+      const short = (x) => x && x.split(/\s+/).length <= 3 && x.length <= 30 && /^[A-Za-zА-Яа-яЁё][A-Za-zА-Яа-яЁё'’ -]*$/.test(x);
+      const script = (x) => (/[А-Яа-яЁё]/.test(x) ? "cyr" : "lat");
+      const poolAll = [...new Set(own.map(ansOf).filter(short).map((x) => x.replace(/^\(?[а-яa-z]\)\s*/i, "").toLowerCase()))];
+      if (poolAll.length >= 3) own.forEach((d, idx) => {
+        if (!((d.type === "type") || (d.type === "recall" && !d.open))) return;
+        const ans = ansOf(d); if (!short(ans)) return;
+        const pool = poolAll.filter((x) => script(x) === script(ans)); if (pool.length < 3) return;
+        const okSet = new Set([ans, ...(parseKey(d.key).alts || [])].map((x) => x.toLowerCase()));
+        const others = pool.filter((x) => !okSet.has(x));
+        if (others.length < 2) return;
+        // берем соседей по кругу — детерминированно, без повторов
+        const wrongs = []; for (let step = 1; step <= pool.length && wrongs.length < 3; step++) { const c = pool[(pool.indexOf(ans.toLowerCase()) + step + pool.length) % pool.length]; if (c && !okSet.has(c) && !wrongs.includes(c)) wrongs.push(c); }
+        if (wrongs.length < 2) return;
+        stats[d.type]--; Object.assign(d, { type: "choice", options: [ans, ...wrongs], correct: 0, src: "sib", accept: [...okSet] }); delete d.answer; stats.choice++;
+      });
     }
     // «Вставь to или оставь пустым (—)»: все ответы упражнения — одно слово или прочерк → выбор из двух
     {

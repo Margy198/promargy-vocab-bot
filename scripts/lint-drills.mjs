@@ -56,7 +56,8 @@ for (const f of files) {
       if (opts.length < 2) A.push(`${where(d)}: меньше двух вариантов`);
       if (d.correct == null || d.correct < 0 || d.correct >= opts.length) A.push(`${where(d)}: нет правильного варианта`);
       if (new Set(opts.map((o) => o.toLowerCase().trim())).size !== opts.length) A.push(`${where(d)}: повторяющиеся варианты [${opts.join(" / ")}]`);
-      if (d.src !== "legend" && opts.some((o) => RU.test(o.replace(/без артикля|ничего не нужно/g, "")))) A.push(`${where(d)}: русский текст в варианте [${opts.join(" / ")}]`);
+      // варианты по-русски допустимы, когда сам ключ русский (перевод, транскрипция, классификация)
+      if (d.src !== "legend" && !RU.test(String(opts[d.correct] || "")) && opts.some((o) => RU.test(o.replace(/без артикля|ничего не нужно/g, "")))) A.push(`${where(d)}: русский текст в варианте [${opts.join(" / ")}]`);
       if (d.src === "gen") {
         const key = parseKey(d.key);
         const ok = new Set([key.main, ...(key.alts || []), ...String(key.main || "").split(/\s*\/\s*/)].map(low));

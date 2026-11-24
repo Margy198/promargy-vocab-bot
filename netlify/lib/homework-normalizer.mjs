@@ -68,7 +68,17 @@ function markAnswer(line, gap) {
   const ans = body.slice(0, at).trim(); const note = body.slice(at).replace(/^\s[—–]\s/, "").trim().replace(/[()]/g, "");
   return ans ? `${m[1]}<b>${ans}</b> (${note})` : line;
 }
+// «<b>1.1. Выбери правильное чтение.</b>», «### 2.3 Найди ошибку», в ключах «<b>1.1.</b> роб / рю / …»
+const DOT_RX = /^(#{1,3}\s+)?(<b>)?\s*(\d{1,2})\.(\d{1,2})\.?\s*(.*)$/;
+const BLOCK_RX = /^#{1,3}\s+(?:БЛОК|Блок|Block|Раздел|Тема)\s*\d*[.:]?\s*(.*)$/i;
 function exHeader(st) {
+  const dm = st.match(DOT_RX);
+  if (dm) {
+    let rest = dm[5] || ""; let extra = "";
+    if (dm[2]) { const b = rest.match(/^(.*?)<\/b>\s*(.*)$/); if (b) { rest = b[1]; extra = b[2]; } else if (/<\/b>/.test(rest)) rest = rest.replace(/<\/b>/, ""); }
+    // «1.1.» без текста после жирного — это строка ключа; с текстом — заголовок упражнения
+    return { n: null, label: `${dm[3]}.${dm[4]}`, title: strip(rest).replace(/[.:]\s*$/, ""), extra: extra.trim(), heading: !!dm[1], bold: !!dm[2] };
+  }
   const m = st.match(EX_RX); if (!m) return null;
   // «1. Текст задания» внутри списка сюда не попадает: нужно слово «Часть/Упражнение…»
   let rest = m[4] || ""; let extra = "";
@@ -87,6 +97,8 @@ export function normalizeHomework(body, pageTitle = "") {
   // pend — ответы после метки «Ответы» без номера: пока не ясно, это ключ упражнения над ней или общий раздел внизу
   const PEND = {}; let pend = null;
   const byN = (n) => exs.find((e) => e.n === n) || null;
+  const byH = (h) => (h.label ? exs.find((e) => e.label === h.label) || null : byN(h.n));
+  let block = ""; // «## БЛОК 2. …» — правило, под которым идут упражнения 2.1, 2.2…
   const pushAns = (target, lines) => { if (target === PEND && pend) pend.lines.push(...lines); else if (target && target !== PEND) target.answers.push(...lines); else looseAns.push(...lines); };
   const flushPend = (toLoose) => { if (!pend) return; if (!toLoose && pend.after) pend.after.answers.push(...pend.lines); else looseAns.push(...pend.lines); pend = null; };
 
@@ -120,14 +132,24 @@ export function normalizeHomework(body, pageTitle = "") {
       if (am.inline) pushAns(ansCur, [am.inline]);
       continue;
     }
+    const bm = st.match(BLOCK_RX);
+    if (bm && mode !== "answers") { block = strip(bm[1]); if (mode === "pre" && !exs.length) continue; mode = "ex"; cur = null; continue; }
     const h = exHeader(st);
     if (mode === "answers") {
-      if (h && byN(h.n)) { flushPend(true); ansCur = byN(h.n); if (h.extra) pushAns(ansCur, answerLines([h.extra])); continue; } // подзаголовок в разделе ответов
+      // в ключах строка «<b>1.1.</b> роб / рю / …» → ответы упражнения 1.1 (несколько таких на одной строке через <br>)
+      if (h && h.label) {
+        for (const part of answerLines([ln])) { const ph = exHeader(part.trim()); const t = ph ? byH(ph) : null; if (ph && t) { ansCur = t; if (ph.extra) pushAns(t, [ph.extra]); } else pushAns(ansCur, [part]); }
+        continue;
+      }
+      if (h && byH(h)) { flushPend(true); ansCur = byH(h); if (h.extra) pushAns(ansCur, answerLines([h.extra])); continue; } // подзаголовок в разделе ответов
       if (!h) { pushAns(ansCur, answerLines([ln])); continue; }
       flushPend(false); // дальше идет новое упражнение: ответы выше были ключом предыдущего
     }
-    if (h) {
-      cur = { n: byN(h.n) ? Math.max(...exs.map((e) => e.n)) + 1 : h.n, title: h.title, lines: h.extra ? [h.extra, ""] : [], answers: [] };
+    if (h && (!h.label || h.title)) {
+      const n = h.label ? exs.length + 1 : (byN(h.n) ? Math.max(...exs.map((e) => e.n)) + 1 : h.n);
+      cur = { n, label: h.label || null, title: h.label ? `${h.label}. ${h.title}` : h.title, lines: [], answers: [] };
+      if (block) cur.lines.push(`<b>${block}</b>`, "");
+      if (h.extra) cur.lines.push(h.extra, "");
       exs.push(cur); mode = "ex"; ansCur = null; continue;
     }
     if (mode === "ex" && cur) cur.lines.push(/^#{1,3}\s+/.test(st) ? `<b>${strip(st.replace(/^#{1,3}\s+/, ""))}</b>` : ln);
@@ -153,6 +175,34 @@ export function normalizeHomework(body, pageTitle = "") {
       const real = chunks.filter((x) => x.some((l) => strip(l)));
       if (real.length === empty.length) empty.forEach((e, i) => e.answers.push(...real[i]));
       else log.push("ответы не разбиты по упражнениям (нет подзаголовков «Часть N» / «Упражнение N») — ключ не привязан");
+    }
+  }
+
+  // список через « / » (слова → чтение): «hisse / hippie / …» с ключом «ис / ипи / …» → нумерованные пункты;
+  // ключ «роб / рю / …» к нумерованным пунктам → по одному ответу на пункт
+  const slashParts = (l) => strip(l).split(/\s+\/\s+/).map((x) => x.trim()).filter(Boolean);
+  for (const e of exs) {
+    const items = e.lines.filter((l) => /^\d+\.\s/.test(l.trim()));
+    const ansReal = e.answers.filter((l) => strip(l));
+    if (ansReal.length === 1 && !/^\s*\d+[.)]\s/.test(ansReal[0])) {
+      const parts = slashParts(ansReal[0].replace(/\s*\([^()]*\)\s*$/, ""));
+      if (items.length >= 2 && parts.length === items.length) e.answers = parts.map((x, i) => `${i + 1}. ${x}`);
+      else if (!items.length && parts.length >= 2) {
+        const li = e.lines.findIndex((l) => strip(l) && !/^<b>/.test(l.trim()) && slashParts(l).length === parts.length);
+        if (li >= 0) { const words = slashParts(e.lines[li]); e.lines.splice(li, 1, ...words.map((w, i) => `${i + 1}. ${w}`)); e.answers = parts.map((x, i) => `${i + 1}. ${x}`); }
+        else {
+          // «Выпиши только те слова, где …»: список слов, а в ключе — подмножество → по слову «да / нет»
+          const lj = e.lines.findIndex((l) => strip(l) && !/^<b>/.test(l.trim()) && slashParts(l).length > parts.length);
+          const words = lj >= 0 ? slashParts(e.lines[lj]) : [];
+          const low = (x) => x.toLowerCase();
+          if (words.length >= 3 && parts.every((p) => words.some((w) => low(w) === low(p)))) {
+            const note = (ansReal[0].match(/\(([^()]*)\)\s*$/) || [])[1];
+            e.lines.splice(lj, 1, ...words.map((w, i) => `${i + 1}. ${w} — да / нет`));
+            e.answers = words.map((w, i) => `${i + 1}. ${parts.some((p) => low(p) === low(w)) ? "да" : "нет"}`);
+            if (note) e.answers.push(`_${note}_`);
+          }
+        }
+      }
     }
   }
 
