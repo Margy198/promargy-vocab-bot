@@ -11619,6 +11619,11 @@ async function handleMessage(message) {
     await tg("sendMessage", { chat_id: chatId, text: `Ученики (${shownCount}):\n${lines.join("\n")}\n\nПодробнее — прогресс, ошибки, домашка — в кабинете учителя в приложении (Учёба → Кабинет учителя).`, ...(appUrl ? { reply_markup: { inline_keyboard: [[{ text: "Открыть кабинет учителя", web_app: { url: appUrl } }]] } } : {}) });
     return;
   }
+  if (text === "/notion") {
+    if (!(await isAdmin(chatId))) { await tg("sendMessage", { chat_id: chatId, text: "Эта команда недоступна." }); return; }
+    await tg("sendMessage", { chat_id: chatId, text: await notionReport() });
+    return;
+  }
   if (text === "/play" || text === "/next") {
     const stats = await getStats(chatId);
     return sendQuestion(chatId, stats);
@@ -12072,6 +12077,33 @@ function activitySince(act, fromDate) {
 const stuKey = (chatId, k) => `stu:${chatId}:${k}`;
 // «2026-11-13T…» → «13.11.2026» по московскому времени
 function ruDate(iso) { if (!iso) return ""; const d = new Date(Date.parse(iso) + 3 * 3600 * 1000); if (isNaN(d)) return ""; return `${String(d.getUTCDate()).padStart(2, "0")}.${String(d.getUTCMonth() + 1).padStart(2, "0")}.${d.getUTCFullYear()}`; }
+function ruStamp(iso) { if (!iso) return "—"; const d = new Date(Date.parse(iso) + 3 * 3600 * 1000); if (isNaN(d)) return "—"; return `${String(d.getUTCDate()).padStart(2, "0")}.${String(d.getUTCMonth() + 1).padStart(2, "0")} ${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`; }
+// Отчет для преподавателя (/notion): что с заданиями из Notion у каждого привязанного ученика и работает ли автообновление
+async function notionReport() {
+  let keys = [];
+  try { const r = await courseStore().list({ prefix: "stu:" }); keys = (r.blobs || []).map((b) => b.key).filter((k) => /^stu:\d+:link$/.test(k)); } catch (e) { return `Не удалось прочитать хранилище: ${String(e).slice(0, 120)}`; }
+  const ids = keys.map((k) => k.split(":")[1]);
+  let sync = null; try { sync = await courseStore().get("stusync:last", { type: "json" }); } catch (e) { sync = null; }
+  const head = [`Задания из Notion — привязано учеников: ${ids.length}`,
+    `Автообновление (раз в час, 08–23 МСК): ${sync && sync.at ? `последний запуск ${ruStamp(sync.at)}, в очереди было ${sync.queued}` : "ни разу не запускалось — проверь, что функция student-notion-sync есть в Netlify → Functions"}`,
+    `Переменные: NOTION_TOKEN ${process.env.NOTION_TOKEN ? "есть" : "НЕТ"}, URL ${process.env.URL ? "есть" : "НЕТ"}`, ""];
+  if (!ids.length) return head.join("\n") + "Ни одной привязки нет: открой в приложении Кабинет → «📒 Привязать страницы Notion учеников» или привяжи страницу в карточке ученика.";
+  const rows = await Promise.all(ids.map(async (id) => {
+    const [identity, st, idx, notify] = await Promise.all([readIdentity(id).catch(() => null), courseStore().get(stuKey(id, "status"), { type: "json" }).catch(() => null), readStuIndex(id), courseStore().get(stuKey(id, "notify"), { type: "json" }).catch(() => null)]);
+    const name = identity ? ((identity.registeredName || [identity.firstName, identity.lastName].filter(Boolean).join(" ")) || id) : id;
+    const gate = !identity ? " ⛔ не писал боту" : (identity.approved === false && !identity.phrasesAccess ? " ⛔ нет доступа в бота" : "");
+    const n = idx ? idx.topics.length : 0;
+    const last = idx && idx.topics.length ? idx.topics.map((t) => t.createdAt || "").filter(Boolean).sort().slice(-1)[0] : "";
+    let state;
+    if (!st) state = "еще не собиралось";
+    else if (st.status === "running") state = `собирается с ${ruStamp(st.startedAt)}`;
+    else if (st.status === "error") state = `⚠️ ${String(st.error || "ошибка").slice(0, 110)}`;
+    else state = `✅ ${n} ${n % 10 === 1 && n % 100 !== 11 ? "страница" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? "страницы" : "страниц"}, обновлено ${ruStamp(st.finishedAt || st.updatedAt)}${last ? `, последний материал от ${ruDate(last)}` : ""}`;
+    const pending = notify && notify.pages && notify.pages.length ? ` · уведомление не доставлено (${notify.pages.length})` : "";
+    return `• ${name}${gate} — ${state}${pending}`;
+  }));
+  return head.join("\n") + rows.join("\n") + "\n\nУведомление «новое задание» уходит только когда при обновлении появилась страница, созданная за последние 7 дней, и ее не было в прошлом списке. Первая сборка — без уведомлений.";
+}
 async function readStuIndex(chatId) { try { const v = await courseStore().get(stuKey(chatId, "index"), { type: "json" }); return v && Array.isArray(v.topics) ? v : null; } catch (e) { return null; } }
 async function readStuLink(chatId) { try { return await courseStore().get(stuKey(chatId, "link"), { type: "json" }); } catch (e) { return null; } }
 async function readStuTopic(chatId, id) {

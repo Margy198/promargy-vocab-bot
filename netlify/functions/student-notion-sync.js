@@ -21,6 +21,8 @@ export default async () => {
     if (st && st.status === "running" && Date.now() - Date.parse(st.updatedAt || 0) < 10 * 60 * 1000) continue;
     queue.push(m[1]);
   }
+  // отметка «я запускалась» — ее показывает команда /notion у преподавателя
+  try { await store().setJSON("stusync:last", { at: new Date().toISOString(), linked: keys.filter((k) => /:link$/.test(k)).length, queued: queue.length }); } catch (e) {}
   if (!queue.length) { console.log("[student-notion-sync] привязанных учеников нет"); return new Response("empty", { status: 200 }); }
   try {
     const res = await fetch(`${base}/.netlify/functions/course-rebuild-background`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ mode: "student", chatId: queue[0], queue: queue.slice(1), secret, by: "schedule" }) });
