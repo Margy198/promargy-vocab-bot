@@ -248,6 +248,22 @@ async function childPagesDeep(blockId, depth = 0, out = []) {
   }
   return out;
 }
+// Уведомление «новое задание» шлет telegram-webhook (там тексты и кнопка). Здесь — вызов с проверкой ответа и одним повтором;
+// если не вышло, blob stu:<id>:notify остается, и следующее обновление попробует снова (до 3 дней).
+async function deliverStudentNotice(chatId, log) {
+  let note = null; try { note = await store().get(`stu:${chatId}:notify`, { type: "json" }); } catch (e) { note = null; }
+  if (!note || !Array.isArray(note.pages) || !note.pages.length) return;
+  if (note.at && Date.now() - Date.parse(note.at) > 3 * 24 * 3600 * 1000) { try { await store().delete(`stu:${chatId}:notify`); } catch (e) {} log.push("старое уведомление отброшено (больше 3 дней)"); return; }
+  const base = (process.env.URL || "").replace(/\/+$/, "");
+  const url = `${base}/telegram-webhook?stunotify=${encodeURIComponent(process.env.TELEGRAM_WEBHOOK_SECRET || "")}&chat=${chatId}`;
+  let last = "";
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try { const r = await fetch(url); if (r.ok) { log.push(`уведомление ученику отправлено (заданий: ${note.pages.length})`); return; } last = `HTTP ${r.status}`; }
+    catch (e) { last = String((e && e.message) || e).slice(0, 80); }
+    await new Promise((res) => setTimeout(res, 3000));
+  }
+  log.push(`уведомление не отправлено (${last}) — повторю при следующем обновлении`);
+}
 const STU_VERSION = 2; // менять при правке разбора — тогда страницы пересоберутся, даже если не менялись
 const STU_MAX_PAGES = 60;
 async function runStudent(body) {
@@ -316,13 +332,14 @@ async function runStudent(body) {
     const seen = [...new Set([...known, ...topics.map((t) => t.id)])].slice(-400);
     await store().setJSON(key("index"), { v: STU_VERSION, builtAt: new Date().toISOString(), rootId, topics, seen });
     if (fresh.length) {
-      try {
-        await store().setJSON(key("notify"), { at: new Date().toISOString(), pages: fresh.map((t) => ({ id: t.id, title: t.title })) });
-        const base = (process.env.URL || "").replace(/\/+$/, "");
-        const r = await fetch(`${base}/telegram-webhook?stunotify=${encodeURIComponent(process.env.TELEGRAM_WEBHOOK_SECRET || "")}&chat=${chatId}`);
-        log.push(`новых заданий: ${fresh.length} — уведомление ученику ${r.ok ? "отправлено" : "не отправлено (" + r.status + ")"}`);
-      } catch (e) { log.push(`уведомление не отправлено: ${String((e && e.message) || e).slice(0, 80)}`); }
+      // старое недоставленное уведомление (если есть) объединяем с новым
+      let prevNote = null; try { prevNote = await store().get(key("notify"), { type: "json" }); } catch (e) { prevNote = null; }
+      const prevPages = prevNote && Array.isArray(prevNote.pages) ? prevNote.pages.filter((p) => !fresh.some((t) => t.id === p.id)) : [];
+      await store().setJSON(key("notify"), { at: new Date().toISOString(), pages: [...fresh.map((t) => ({ id: t.id, title: t.title })), ...prevPages].slice(0, 20) });
+      log.push(`новых заданий: ${fresh.length}`);
     }
+    // Доставка уведомления — отдельным шагом и с повтором: если в прошлый раз вебхук не ответил, пробуем снова
+    await deliverStudentNotice(chatId, log);
     log.push(`готово: страниц ${topics.length}, обновлено ${rebuilt}`);
     await setSt({ status: "done", startedAt, finishedAt: new Date().toISOString(), pages: topics.length, rebuilt });
   } catch (e) {
@@ -431,13 +448,30 @@ export default async (req) => {
   }
   if (body.mode === "student") {
     if (!process.env.NOTION_TOKEN) { await store().setJSON(`stu:${String(body.chatId || "")}:status`, { status: "error", error: "нет переменной NOTION_TOKEN в Netlify", updatedAt: new Date().toISOString() }); return new Response("no token", { status: 200 }); }
-    try { await runStudent(body); } catch (e) { console.error("student", e && e.message); }
-    // очередь (привязка списком): следующий ученик — отдельным запуском, чтобы не упереться в лимит времени
-    const rest = Array.isArray(body.queue) ? body.queue.map(String).filter((x) => /^\d{1,20}$/.test(x)).slice(0, 60) : [];
+    // Очередь читаем в этом же запуске, пока укладываемся в 9 минут (лимит фоновой функции — 15).
+    // Раньше каждый следующий ученик запускался отдельным запросом, и цепочка молча обрывалась после 8–9 учеников.
+    const started = Date.now(); const BUDGET_MS = 9 * 60 * 1000;
+    let rest = Array.isArray(body.queue) ? body.queue.map(String).filter((x) => /^\d{1,20}$/.test(x)).slice(0, 80) : [];
+    let current = String(body.chatId || "");
+    while (current) {
+      try { await runStudent({ ...body, chatId: current }); } catch (e) { console.error("student", current, e && e.message); }
+      if (!rest.length || Date.now() - started > BUDGET_MS) { current = ""; break; }
+      current = rest.shift();
+    }
     if (rest.length) {
       const base = (process.env.URL || "").replace(/\/+$/, "");
-      try { await fetch(`${base}/.netlify/functions/course-rebuild-background`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ mode: "student", chatId: rest[0], queue: rest.slice(1), secret: body.secret, by: body.by }) }); }
-      catch (e) { for (const id of rest) await store().setJSON(`stu:${id}:status`, { status: "error", error: "очередь оборвалась — нажми «Обновить» в карточке ученика", updatedAt: new Date().toISOString() }); }
+      let ok = false, last = "";
+      for (let attempt = 1; attempt <= 2 && !ok; attempt++) {
+        try { const r = await fetch(`${base}/.netlify/functions/course-rebuild-background`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ mode: "student", chatId: rest[0], queue: rest.slice(1), secret: body.secret, by: body.by }) }); ok = r.ok; last = `HTTP ${r.status}`; }
+        catch (e) { last = String((e && e.message) || e).slice(0, 80); }
+        if (!ok) await new Promise((res) => setTimeout(res, 3000));
+      }
+      if (!ok) {
+        console.error("student queue: не удалось продолжить", last);
+        // хвост очереди сохраняем — часовая функция student-notion-sync заберет его первым
+        try { await store().setJSON("stuqueue:rest", { ids: rest, at: new Date().toISOString(), error: last }); } catch (e) {}
+        for (const id of rest) await store().setJSON(`stu:${id}:status`, { status: "error", error: `очередь оборвалась (${last}) — обновлю при следующем часовом запуске или нажми «Обновить»`, updatedAt: new Date().toISOString() });
+      }
     }
     return new Response("ok", { status: 200 });
   }

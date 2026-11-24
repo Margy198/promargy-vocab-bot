@@ -14,12 +14,14 @@ export default async () => {
   let keys = [];
   try { const r = await store().list({ prefix: "stu:" }); keys = (r.blobs || []).map((b) => b.key); } catch (e) { console.log("[student-notion-sync] list failed", String(e)); return new Response("list failed", { status: 200 }); }
   const queue = [];
+  // хвост очереди, который не удалось продолжить в прошлый раз, — первым
+  try { const pend = await store().get("stuqueue:rest", { type: "json" }); if (pend && Array.isArray(pend.ids)) { for (const id of pend.ids) if (/^\d{1,20}$/.test(String(id)) && !queue.includes(String(id))) queue.push(String(id)); await store().delete("stuqueue:rest"); } } catch (e) {}
   for (const k of keys) {
     const m = k.match(/^stu:(\d{1,20}):link$/); if (!m) continue;
     // уже читается (кнопка в кабинете или прошлый запуск) — не дублируем
     let st = null; try { st = await store().get(`stu:${m[1]}:status`, { type: "json" }); } catch (e) { st = null; }
     if (st && st.status === "running" && Date.now() - Date.parse(st.updatedAt || 0) < 10 * 60 * 1000) continue;
-    queue.push(m[1]);
+    if (!queue.includes(m[1])) queue.push(m[1]);
   }
   // отметка «я запускалась» — ее показывает команда /notion у преподавателя
   try { await store().setJSON("stusync:last", { at: new Date().toISOString(), linked: keys.filter((k) => /:link$/.test(k)).length, queued: queue.length }); } catch (e) {}
