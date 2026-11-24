@@ -468,10 +468,11 @@
     if (window.__demoMine) { const topics = window.__demoMine.topics.map((t, i) => ws({ id: t.id, n: i + 1, emoji: t.emoji || "📒", title: t.title, kind: "topic", createdAt: t.createdAt || null, description: `${t.createdAt ? new Date(t.createdAt).toLocaleDateString("ru-RU") + " · " : ""}${t.exercises.length} упр.`, contains: "", level: "", mine: true })).map((t) => ({ ...t, status: t.status === "locked" ? "available" : t.status })); categories.unshift({ key: "mine", title: "📒 Мои задания", outline: "задания от преподавателя из Notion", topics, total: topics.length, done: topics.filter((t) => t.status === "done").length, status: "available" }); mine = { total: topics.length, done: topics.filter((t) => t.status === "done").length }; }
     const all = levels.flatMap((l) => l.topics.filter((t) => t.kind === "topic"));
     demoHomework(); for (const h of demoCourse.hw) if (!h.topicId) { const t = all.find((x) => x.title === h.title) || all[0]; h.topicId = t.id; }
-    return { ok: true, track: demoCourse.track || "general", businessAvailable: true, plan: demoCourse.plan || { 1: { theory: "2026-07-05T10:00:00Z", practice: "2026-07-06T10:00:00Z" }, 3: { theory: "2026-07-05T10:00:00Z" } }, levels, categories, level: demoCourse.level, total: all.length, done: all.filter((t) => t.status === "done").length, homework: demoHomework(), mine };
+    return { ok: true, track: demoCourse.track || "general", businessAvailable: true, plan: demoCourse.plan || { 1: { theory: "2026-07-05T10:00:00Z", practice: "2026-07-06T10:00:00Z" }, 3: { theory: "2026-07-05T10:00:00Z" } }, levels, categories, level: demoCourse.level, total: all.length, done: all.filter((t) => t.status === "done").length, homework: demoHomework(), mine, mistakes14: window.__demoMistakes ? window.__demoMistakes.total : 0 };
   }
   async function demoAsync(action, extra) {
     switch (action) {
+      case "myMistakes": return { ok: true, ...(window.__demoMistakes || { topics: [], total: 0 }) };
       case "course": return demoCoursePayload();
       case "topic": { const dm = window.__demoMine && window.__demoMine.topics.find((t) => t.id === extra.id); const topic = dm || await demoFetchJson("__course/topics/" + extra.id + ".json"); return { ok: true, topic, progress: demoCourse.progress[extra.id] || null, notes: demoCourse.notes.filter((n) => n.topicId === extra.id) }; }
       case "courseSet": { if (extra.status === "done" && demoCourse.hw) for (const h of demoCourse.hw) if (h.topicId === extra.id && !h.doneAt) h.doneAt = new Date().toISOString(); const prev = demoCourse.progress[extra.id]; let awardedXp = 0; if (extra.status === "reset") delete demoCourse.progress[extra.id]; else if (!(extra.status === "started" && prev && prev.status === "done")) { if (extra.status === "done" && !(prev && prev.status === "done")) awardedXp = 50; demoCourse.progress[extra.id] = { status: extra.status, updatedAt: new Date().toISOString() }; } return { ok: true, awardedXp, ...(await demoCoursePayload()) }; }
@@ -504,7 +505,7 @@
     return null;
   }
   function demo(action, extra) {
-    if (["course", "topic", "courseSet", "courseLevel", "courseTrack", "planMark", "notes", "noteAdd", "noteEdit", "noteDelete", "slang", "interests", "interestsSet", "feed", "interestsAddWords", "homework", "teacherStudents", "teacherStudent", "hwAssign", "hwRemove", "contentStatus", "contentRebuild", "contentReset", "notionLink", "notionUnlink", "notionSync", "notionStatus", "notionSeed", "notionSeedStatus"].includes(action)) return demoAsync(action, extra);
+    if (["course", "topic", "courseSet", "courseLevel", "courseTrack", "planMark", "notes", "noteAdd", "noteEdit", "noteDelete", "slang", "interests", "interestsSet", "feed", "interestsAddWords", "homework", "teacherStudents", "teacherStudent", "hwAssign", "hwRemove", "contentStatus", "contentRebuild", "contentReset", "notionLink", "notionUnlink", "notionSync", "notionStatus", "notionSeed", "notionSeedStatus", "myMistakes"].includes(action)) return demoAsync(action, extra);
     const today = new Date(); const days = [];
     for (let i = 13; i >= 0; i--) { const d = new Date(today.getTime() - i * 864e5); days.push({ date: d.toISOString().slice(0, 10), answers: [12, 20, 0, 15, 24, 18, 9, 30, 22, 0, 16, 25, 19, 7][13 - i], sec: [0, 600, 0, 0, 1500, 240, 0, 0, 900, 0, 0, 2100, 0, 420][13 - i], drills: [0, 8, 0, 0, 22, 3, 0, 0, 14, 0, 0, 30, 0, 6][13 - i] }); }
     const id = demoState.identity;
@@ -1038,6 +1039,7 @@
   function go(view, extra) { state.study = Object.assign({ view }, extra || {}); renderStudy(); window.scrollTo(0, 0); }
   function studyBack() {
     const v = state.study;
+    if (v.id === "mistakes") return go("home");
     const map = { topics: () => go("home"), category: () => go("topics"), topic: () => go("category", { key: v.cat || categoryOfTopic(v.id) }), lesson: () => go("topic", { id: v.id }), exercises: () => go("topic", { id: v.id }), selfcheck: () => go("topic", { id: v.id }), tnotes: () => go("topic", { id: v.id }), notes: () => go("home"), nfolder: () => go("notes"), slang: () => go("home"), search: () => go("topics"), checkpoint: () => go("topics", { level: v.level }), interests: () => go("home"), ipick: () => go("interests"), iquiz: () => go("interests"), homework: () => go("home"), teacher: () => go("home"), tstudent: () => go("teacher"), hwassign: () => (v.chatId ? go("tstudent", { chatId: v.chatId }) : go("teacher")), content: () => go("teacher"), train: () => go("topic", { id: v.id }), plan: () => go("home") };
     if (map[v.view]) map[v.view](); else go("home");
   }
@@ -1081,6 +1083,7 @@
       <div style="margin-top:18px"><button class="btn" id="go-topics" style="background:var(--g-aqua);font-size:15px">Далее</button></div>
       ${cont ? `<div class="card aqua" style="margin-top:14px;cursor:pointer" id="continue"><div class="row between"><div><div class="muted" style="color:var(--text-2);opacity:.7">Продолжить · ${esc(lvName(cont.t.level || ""))}</div><div style="font-size:17px;margin-top:2px">${esc(cont.t.emoji || "")} ${esc(cont.t.title)}</div></div><button class="fab">${iconArrow()}</button></div></div>` : ""}
       ${c.track !== "business" ? `<div class="card aqua" style="margin-top:14px;cursor:pointer" id="go-plan"><div class="row between"><div><div style="font-size:17px">🗺 Мой план</div><div class="muted" style="color:var(--text-2);opacity:.75;margin-top:2px">${STUDY_PLAN.length} тем по порядку · отмечено ${STUDY_PLAN.filter((x) => planDone(x).theory && planDone(x).practice).length}</div></div><button class="fab">${iconArrow()}</button></div></div>` : ""}
+      ${c.mistakes14 ? `<div class="card lavender" style="margin-top:14px;cursor:pointer" id="go-mist"><div class="row between"><div><div style="font-size:17px">🔁 Мои ошибки</div><div class="muted" style="color:var(--text-2);opacity:.75;margin-top:2px">${c.mistakes14} ${plural(c.mistakes14, ["задание", "задания", "заданий"])} за две недели, где ${gend("ошибся", "ошиблась")} — повтори</div></div><button class="fab">${iconArrow()}</button></div></div>` : ""}
       ${c.mine ? `<div class="card pink" style="margin-top:14px;cursor:pointer" id="go-mine"><div class="row between"><div><div style="font-size:17px">📒 Мои задания</div><div class="muted" style="color:var(--text-2);opacity:.75;margin-top:2px">от преподавателя · ${c.mine.total} ${plural(c.mine.total, ["страница", "страницы", "страниц"])}${c.mine.done ? ` · пройдено ${c.mine.done}` : ""}</div></div><button class="fab">${iconArrow()}</button></div></div>` : ""}
       <div class="card lavender" style="margin-top:14px;cursor:pointer" id="go-interests"><div class="row between"><div><div style="font-size:17px">🎯 Мои темы</div><div class="muted" style="color:var(--text-2);opacity:.75;margin-top:2px">предложения и слова по тому, что интересно именно тебе</div></div><button class="fab">${iconArrow()}</button></div></div>
       <div class="row" style="margin-top:12px;gap:10px"><button class="btn" id="go-notes" style="flex:1">📝 Заметки</button><button class="btn" id="go-slang" style="flex:1">💬 Сленг</button></div>
@@ -1088,6 +1091,7 @@
     $("#go-interests").addEventListener("click", () => { haptic(); go("interests"); });
     const gp = $("#go-plan"); if (gp) gp.addEventListener("click", () => { haptic(); go("plan"); });
     // «Обычный / Для работы»: та же грамматика, примеры и упражнения из рабочей среды; прогресс у каждой версии свой
+    const gmi = $("#go-mist"); if (gmi) gmi.addEventListener("click", () => { haptic(); openMistakes(); });
     const gm = $("#go-mine"); if (gm) gm.addEventListener("click", () => {
       haptic(); go("category", { key: "mine", from: "home" });
       // список старше получаса — тихо перечитываем Notion, чтобы новые задания появились без участия преподавателя
@@ -1402,6 +1406,30 @@
   }
 
   // --- тема: уроки (My Classroom--Details) ---
+  // «Мои ошибки»: тренировка из заданий, где ученик ошибался за две недели (по всем темам и заданиям из Notion)
+  async function openMistakes() {
+    go("train", { id: "mistakes", loading: true });
+    const r = await api("myMistakes");
+    if (!r || !r.ok) { toast("Не удалось загрузить ошибки"); return go("home"); }
+    const drills = [], exercises = [], leads = {}; let exN = 0;
+    for (const tp of r.topics || []) {
+      let c = cached(`topic:${tp.id}`); let t = c ? c.topic : null;
+      if (!t) { const rr = await api("topic", { id: tp.id }); if (rr && rr.ok) { t = rr.topic; cacheTopic(tp.id, { topic: rr.topic, progress: rr.progress, notes: rr.notes || [] }); } }
+      if (!t) continue;
+      const byId = new Map((t.drills || []).map((d) => [d.id, d]));
+      for (const it of tp.items) {
+        const d = byId.get(it.d); if (!d || d.type === "recall") continue;
+        exN++; const e = (t.exercises || []).find((x) => x.n === d.ex) || { title: "" };
+        exercises.push({ ...e, n: exN });
+        if (t.drillLeads && t.drillLeads[d.ex]) leads[exN] = t.drillLeads[d.ex];
+        drills.push({ ...d, id: `mist:${d.id}`, ex: exN, _src: d.id, _topicId: t.id, _topicTitle: t.title || "" });
+      }
+    }
+    if (!drills.length) { toast("Ошибок за две недели нет — отлично"); return go("home"); }
+    state.topic = { id: "mistakes", title: "Мои ошибки", kind: "mistakes", sections: [], exercises, drills, drillLeads: leads, mine: true };
+    state.topicProgress = null;
+    go("train", { id: "mistakes" });
+  }
   async function openTopic(id) {
     const c = cached(`topic:${id}`);
     if (c) { state.topic = c.topic; state.topicProgress = c.progress; state.topicNotes = c.notes || []; go("topic", { id }); }
@@ -1903,7 +1931,18 @@
   const WRONG_RUN_LIMIT = 5;
   function trackWrongRun(st, ok) { st.wrongRun = ok ? 0 : (st.wrongRun || 0) + 1; if (st.wrongRun >= WRONG_RUN_LIMIT) { st.wrongRun = 0; st.theoryPrompt = true; } }
   function renderTheoryPrompt(root, head) {
-    const t = state.topic; const lessons = lessonsOf(t); let i = lessons.findIndex((l) => l.kind === "theory"); if (i < 0) i = 0;
+    const t = state.topic; const lessons = lessonsOf(t); let i = lessons.findIndex((l) => l.kind === "theory");
+    if (i < 0) {
+      // теории в теме нет (задание из Notion): показываем правило из вводной к упражнению и идем дальше
+      const st = state.study; const d = ((t.drills || []).find((x) => x.id === st.queue[st.pos]) || {}); const lead = strip(String(((t.drillLeads || {})[d.ex]) || "")).replace(/\s+/g, " ").trim();
+      root.innerHTML = `${head}<div class="card lavender" style="margin-top:14px;text-align:center"><div style="font-size:44px">📖</div>
+        <div style="font-size:17px;margin-top:6px">${WRONG_RUN_LIMIT} ошибок подряд</div>
+        <div class="muted" style="margin-top:6px;color:var(--text-2);opacity:.8">${tv("Не спеши: перечитай правило и попробуй снова.", "Не спешите: перечитайте правило и попробуйте снова.")}</div>
+        ${lead ? `<div class="content" style="margin-top:12px;text-align:left;font-size:15px;padding:10px 12px;border-radius:10px;background:var(--chip-bg)">📏 ${esc(lead.length > 400 ? lead.slice(0, 397) + "…" : lead)}</div>` : ""}</div>
+        <div class="navbtns"><button class="btn primary" id="tp-skip">Продолжить</button></div>`;
+      $("#tp-skip").addEventListener("click", () => { haptic(); state.study.theoryPrompt = false; renderStudy(); });
+      return;
+    }
     root.innerHTML = `${head}<div class="card lavender" style="margin-top:14px;text-align:center"><div style="font-size:44px">📖</div>
       <div style="font-size:17px;margin-top:6px">${WRONG_RUN_LIMIT} ошибок подряд</div>
       <div class="muted" style="margin-top:6px;color:var(--text-2);opacity:.8">${tv("Давай вернемся к теории: так быстрее, чем угадывать. Потом продолжишь с того же места.", "Давайте вернемся к теории: так быстрее, чем угадывать. Потом продолжите с того же места.")}</div></div>
@@ -1959,17 +1998,19 @@
   }
   // «Тренировка темы»: 20 заданий вперемешку из всех упражнений; ошибки возвращаются в конец один раз
   function renderTraining(root) {
-    const t = state.topic; if (!t || t.id !== state.study.id) return openTopic(state.study.id);
+    if (state.study.loading) { root.innerHTML = `<div class="head lavender"><div class="ttl">🔁 Мои ошибки</div><div class="sub">собираю задания…</div></div><div class="notice" style="margin-top:14px">Загружаю…</div>`; return; }
+    const t = state.topic; if (!t || t.id !== state.study.id) return state.study.id === "mistakes" ? go("home") : openTopic(state.study.id);
+    const mist = t.id === "mistakes";
     const st = state.study; const byId = new Map((t.drills || []).map((d) => [d.id, d]));
     if (!st.queue) {
       const pool = (t.drills || []).filter((d) => d.type !== "recall");
       st.queue = shuffled(pool.map((d) => d.id), (Date.now() >>> 0) || 7).slice(0, 20); st.pos = 0; st.score = 0; st.firstTotal = st.queue.length; st.requeued = []; drillReset(st);
     }
-    const head = `<div class="head aqua"><div>${backLink(t.title.length > 24 ? t.title.slice(0, 24) + "…" : t.title)}<div class="ttl" style="margin-top:6px">🎯 Тренировка</div><div class="sub">задания из всех упражнений темы вперемешку</div></div></div>`;
+    const head = mist ? `<div class="head lavender"><div>${backLink("Учеба")}<div class="ttl" style="margin-top:6px">🔁 Мои ошибки</div><div class="sub">задания за две недели, где были ошибки · ${(t.drills || []).length} шт.</div></div></div>` : `<div class="head aqua"><div>${backLink(t.title.length > 24 ? t.title.slice(0, 24) + "…" : t.title)}<div class="ttl" style="margin-top:6px">🎯 Тренировка</div><div class="sub">задания из всех упражнений темы вперемешку</div></div></div>`;
     if (st.pos >= st.queue.length) {
       root.innerHTML = `${head}<div class="card cream" style="text-align:center;margin-top:14px"><div class="big">${st.score}<span style="font-size:20px;color:var(--muted)"> / ${st.firstTotal}</span></div><div style="margin-top:6px">${st.score >= st.firstTotal ? "Без ошибок!" : "Ошибки повторились в конце — так они лучше запоминаются"}</div></div>
-        <div class="navbtns"><button class="btn" id="tr-topic">К теме</button><button class="btn primary" id="tr-more">Ещё 20</button></div>`;
-      $("#tr-topic").addEventListener("click", () => go("topic", { id: t.id }));
+        <div class="navbtns"><button class="btn" id="tr-topic">${mist ? "На главную" : "К теме"}</button><button class="btn primary" id="tr-more">Ещё 20</button></div>`;
+      $("#tr-topic").addEventListener("click", () => (mist ? go("home") : go("topic", { id: t.id })));
       $("#tr-more").addEventListener("click", () => { st.queue = null; renderStudy(); });
       showCheer(root, st.score, st.firstTotal, `${t.id}:train`);
       return;
@@ -1979,10 +2020,10 @@
     if (st.dk !== d.id) { drillReset(st); st.dk = d.id; }
     const repeat = st.pos >= st.firstTotal;
     root.innerHTML = `${head}<div class="bar" style="margin:12px 0"><i style="width:${Math.round((Math.min(st.pos, st.firstTotal) / st.firstTotal) * 100)}%"></i></div>
-      ${drillHtml(d, st, e, repeat ? "Повторяем ошибку" : `${st.pos + 1} из ${st.firstTotal} · упр. ${d.ex}`)}<div style="height:16px"></div>`;
+      ${drillHtml(d, st, e, repeat ? "Повторяем ошибку" : `${st.pos + 1} из ${st.firstTotal} · ${mist ? (d._topicTitle || "").slice(0, 40) : `упр. ${d.ex}`}`)}<div style="height:16px"></div>`;
     bindDrill(root, d, st, (ok) => {
       if (!repeat && ok) st.score++;
-      if (!ok) noteMistake(t, d, st);
+      if (!ok) noteMistake(mist ? { id: d._topicId, title: d._topicTitle } : t, mist ? { ...d, id: d._src } : d, st);
       if (!ok && !st.requeued.includes(d.id)) { st.requeued.push(d.id); st.queue.push(d.id); }
       st.pos++; trackWrongRun(st, ok); drillReset(st); renderStudy(); window.scrollTo(0, 0);
     });
@@ -2219,7 +2260,7 @@
     bindStart(root);
   }
 
-  if (DEMO) window.__dbg = { go, openTopic, demo, buildOptions, exItems, parseItems, cleanAns, mutate, topicAnswerPool, explainHtml, setTopic: (t) => { state.topic = t; } };
+  if (DEMO) window.__dbg = { go, openTopic, openMistakes, state, demo, buildOptions, exItems, parseItems, cleanAns, mutate, topicAnswerPool, explainHtml, setTopic: (t) => { state.topic = t; } };
   // ---------- Навигация ----------
   async function showPage(name) {
     document.querySelectorAll(".page").forEach((p) => p.classList.toggle("active", p.id === "page-" + name));

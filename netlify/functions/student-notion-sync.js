@@ -23,6 +23,8 @@ export default async () => {
     if (st && st.status === "running" && Date.now() - Date.parse(st.updatedAt || 0) < 10 * 60 * 1000) continue;
     if (!queue.includes(m[1])) queue.push(m[1]);
   }
+  // раз в день в 19:07 МСК (16 UTC) — напоминания накануне урока (фоновая функция, режим lessonRemind)
+  if (new Date().getUTCHours() === 16) { try { await fetch(`${base}/.netlify/functions/course-rebuild-background`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ mode: "lessonRemind", secret }) }); } catch (e) { console.error("lessonRemind", e && e.message); } }
   // отметка «я запускалась» — ее показывает команда /notion у преподавателя
   try { await store().setJSON("stusync:last", { at: new Date().toISOString(), linked: keys.filter((k) => /:link$/.test(k)).length, queued: queue.length }); } catch (e) {}
   if (!queue.length) { console.log("[student-notion-sync] привязанных учеников нет"); return new Response("empty", { status: 200 }); }

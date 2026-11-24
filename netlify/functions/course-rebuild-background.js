@@ -264,6 +264,90 @@ async function deliverStudentNotice(chatId, log) {
   }
   log.push(`уведомление не отправлено (${last}) — повторю при следующем обновлении`);
 }
+// ---------- Отметка «сделано» в карточке урока и напоминание накануне урока ----------
+const LESSONS_DB = "78ebeb3357284c02993e5ced3dc20c36"; // база «📝 Уроки» (data source 05e17d52-db8f-44fa-95ea-3ba6481ced75)
+const LESSONS_STUDENT_PROP = "✨Ученики база данных", LESSONS_HW_PROP = "Домашнее", LESSONS_DATE_PROP = "дата";
+const MSK_MS = 3 * 3600 * 1000;
+const mskDate = (ms) => new Date(ms + MSK_MS).toISOString().slice(0, 10);
+const ruDay = (ymd) => `${ymd.slice(8, 10)}.${ymd.slice(5, 7)}`;
+// Страница ученика в базе «Ученики»: привязка может вести на саму страницу или на ее подстраницу «Домашнее» — поднимаемся по родителям
+async function studentPageOf(chatId) {
+  const link = await store().get(`stu:${chatId}:link`, { type: "json" });
+  if (!link || !link.pageId) return null;
+  if (link.studentPageId) return link.studentPageId;
+  let id = link.pageId;
+  for (let i = 0; i < 5 && id; i++) {
+    const pg = await notion(`/pages/${id}`);
+    const par = pg.parent || {};
+    if (par.type === "database_id" || par.type === "data_source_id") { try { await store().setJSON(`stu:${chatId}:link`, { ...link, studentPageId: id }); } catch (e) {} return id; }
+    id = par.type === "page_id" ? nid(par.page_id) : null;
+  }
+  return null;
+}
+async function lessonsOf(studentPageId, n = 12) {
+  const r = await notion(`/databases/${LESSONS_DB}/query`, { method: "POST", body: { filter: { property: LESSONS_STUDENT_PROP, relation: { contains: studentPageId } }, sorts: [{ property: LESSONS_DATE_PROP, direction: "descending" }], page_size: n } });
+  return r.results || [];
+}
+const rtClean = (rt) => rt.map((x) => { const o = { type: x.type, annotations: x.annotations }; if (x.type === "text") o.text = { content: x.text.content, link: x.text.link || null }; else if (x.type === "mention") o.mention = x.mention; else if (x.type === "equation") o.equation = x.equation; return o; });
+// Режим taskDone: ученик прошел задание → в карточке того урока, где оно задано, дописываем отметку; если урок не нашли — в саму страницу задания
+async function runTaskDone(body) {
+  const chatId = String(body.chatId || ""), topicId = String(body.topicId || "");
+  if (!/^\d{1,20}$/.test(chatId) || !/^[0-9a-f]{32}$/.test(topicId)) return;
+  const doneKey = `stu:${chatId}:done:${topicId}`;
+  if (await store().get(doneKey, { type: "json" })) return;
+  const ok = Number(body.ok) || 0, total = Number(body.total) || 0;
+  const stamp = `✅ сделано в приложении ${ruDay(mskDate(Date.now()))}${total ? `, ${ok} из ${total} верно` : ""}`;
+  const title = String(body.title || "").slice(0, 80);
+  let where = "";
+  try {
+    const sp = await studentPageOf(chatId);
+    if (sp) {
+      for (const les of await lessonsOf(sp, 12)) {
+        const rt = ((les.properties || {})[LESSONS_HW_PROP] || {}).rich_text || [];
+        const hit = rt.some((x) => x.type === "mention" && x.mention && x.mention.type === "page" && nid(x.mention.page.id) === topicId);
+        if (!hit) continue;
+        const next = rtClean(rt).concat([{ type: "text", text: { content: `\n${title ? `«${title}» — ` : ""}${stamp}` } }]);
+        await notion(`/pages/${les.id}`, { method: "PATCH", body: { properties: { [LESSONS_HW_PROP]: { rich_text: next } } } });
+        where = `урок ${nid(les.id)}`; break;
+      }
+    }
+  } catch (e) { console.error("taskDone lesson", chatId, e && e.message); }
+  if (!where) {
+    try { await notion(`/blocks/${topicId}/children`, { method: "PATCH", body: { children: [{ object: "block", type: "callout", callout: { icon: { emoji: "✅" }, rich_text: [{ type: "text", text: { content: stamp.replace(/^✅ /, "") } }] } }] } }); where = "страница задания"; }
+    catch (e) { console.error("taskDone page", chatId, e && e.message); }
+  }
+  if (where) await store().setJSON(doneKey, { at: new Date().toISOString(), where, ok, total });
+}
+// Режим lessonRemind (раз в день, 19:07 МСК): расписание ученика выводим из последних уроков в Notion —
+// если в последние 6 недель уроки шли в завтрашний день недели хотя бы дважды, напоминаем накануне
+async function runLessonRemind() {
+  const base = (process.env.URL || "").replace(/\/+$/, "");
+  const now = Date.now(); const tomorrow = mskDate(now + 24 * 3600 * 1000); const tomorrowWd = new Date(tomorrow + "T12:00:00Z").getUTCDay();
+  const sentKey = `lessonremind:${tomorrow}`;
+  if (await store().get(sentKey, { type: "json" })) return;
+  const keys = (await store().list({ prefix: "stu:" })).blobs.map((b) => b.key).filter((k) => /^stu:\d+:link$/.test(k));
+  const summary = [];
+  for (const k of keys) {
+    const chatId = k.split(":")[1];
+    try {
+      const sp = await studentPageOf(chatId); if (!sp) continue;
+      const lessons = await lessonsOf(sp, 15);
+      const recent = lessons.map((l) => ((l.properties || {})[LESSONS_DATE_PROP] || {}).date).filter((d) => d && d.start).map((d) => ({ ms: Date.parse(d.start), withTime: /T/.test(d.start) })).filter((d) => d.ms >= now - 42 * 24 * 3600 * 1000);
+      const same = recent.filter((d) => new Date(d.ms + MSK_MS).getUTCDay() === tomorrowWd);
+      if (same.length < 2) continue;
+      const times = same.filter((d) => d.withTime).map((d) => { const t = new Date(d.ms + MSK_MS); return `${String(t.getUTCHours()).padStart(2, "0")}:${String(t.getUTCMinutes()).padStart(2, "0")}`; });
+      const time = times.length ? times.sort((a, b) => times.filter((x) => x === b).length - times.filter((x) => x === a).length)[0] : "";
+      const idx = await store().get(`stu:${chatId}:index`, { type: "json" });
+      const prog = (await store().get(`progress:${chatId}`, { type: "json" })) || { topics: {} };
+      const undone = ((idx && idx.topics) || []).filter((t) => !t.skipped && t.exercises > 0 && t.createdAt && now - Date.parse(t.createdAt) < 21 * 24 * 3600 * 1000 && ((prog.topics || {})[t.id] || {}).status !== "done").sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+      await store().setJSON(`stu:${chatId}:lesson`, { date: tomorrow, time, undone: undone.slice(0, 5).map((t) => t.title), undoneTotal: undone.length });
+      const r = await fetch(`${base}/telegram-webhook?lessonremind=${encodeURIComponent(process.env.TELEGRAM_WEBHOOK_SECRET || "")}&chat=${chatId}`);
+      summary.push(`${chatId}: ${time || "без времени"}, не сделано ${undone.length}, ${r.ok ? "отправлено" : "HTTP " + r.status}`);
+    } catch (e) { summary.push(`${chatId}: ошибка ${String((e && e.message) || e).slice(0, 80)}`); }
+  }
+  await store().setJSON(sentKey, { at: new Date().toISOString(), summary });
+  console.log("[lessonRemind]", summary.join(" | "));
+}
 const STU_VERSION = 3; // менять при правке разбора — тогда страницы пересоберутся, даже если не менялись
 const STU_MAX_PAGES = 60;
 async function runStudent(body) {
@@ -453,6 +537,8 @@ export default async (req) => {
     const ids = STUDENT_NOTION_SEED.map((r) => String(r.chatId));
     body = { ...body, mode: "student", chatId: ids[0], queue: ids.slice(1) };
   }
+  if (body.mode === "taskDone") { try { await runTaskDone(body); } catch (e) { console.error("taskDone", e && e.message); } return new Response("ok", { status: 200 }); }
+  if (body.mode === "lessonRemind") { try { await runLessonRemind(); } catch (e) { console.error("lessonRemind", e && e.message); } return new Response("ok", { status: 200 }); }
   if (body.mode === "student") {
     if (!process.env.NOTION_TOKEN) { await store().setJSON(`stu:${String(body.chatId || "")}:status`, { status: "error", error: "нет переменной NOTION_TOKEN в Netlify", updatedAt: new Date().toISOString() }); return new Response("no token", { status: 200 }); }
     // Очередь читаем в этом же запуске, пока укладываемся в 9 минут (лимит фоновой функции — 15).

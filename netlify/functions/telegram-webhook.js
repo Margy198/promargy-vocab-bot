@@ -12025,6 +12025,17 @@ async function saveMistakes(chatId, body) {
   await courseStore().setJSON(key, data);
   return { ok: true, saved: items.length };
 }
+// «Мои ошибки» ученика: задания, где он ошибался за последние 14 дней, сгруппированные по темам (id задания → тема)
+async function myMistakesPayload(chatId) {
+  let data = null; try { data = await courseStore().get(`mist:${chatId}`, { type: "json" }); } catch (e) { data = null; }
+  const since = Date.now() - 14 * DAY_MS; const topics = [];
+  for (const [id, t] of Object.entries((data && data.topics) || {})) {
+    const items = Object.entries(t.items || {}).filter(([, m]) => Date.parse(m.at || 0) >= since).sort((a, b) => b[1].n - a[1].n).slice(0, 20).map(([d, m]) => ({ d, n: m.n || 1, at: m.at }));
+    if (items.length) topics.push({ id, title: t.title || "", items });
+  }
+  topics.sort((a, b) => b.items.length - a.items.length);
+  return { topics: topics.slice(0, 12), total: topics.reduce((a, t) => a + t.items.length, 0) };
+}
 async function mistakesPayload(chatId) {
   let data = null; try { data = await courseStore().get(`mist:${chatId}`, { type: "json" }); } catch (e) { data = null; }
   if (!data || !data.topics) return [];
@@ -12165,6 +12176,41 @@ async function seedStudentNotion(by) {
 }
 async function seedStudentNotionStatus() {
   return Promise.all(STUDENT_NOTION_SEED.map(async (row) => { const n = await stuNotionPayload(row.chatId); return { chatId: row.chatId, name: row.name, linked: n.linked, pages: n.pages || 0, exercises: n.exercises || 0, status: n.status ? n.status.status : null, error: n.status ? n.status.error : null, builtAt: n.builtAt || null }; }));
+}
+// Ученик прошел задание из Notion → фоновая функция отмечает это в карточке урока (колонка «Домашнее»)
+// и пишет «✅ сделано в приложении <дата>, N из M верно» (N/M — из результатов упражнений, если ученик их решал).
+async function markStudentTaskDone(chatId, topicId) {
+  if (!/^[0-9a-f]{32}$/.test(topicId)) return;
+  const base = (process.env.URL || "").replace(/\/+$/, "");
+  if (!base || !process.env.NOTION_TOKEN) return;
+  if (!(await readStuLink(chatId))) return;
+  let mist = null; try { mist = await courseStore().get(`mist:${chatId}`, { type: "json" }); } catch (e) { mist = null; }
+  const res = mist && mist.topics && mist.topics[topicId] ? Object.values(mist.topics[topicId].results || {}) : [];
+  const ok = res.reduce((a, r) => a + (r.ok || 0), 0), total = res.reduce((a, r) => a + (r.total || 0), 0);
+  let title = ""; try { const t = await courseStore().get(stuKey(chatId, `topic:${topicId}`), { type: "json" }); title = t && t.title ? t.title : ""; } catch (e) {}
+  await fetch(`${base}/.netlify/functions/course-rebuild-background`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ mode: "taskDone", chatId: String(chatId), topicId, title, ok, total, secret: WEBHOOK_SECRET }) }).catch(() => {});
+}
+// Напоминание накануне урока: фоновая функция записала stu:<id>:lesson = { at, time, undone: [titles] } и дернула этот GET
+async function sendLessonReminder(chatId) {
+  if (!/^\d{1,20}$/.test(chatId)) return false;
+  let note = null; try { note = await courseStore().get(stuKey(chatId, "lesson"), { type: "json" }); } catch (e) { note = null; }
+  if (!note || !note.date) return false;
+  try { await courseStore().delete(stuKey(chatId, "lesson")); } catch (e) {}
+  const identity = await readIdentity(chatId);
+  if (!identity || (identity.approved === false && !identity.phrasesAccess)) return false;
+  const formal = !!identity.formal; const undone = Array.isArray(note.undone) ? note.undone.slice(0, 5) : [];
+  const when = note.time ? `завтра в ${note.time}` : "завтра";
+  let text;
+  if (undone.length) {
+    const list = undone.map((t) => `• ${String(t).slice(0, 100)}`).join("\n") + (note.undoneTotal > undone.length ? "\n…" : "");
+    text = `📅 Урок ${when}.\n\n${formal ? "Не сделано заданий" : "Не сделано заданий"}: ${note.undoneTotal || undone.length}\n${list}\n\n${formal ? "Успеете пройти их в приложении до урока." : "Успеешь пройти их в приложении до урока."}`;
+  } else {
+    text = `📅 Урок ${when}. ${formal ? "Все задания из Notion сделаны — отлично 👍" : "Все задания из Notion сделаны — отлично 👍"}`;
+  }
+  const appUrl = miniAppUrl(chatId);
+  const url = appUrl ? appUrl + (appUrl.includes("?") ? "&" : "?") + "page=study&go=mine" : "";
+  try { await tg("sendMessage", { chat_id: chatId, text, ...(url && undone.length ? { reply_markup: { inline_keyboard: [[{ text: "Открыть задания", web_app: { url } }]] } } : {}) }); return true; }
+  catch (e) { await log("[lessonremind] send failed", chatId, String(e && e.message)); return false; }
 }
 async function startStudentSync(chatId, by) {
   const base = (process.env.URL || "").replace(/\/+$/, "");
@@ -12318,7 +12364,7 @@ async function appCoursePayload(chatId) {
   const homework = await appHomeworkPayload(chatId);
   // в бизнес-версии нет A0 — свой уровень хранится отдельно (bizLevel)
   const lvl = track === "business" ? (progress.bizLevel || (progress.level && progress.level !== "A0" ? progress.level : null)) : progress.level;
-  return { ok: true, track, businessAvailable: !!biz, plan: progress.plan || {}, levels, categories, level: levels.some((l) => l.code === lvl) ? lvl : null, total: all.length, done: all.filter((t) => t.status === "done").length, builtAt: index.builtAt || null, homework, mine: mine ? { total: mine.total, done: mine.done, builtAt: mine.builtAt } : null };
+  return { ok: true, track, businessAvailable: !!biz, plan: progress.plan || {}, levels, categories, level: levels.some((l) => l.code === lvl) ? lvl : null, total: all.length, done: all.filter((t) => t.status === "done").length, builtAt: index.builtAt || null, homework, mine: mine ? { total: mine.total, done: mine.done, builtAt: mine.builtAt } : null, mistakes14: (await myMistakesPayload(chatId)).total };
 }
 async function setCourseTopicStatus(chatId, topicId, status) {
   const index = await readCourseIndex();
@@ -12758,6 +12804,7 @@ async function handleAppApi(body) {
       // Задания ученика из Notion: привязать / отвязать может только преподаватель
       case "courseMistakes": return appJson(await saveMistakes(chatId, body));
       case "activity": return appJson(await saveActivity(chatId, body));
+      case "myMistakes": return appJson({ ok: true, ...(await myMistakesPayload(chatId)) });
       case "notionLink": {
         if (!(await isAdmin(chatId))) return appJson({ ok: false, error: "forbidden" }, 403);
         const sid = String(body.chatId || "");
@@ -12815,6 +12862,7 @@ async function handleAppApi(body) {
         if (!["started", "done", "reset"].includes(status)) return appJson({ ok: false, error: "bad_status" }, 400);
         const r = await setCourseTopicStatus(chatId, String(body.id || ""), status);
         if (!r.ok) return appJson(r, 400);
+        if (status === "done") await markStudentTaskDone(chatId, String(body.id || "")).catch((e) => console.error("taskDone", e && e.message));
         return appJson({ ...r, ...(await appCoursePayload(chatId)) });
       }
       // «Мой план»: отметки «теория» / «практика» по 38 темам плана Маргариты (номер темы 1–60)
@@ -12988,6 +13036,10 @@ export default async (req) => {
       }
       // GET ?stunotify=<секрет>&chat=<id> — фоновая функция нашла у ученика новые задания в Notion:
       // пишем ему «новое задание» с кнопкой. Список страниц лежит в stu:<id>:notify.
+      if (url.searchParams.get("lessonremind") === WEBHOOK_SECRET) {
+        const sent = await sendLessonReminder(String(url.searchParams.get("chat") || ""));
+        return new Response(JSON.stringify({ ok: true, sent }), { status: 200, headers: { "content-type": "application/json; charset=utf-8" } });
+      }
       if (url.searchParams.get("stunotify") === WEBHOOK_SECRET) {
         const sent = await sendStudentTaskNotice(String(url.searchParams.get("chat") || ""));
         return new Response(JSON.stringify({ ok: true, sent }), { status: 200, headers: { "content-type": "application/json; charset=utf-8" } });
