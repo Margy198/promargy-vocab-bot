@@ -1,3 +1,4 @@
+import { isTranslationItem } from "./course-builder.mjs";
 // Превращает упражнения Марго из Notion в интерактивные задания приложения.
 //
 // Главный принцип: правильный ответ ВСЕГДА берется из ее ключа. Ничего не придумывается.
@@ -792,6 +793,8 @@ export function buildTopicDrills(topic) {
       // творческие пункты («Имя, возраст, где живет») без ответа — пропускаем
       if (!htmlToText(as[i])) continue;
       const d = buildDrill(ex, i, qs[i], as[i], meta);
+      // перевод в приложение не берем — ни упражнением, ни отдельным пунктом
+      if (d.mode === "translate" || (!d.open && isTranslationItem(htmlToText(qs[i]), htmlToText(as[i])))) { stats.translation = (stats.translation || 0) + 1; continue; }
       drills.push(d); stats.items++; stats[d.type]++;
     }
     // «Вставь to или оставь пустым (—)»: все ответы упражнения — одно слово или прочерк → выбор из двух

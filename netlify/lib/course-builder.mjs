@@ -219,7 +219,12 @@ export function isTranslationExercise(ex) {
   const ruSentence = (l) => !/_{2,}|…|\.\.\./.test(l) && letters(l, /[A-Za-z]/g) === 0 && (l.match(/[А-Яа-я]{2,}/g) || []).length >= 3;
   const enSentence = (k) => (k.match(/[A-Za-z']{2,}/g) || []).length >= 3 && letters(k, /[A-Za-z]/g) > letters(k, /[А-Яа-я]/g);
   const n = items.filter((l, i) => ruSentence(l) && enSentence(keys[i])).length;
-  return n / items.length >= 0.6;
+  return n / items.length >= 0.4;
+}
+// Один пункт — перевод: русское предложение без пропусков, ключ — английское предложение
+export function isTranslationItem(qText, keyText) {
+  const q = String(qText || ""), k = String(keyText || "");
+  return !/_{2,}|…|\.\.\./.test(q) && letters(q, /[A-Za-z]/g) === 0 && (q.match(/[А-Яа-я]{2,}/g) || []).length >= 3 && (k.match(/[A-Za-z']{2,}/g) || []).length >= 3;
 }
 export function dropTranslation(exercises) {
   const kept = exercises.filter((e) => !isTranslationExercise(e));
