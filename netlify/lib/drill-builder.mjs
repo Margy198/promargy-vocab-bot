@@ -527,7 +527,7 @@ export function alignGaps(qText, whole) {
       if (idx < 0 && g < segs.length - 2) {
         const m = rl.match(/^(.*?)([A-Za-zÀ-ÿ]+)[eaEA]$/); const el = m ? m[1] + m[2] + "'" : null;
         const j = el ? lower(k).indexOf(lower(el), end) : -1;
-        if (j < 0) return null; pos = j;
+        if (j < 0) return null; pos = j + m[1].length; // стянутое слово (je → j') уходит в следующий пропуск
       }
     }
   }
@@ -624,6 +624,70 @@ export function readingWrongs(word, reading) {
   for (const [rx, ok, bad] of SUB) { if (out.length >= 3) break; if (rx.test(w) && r.includes(ok)) add(r.replace(ok, bad)); }
   for (const [a, b] of RU_SWAP) { if (out.length >= 3) break; if (r.includes(a)) add(r.replace(a, b)); }
   return out.slice(0, 3);
+}
+
+function gapSteps(base, qText, gaps, whole) {
+  const parts = String(qText).split(/(…|\.{3})/);
+  const gi = []; parts.forEach((p, i) => { if (p === "…" || p === "...") gi.push(i); });
+  const hintAfter = (i) => { const m = String(parts[i + 1] || "").match(/^\s*\(([^()]*)\)/); return m ? m[1] : ""; };
+  // alignGaps склеивает пропуски, между которыми только подсказка («... (avoir) ... (de / d')») — разбиваем обратно
+  // по вариантам в скобках у следующих пропусков: «n'ai pas de» → «n'ai pas» + «de»
+  if (gi.length !== gaps.length) {
+    const runs = []; let cur = [gi[0]];
+    for (let j = 1; j < gi.length; j++) { const between = parts.slice(gi[j - 1] + 1, gi[j]).join("").replace(/\([^()]*\)/g, "").trim(); if (between) { runs.push(cur); cur = [gi[j]]; } else cur.push(gi[j]); }
+    runs.push(cur);
+    if (runs.length !== gaps.length) return null;
+    const split = [];
+    for (let r = 0; r < runs.length; r++) {
+      let rest = gaps[r].trim(); const tail = [];
+      for (let j = runs[r].length - 1; j >= 1; j--) {
+        const opts = hintAfter(runs[r][j]).split(/\s*\/\s*/).map((x) => x.trim()).filter((x) => x && !/[а-яё]/i.test(x));
+        const o = opts.find((x) => (/['’]$/.test(x) ? rest.toLowerCase().endsWith(" " + x.toLowerCase()) || rest.toLowerCase().endsWith(x.toLowerCase()) : new RegExp("(^|\\s)" + x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "$", "i").test(rest)));
+        if (!o) return null;
+        tail.unshift(rest.slice(rest.length - o.length)); rest = rest.slice(0, rest.length - o.length).trim();
+        if (!rest) return null;
+      }
+      split.push(rest, ...tail);
+    }
+    gaps = split;
+  }
+  if (gi.length !== gaps.length) return null;
+  const out = [];
+  for (let k = 0; k < gaps.length; k++) {
+    const ans = gaps[k];
+    const h = hintAfter(gi[k]);
+    let options = null, correct = 0;
+    const grp = h.includes("/") ? h.split(/\s*\/\s*/).map((x) => x.trim()).filter(Boolean) : [];
+    const ci = grp.findIndex((o) => norm(o) === norm(ans));
+    if (grp.length >= 2 && grp.length <= 5 && ci >= 0) { options = grp; correct = ci; }
+    else {
+      const hint = parseHint(`x … (${h})`);
+      let wrongs = frVerbDistractors(ans, hint, qText);
+      if (wrongs.length < 2) wrongs = wrongs.concat(hintDistractors(ans, hint, { ok: [ans], arrow: false }));
+      wrongs = [...new Set(wrongs)].filter((w) => norm(w) !== norm(ans)).slice(0, 3);
+      if (!wrongs.length) return null;
+      options = [ans, ...wrongs];
+    }
+    // предложение: прошлые пропуски заполнены (их подсказка убрана), текущий открыт, следующие — «…»
+    let q = "";
+    for (let i = 0; i < parts.length; i++) {
+      const j = gi.indexOf(i);
+      if (j < 0) {
+        let seg = parts[i];
+        const prevGap = gi.indexOf(i - 1);
+        if (prevGap >= 0 && prevGap < k) seg = seg.replace(/^\s*\([^()]*\)/, "");
+        q += escHtml(seg);
+      } else if (j < k) {
+        // «Je» + «J'aime»: стянутое слово уже в ответе
+        const a = gaps[j]; const m = q.match(/([A-Za-zÀ-ÿ]+)\s*$/);
+        if (m && new RegExp("^" + m[1].slice(0, -1) + "['’]", "i").test(a)) q = q.slice(0, q.length - m[0].length);
+        q += `<b>${escHtml(a)}</b>`;
+      } else if (j === k) q += `<span class="gap">…</span>`;
+      else q += "…";
+    }
+    out.push({ ...base, id: `${base.id}:g${k}`, type: "choice", options, correct, src: "step", q: q.replace(/\s+/g, " ").trim(), full: whole, step: `${k + 1}/${gaps.length}` });
+  }
+  return out;
 }
 
 const escHtml = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -844,6 +908,12 @@ export function buildDrill(ex, i, qHtml, aHtml, meta) {
         wrongs = [...new Set(wrongs)].filter((w) => !okSet.has(norm(w)) && norm(w) !== norm(ans)).slice(0, 3);
         if (wrongs.length >= 1) return { ...base, type: "choice", options: [ans, ...wrongs], correct: 0, src: "align", full: whole, hint: hint ? hint.raw : "" };
       }
+      // несколько пропусков: по шагу на каждый пропуск — сначала глагол, потом de / d' / артикль,
+      // уже заполненные пропуски видны в предложении
+      if (blanks >= 2) {
+        const steps = gapSteps(base, qText, gaps, whole);
+        if (steps) return steps;
+      }
       const gapText = gaps.join(" ").replace(/\s+/g, " ").trim();
       const tiles = gapText.split(" ").filter(Boolean);
       const low = tiles.map((x) => x.toLowerCase());
@@ -1030,7 +1100,7 @@ export function splitNumberedBlanks(html, answers) {
 // Все задания темы
 export function buildTopicDrills(topic) {
   const drills = []; const leads = {};
-  const stats = { items: 0, choice: 0, build: 0, type: 0, recall: 0, whole: 0, mismatch: 0 };
+  const stats = { items: 0, choice: 0, build: 0, type: 0, recall: 0, pick: 0, whole: 0, mismatch: 0 };
   for (const ex of topic.exercises || []) {
     let qs = splitItems(ex.html);
     let as = splitItems(ex.answers);
@@ -1054,10 +1124,11 @@ export function buildTopicDrills(topic) {
     for (let i = 0; i < qs.length; i++) {
       // творческие пункты («Имя, возраст, где живет») без ответа — пропускаем
       if (!htmlToText(as[i])) continue;
-      const d = buildDrill(ex, i, qs[i], as[i], meta);
+      const dd = buildDrill(ex, i, qs[i], as[i], meta);
+      const d = Array.isArray(dd) ? dd[0] : dd;
       // перевод в приложение не берем — ни упражнением, ни отдельным пунктом
       if (d.mode === "translate" || (!d.open && isTranslationItem(htmlToText(qs[i]), htmlToText(as[i])))) { stats.translation = (stats.translation || 0) + 1; continue; }
-      drills.push(d); stats.items++; stats[d.type]++;
+      for (const x of Array.isArray(dd) ? dd : [dd]) { drills.push(x); stats.items++; stats[x.type]++; }
     }
     // Короткий ответ, который иначе пришлось бы печатать (транскрипция «при», буква «к», слово): варианты — ответы
     // соседних пунктов того же упражнения. Маргарита: в каждом задании должен быть выбор кнопками.

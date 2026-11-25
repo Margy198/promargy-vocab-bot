@@ -228,7 +228,11 @@ export function normalizeHomework(body, pageTitle = "") {
       if (members.length && members.every((w) => words.some((x) => low(x) === low(w)))) groups.push({ label: m[1].replace(/\s+\/\s+/g, ", ").replace(/\s+[—–-]\s+/, " "), members: members.map(low) });
     }
     if (groups.length < 2 || groups.length > 6) continue;
-    const covered = words.filter((w) => groups.some((g) => g.members.includes(low(w))));
+    // буквосочетания групп из подписи «(о) - au / eau»: слово, где встречаются сочетания двух групп
+    // (beaucoup: eau и ou), подходит в обе — такие слова не даем, чтобы верный ответ не засчитывался ошибкой
+    const combos = groups.map((g) => (g.label.match(/[a-zà-ÿ]{1,4}/gi) || []).map((x) => x.toLowerCase()));
+    const ambiguous = (w) => combos.filter((cs) => cs.length && cs.some((c) => low(w).includes(c))).length > 1;
+    const covered = words.filter((w) => groups.some((g) => g.members.includes(low(w))) && !ambiguous(w));
     if (covered.length < words.length * 0.8) continue;
     const tail = e.answers.filter((l) => strip(l) && !/^(.{1,40}?):\s*(.+)$/.test(strip(l)) && !/^\s*\d+[.)]\s/.test(l));
     // по пункту на группу: «Выбери слова группы «(о) au, eau»» — все слова кнопками, верные — члены группы
