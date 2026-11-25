@@ -206,6 +206,30 @@ export function normalizeHomework(body, pageTitle = "") {
     }
   }
 
+  // «Распредели слова по группам»: список слов через « / », в ключе строки «(о) - au / eau: auto (ото), beau (бо), …»
+  // → по слову выбор группы кнопками: «1. auto — (о) au, eau / (ё) eu / …»
+  for (const e of exs) {
+    if (e.lines.some((l) => /^\d+\.\s/.test(l.trim()))) continue;
+    const li = e.lines.findIndex((l) => strip(l) && !/^<b>/.test(l.trim()) && slashParts(l).length >= 4);
+    if (li < 0) continue;
+    const words = slashParts(e.lines[li]);
+    const low = (x) => x.toLowerCase().replace(/[.!?]+$/, "");
+    const groups = [];
+    for (const l of e.answers) {
+      const m = strip(l).match(/^(.{1,40}?):\s*(.+)$/);
+      if (!m) continue;
+      const members = m[2].split(/\s*[,;]\s*|\s+\/\s+/).map((x) => x.replace(/\s*\([^()]*\)\s*/g, " ").trim()).filter(Boolean);
+      if (members.length && members.every((w) => words.some((x) => low(x) === low(w)))) groups.push({ label: m[1].replace(/\s+\/\s+/g, ", ").replace(/\s+[—–-]\s+/, " "), members: members.map(low) });
+    }
+    if (groups.length < 2 || groups.length > 6) continue;
+    const covered = words.filter((w) => groups.some((g) => g.members.includes(low(w))));
+    if (covered.length < words.length * 0.8) continue;
+    const labels = groups.map((g) => g.label);
+    const tail = e.answers.filter((l) => strip(l) && !/^(.{1,40}?):\s*(.+)$/.test(strip(l)) && !/^\s*\d+[.)]\s/.test(l));
+    e.lines.splice(li, 1, ...covered.map((w, i) => `${i + 1}. ${w} — ${labels.join(" / ")}`));
+    e.answers = covered.map((w, i) => `${i + 1}. ${groups.find((g) => g.members.includes(low(w))).label}`).concat(tail.map((t) => `_${strip(t)}_`));
+  }
+
   const out = [];
   const theory = pre.map((l) => { const st = l.trim(); return /^#{1,3}\s+/.test(st) ? `### ${strip(st.replace(/^#{1,3}\s+/, ""))}` : l; });
   if (strip(theory.join(" ")).replace(/[#\s]/g, "")) out.push("## 📖 Теория", "", ...theory, "");

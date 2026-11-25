@@ -502,7 +502,7 @@ export function alignGaps(qText, whole) {
         }
       }
     } else start = pos;
-    const right = segs[g + 1].trim();
+    const right = segs[g + 1].trim().replace(/^[.!?,;:]+$/, "");
     let end;
     if (!right && g < segs.length - 2) continue; // между пропусками только подсказка — считаем их одним ответом
     if (!right) end = k.length;
@@ -534,15 +534,36 @@ export function alignGaps(qText, whole) {
 }
 // Французский глагол из подсказки «(aimer)», «(aimer, отрицание)»: неверные формы — другие окончания,
 // снятая элизия (j'aime → je aime), pas перед глаголом.
+const FR_IRREG = { "être": ["suis", "es", "est", "sommes", "êtes", "sont"], avoir: ["ai", "as", "a", "avons", "avez", "ont"], aller: ["vais", "vas", "va", "allons", "allez", "vont"], faire: ["fais", "fais", "fait", "faisons", "faites", "font"] };
 const FR_END = { er: ["e", "es", "e", "ons", "ez", "ent"], ir: ["is", "is", "it", "issons", "issez", "issent"], re: ["s", "s", "", "ons", "ez", "ent"] };
 export function frVerbDistractors(ans, hint, qText) {
   const hw = hint && hint.words ? hint.words.map((w) => w.replace(/[,;:]+$/, "")).find((w) => /^[a-zà-ÿ]+(er|ir|re)$/.test(w)) : null;
   if (!hw || !/[A-Za-zÀ-ÿ]/.test(ans) || /[а-яё]/i.test(ans)) return [];
+  if (FR_IRREG[hw]) {
+    // être / avoir: другие формы того же глагола, элизия ne → n' по первой букве формы
+    const forms = [...new Set(FR_IRREG[hw])];
+    const cur = forms.find((f) => new RegExp("(^|[\\s'’])" + f + "(?=$|[\\s.,!?;:])", "i").test(ans));
+    if (!cur) return [];
+    const out = [];
+    for (const f of forms) {
+      if (f === cur || out.length >= 3) continue;
+      let w = ans.replace(new RegExp("(^|[\\s'’])" + cur + "(?=$|[\\s.,!?;:])", "i"), (x, a) => a + f);
+      w = w.replace(/(^|\s)ne\s+(?=[aeiouéèêh])/i, "$1n'").replace(/(^|\s)n['’](?=[^aeiouéèêh])/i, "$1ne ");
+      if (w.toLowerCase() !== ans.toLowerCase()) out.push(w);
+    }
+    if (/(^|\s)n['’]/i.test(ans) && out.length < 3) out.push(ans.replace(/(^|\s)n['’]/i, "$1ne "));
+    return [...new Set(out)];
+  }
   const type = hw.slice(-2); const stem = hw.slice(0, -2);
   const ends = FR_END[type]; if (!ends) return [];
-  // найти в ответе форму глагола с этой основой
-  const rx = new RegExp("(^|[\\s'’])(" + stem.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")([a-zà-ÿ]*)", "i");
-  const m = ans.match(rx); if (!m) return [];
+  // найти в ответе форму глагола с этой основой (акценты не сравниваем: préférer → préfère)
+  const deacc = (x) => x.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  let m = null;
+  for (const w of ans.matchAll(/(^|[\s'’])([A-Za-zÀ-ÿ]+)/g)) {
+    const word = w[2];
+    if (deacc(word).startsWith(deacc(stem)) && word.length >= stem.length) { m = { index: w.index, 1: w[1], 2: word.slice(0, stem.length), 3: word.slice(stem.length), 0: w[0] }; break; }
+  }
+  if (!m) return [];
   const cur = m[3].toLowerCase();
   if (!ends.includes(cur) && !(type === "er" && /^(é|è)/.test(cur))) return [];
   const out = [];
@@ -555,12 +576,50 @@ export function frVerbDistractors(ans, hint, qText) {
   return [...new Set(out)].filter((w) => w.toLowerCase() !== ans.toLowerCase());
 }
 
+// Чтение слова русскими буквами из ключа «не читается конечная p; тро» → варианты «тро / троп / трю»
+const LAT_RU = { p: "п", t: "т", s: "с", d: "д", x: "кс", z: "з", e: "э", h: "х", g: "г", r: "р", l: "л", n: "н", m: "м", c: "к", b: "б", k: "к", f: "ф", v: "в" };
+const RU_SWAP = [["ё", "ю"], ["ю", "у"], ["у", "ю"], ["о", "а"], ["э", "е"], ["а", "о"], ["и", "ы"], ["е", "э"]];
+export function readingChoice(word, keyText) {
+  const segs = keyText.split(/;/).map((x) => x.trim());
+  // чтение — сегмент из 1–3 русских слов (пояснение после запятой отбрасываем)
+  let reading = null, note = [];
+  // чтение — короткий сегмент (1–2 слова без «не», «ничего» и т.п.), обычно последний
+  const isReading = (x) => /^[а-яё' -]{2,20}$/i.test(x) && x.split(/\s+/).length <= 2 && !/^(не|ничего|нет|да)\b|\b(не|это|и|но)\b/i.test(x);
+  let ri = -1;
+  segs.forEach((sg, i) => { if (isReading(sg.split(/,/)[0].trim())) ri = i; });
+  segs.forEach((sg, i) => {
+    const first = sg.split(/,/)[0].trim();
+    if (i === ri) { reading = first; const rest = sg.slice(first.length).replace(/^\s*,\s*/, "").trim(); if (rest) note.push(rest); }
+    else note.push(sg);
+  });
+  if (!reading) return null;
+  const expl = note.join("; ");
+  const wrongs = [];
+  // немые буквы из пояснения: «не читается конечная p», «не читается h в начале и конечная e»
+  const silent = [...expl.matchAll(/(?:не читается|не читаются|молчит|молчат|не произносится)\s+([^;.,]*)/gi)].flatMap((m) => [...m[1].matchAll(/(?:^|[\s,])([a-z])(?=$|[\s,.])/g)].map((x) => x[1]));
+  for (const l of silent) {
+    const ru = LAT_RU[l]; if (!ru) continue;
+    const w = l === "h" || /в начале/.test(expl) && word.toLowerCase().startsWith(l) ? ru + reading : reading + ru;
+    if (w !== reading && !wrongs.includes(w)) wrongs.push(w);
+  }
+  if (!silent.length && reading.length >= 3) { const w = reading.slice(0, -1); if (!wrongs.includes(w)) wrongs.push(w); }
+  for (const [a, b] of RU_SWAP) { if (wrongs.length >= 3) break; if (reading.includes(a)) { const w = reading.replace(a, b); if (w !== reading && !wrongs.includes(w)) wrongs.push(w); } }
+  if (!wrongs.length) return null;
+  return { options: [reading, ...wrongs.slice(0, 3)], note: expl };
+}
+
 const escHtml = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 export function buildDrill(ex, i, qHtml, aHtml, meta) {
   const id = `${meta.topicId}:${ex.n}:${i}`;
   const task = htmlToText(ex.title).replace(/\s*\{[^}]*\}\s*$/, "");
   const key = parseKey(aHtml);
   const qText = htmlToText(qHtml);
+  // ключ «Moi, je préfère les livres. - пояснение по-русски»: ответ — часть без пояснения, пояснение — в подсказку после ошибки
+  if (key.main && key.full && /[а-яё]/i.test(key.main) && !/[а-яё]/i.test(key.full) && key.main.toLowerCase().startsWith(key.full.toLowerCase())) {
+    const rest = key.main.slice(key.full.length).replace(/^\s*[—–-]\s*/, "").trim();
+    if (rest && !key.note) key.note = rest;
+    key.main = key.full;
+  }
   // «Найди и исправь ошибку» без ❌/✅: ключ «Верно.» или «исправленное предложение - пояснение по-русски»
   if (ERROR_RX.test(task) && !key.fix && !key.noError) {
     const kt = String(key.text || "").trim();
@@ -581,10 +640,28 @@ export function buildDrill(ex, i, qHtml, aHtml, meta) {
   {
     const dm = qText.match(/^(.{1,60}?)\s[—–-]\s(.+)$/);
     if (dm && !blanks) {
-      const opts = dm[2].split(/\s+\/\s+/).map((x) => x.trim().replace(/^\(?[а-яa-z]\)\s*/i, "")).filter(Boolean);
-      const ans = String(key.main || "").split(/\s*\/\s*/)[0].replace(/[.!?]$/, "").replace(/^\(?[а-яa-z]\)\s*/i, "").trim();
+      const raw = dm[2].split(/\s+\/\s+/).map((x) => x.trim()).filter(Boolean);
+      // буквенные метки «а) … б) …» убираем только если они есть у всех вариантов
+      const lab = /^\(?[a-cа-в]\)\s*/i;
+      const strip = raw.length >= 2 && raw.every((x) => lab.test(x)) ? (x) => x.replace(lab, "") : (x) => x;
+      const opts = raw.map(strip);
+      // ключ «кю - по-английски кью не читаем» → ответ «кю»
+      const ans = strip(String(key.main || "").split(/\s*\/\s*/)[0].split(/\s[—–-]\s|;/)[0].replace(/[.!?]$/, "").trim());
       const k = opts.findIndex((o) => norm(o) === norm(ans));
-      if (opts.length >= 2 && opts.length <= 5 && k >= 0) return { ...base, type: "choice", options: opts, correct: k, src: "inline", q: cleanHtml(dm[1]) + " — …" };
+      if (opts.length >= 2 && opts.length <= 5 && k >= 0) {
+        const nm = String(key.text || "").match(/\s[—–-]\s+(.*)$/);
+        return { ...base, type: "choice", options: opts, correct: k, src: "inline", q: cleanHtml(dm[1]) + " — …", note: base.note || (nm ? nm[1].trim() : "") };
+      }
+    }
+  }
+  // «trop - …» + ключ «не читается конечная p; тро»: варианты чтения русскими буквами —
+  // верное из ключа, неверные — как если бы немая буква читалась («троп»), и подмена гласного («трю»)
+  {
+    const rm = qText.match(/^([A-Za-zÀ-ÿ'’ -]{1,30}?)\s*[—–-]\s*(…|\.{3})\s*$/);
+    const kt = String(key.text || "").replace(/^[A-Za-zÀ-ÿ'’ -]{1,30}?\s[—–-]\s/, "");
+    if (rm && kt && /[а-яё]/i.test(kt)) {
+      const rd = readingChoice(rm[1].trim(), kt);
+      if (rd) return { ...base, type: "choice", options: rd.options, correct: 0, src: "read", q: escHtml(rm[1].trim()) + " — …", note: rd.note };
     }
   }
 
@@ -827,7 +904,7 @@ export function buildDrill(ex, i, qHtml, aHtml, meta) {
   }
 
   // 5) Ответ — целое предложение (перевод, трансформация, вопрос): берем ключ целиком
-  const fullKey = (key.full && key.full.length >= key.main.length ? key.full : key.main).replace(/\s*\([^()]*\)\s*$/, "").trim();
+  const fullKey = (key.full && (key.full.length >= key.main.length || (/[а-яё]/i.test(key.main) && !/[а-яё]/i.test(key.full))) ? key.full : key.main).replace(/\s*\([^()]*\)\s*$/, "").trim();
   const ansSentence = fullKey.split(/\s+\/\s+(?=[A-Z])/);
   const first = ansSentence[0].trim();
   const allComplete = ansSentence.length === 1 || ansSentence.every((x) => /[.!?]$/.test(x.trim()));
