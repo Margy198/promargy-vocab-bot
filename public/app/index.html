@@ -1808,7 +1808,8 @@
   function drillCorrectText(d) { return d.type === "choice" ? d.options[d.correct] : d.type === "build" ? (d.full || d.answer) : d.type === "type" ? (d.full || d.accept.join(" / ")) : ""; }
   function drillHtml(d, st, e, counter) {
     if (DEMO) window.__curDrill = d;
-    const recall = d.type === "recall" || isRecallMode();
+    // «Вспоминать самой» действует только на слова в боте: задания из Notion и курса всегда с кнопками
+    const recall = d.type === "recall";
     // название упражнения Марго — это и есть задание («Вставь should или shouldn't»), его не подменяем
     const taskLine = d.task || (d.type === "build" ? (DRILL_TASK[d.mode] || "Собери из слов") : "");
     const lead = ((state.topic && state.topic.drillLeads) || {})[d.ex];
@@ -1843,7 +1844,7 @@
         ${!st.checked ? `<div class="navbtns"><button class="btn" id="dr-clear" ${st.built.length ? "" : "disabled"}>Сбросить</button><button class="btn primary" id="dr-check" ${st.built.length ? "" : "disabled"}>Проверить</button></div>` : ""}`;
     }
     let fb = "";
-    if (st.result !== null && d.type !== "recall" && !isRecallMode()) {
+    if (st.result !== null && d.type !== "recall") {
       const ok = st.result;
       // свой вариант не совпал с ключом: показываем ключ и даем засчитать, если по смыслу то же самое
       const own = d.type === "type" && !ok && st.typed.trim() && !st.overruled;
