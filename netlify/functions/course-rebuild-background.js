@@ -348,7 +348,7 @@ async function runLessonRemind() {
   await store().setJSON(sentKey, { at: new Date().toISOString(), summary });
   console.log("[lessonRemind]", summary.join(" | "));
 }
-const STU_VERSION = 4; // менять при правке разбора — тогда страницы пересоберутся, даже если не менялись
+const STU_VERSION = 5; // менять при правке разбора — тогда страницы пересоберутся, даже если не менялись
 const STU_MAX_PAGES = 60;
 async function runStudent(body) {
   const chatId = String(body.chatId || "");

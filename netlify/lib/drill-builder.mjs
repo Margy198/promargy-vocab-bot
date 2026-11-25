@@ -71,7 +71,7 @@ export function splitItems(html) {
 
 // Разбор пункта ключа
 export function parseKey(aHtml) {
-  const raw = String(aHtml || "");
+  const raw = String(aHtml || "").replace(/\s*\\?\[(?=[^\]]*[а-яё])[^\]]*\\?\]/gi, "");
   const text = htmlToText(raw);
   const bolds = [...raw.matchAll(/<b>([\s\S]*?)<\/b>/g)].map((m) => htmlToText(m[1])).filter(Boolean);
   const out = { raw, text, bolds, main: null, fix: null, noError: false, both: false, note: "", alts: [] };
@@ -473,12 +473,107 @@ export function articleChoice(qText, key, blanks, ctx) {
   return out.length >= 2 ? { options: out } : null;
 }
 
+// Вырезать ответы пропусков из целого ключа: «Je ... (aimer) lire.» + «J'aime lire.» → ["J'aime"].
+// Сегменты задания между пропусками ищутся в ключе по порядку; элизия (je → j', ne → n', le → l') учитывается:
+// тогда стянутое слово уходит в ответ пропуска.
+export function alignGaps(qText, whole) {
+  const q = String(qText || "").replace(/\s*\([^()]*\)/g, " ").replace(/\s+/g, " ").trim();
+  const segs = q.split(/<code>\s*_{2,}\s*<\/code>|_{2,}|\.{3}|…/).map((x) => x.replace(/\s+/g, " "));
+  if (segs.length < 2) return null;
+  const k = String(whole).replace(/\s+/g, " ");
+  const lower = (x) => x.toLowerCase();
+  const out = []; let pos = 0; let start = null;
+  for (let g = 0; g < segs.length - 1; g++) {
+    // левая граница: конец предыдущего сегмента в ключе
+    let left = segs[g].trim();
+    if (start !== null) { /* соседние пропуски слились в один ответ */ }
+    else if (g === 0) {
+      if (!left) start = 0;
+      else {
+        const idx = lower(k).indexOf(lower(left), pos);
+        if (idx === pos || (idx >= 0 && !k.slice(pos, idx).trim())) start = idx + left.length;
+        else {
+          // элизия: «Je» → «J'», «ne» → «n'»
+          const m = left.match(/^(.*?)([A-Za-zÀ-ÿ]+)[eaEA]$/);
+          const el = m ? m[1] + m[2] + "'" : null;
+          const j = el ? lower(k).indexOf(lower(el), pos) : -1;
+          if (j < 0 || k.slice(pos, j).trim()) return null;
+          start = j; // стянутое слово входит в ответ
+        }
+      }
+    } else start = pos;
+    const right = segs[g + 1].trim();
+    let end;
+    if (!right && g < segs.length - 2) continue; // между пропусками только подсказка — считаем их одним ответом
+    if (!right) end = k.length;
+    else {
+      const rw = right.split(" ")[0].replace(/[.,!?;:]+$/, "");
+      // ищем начало правого сегмента после start; слово должно стоять целиком
+      const rx = new RegExp("(^|[\\s'’])" + rw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(?=$|[\\s.,!?;:'’])", "i");
+      const sub = k.slice(start); const mm = sub.match(rx);
+      if (!mm) return null;
+      end = start + mm.index + (mm[1] ? mm[1].length : 0);
+      // правый сегмент с элизией в ключе («... (le / la) lecture» — ок; «ne ... pas» — pas ищется как есть)
+    }
+    const ans = k.slice(start, end).trim().replace(/[.!?]+$/, "");
+    if (!ans || /…|\.{3}/.test(ans) || ans.split(" ").length > 6) return null;
+    out.push(ans); start = null;
+    // следующий поиск — после правого сегмента
+    if (right) {
+      const rl = right.replace(/[.!?]+$/, "");
+      const idx = lower(k).indexOf(lower(rl), end);
+      pos = idx >= 0 ? idx + rl.length : end;
+      if (idx < 0 && g < segs.length - 2) {
+        const m = rl.match(/^(.*?)([A-Za-zÀ-ÿ]+)[eaEA]$/); const el = m ? m[1] + m[2] + "'" : null;
+        const j = el ? lower(k).indexOf(lower(el), end) : -1;
+        if (j < 0) return null; pos = j;
+      }
+    }
+  }
+  return out;
+}
+// Французский глагол из подсказки «(aimer)», «(aimer, отрицание)»: неверные формы — другие окончания,
+// снятая элизия (j'aime → je aime), pas перед глаголом.
+const FR_END = { er: ["e", "es", "e", "ons", "ez", "ent"], ir: ["is", "is", "it", "issons", "issez", "issent"], re: ["s", "s", "", "ons", "ez", "ent"] };
+export function frVerbDistractors(ans, hint, qText) {
+  const hw = hint && hint.words ? hint.words.map((w) => w.replace(/[,;:]+$/, "")).find((w) => /^[a-zà-ÿ]+(er|ir|re)$/.test(w)) : null;
+  if (!hw || !/[A-Za-zÀ-ÿ]/.test(ans) || /[а-яё]/i.test(ans)) return [];
+  const type = hw.slice(-2); const stem = hw.slice(0, -2);
+  const ends = FR_END[type]; if (!ends) return [];
+  // найти в ответе форму глагола с этой основой
+  const rx = new RegExp("(^|[\\s'’])(" + stem.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")([a-zà-ÿ]*)", "i");
+  const m = ans.match(rx); if (!m) return [];
+  const cur = m[3].toLowerCase();
+  if (!ends.includes(cur) && !(type === "er" && /^(é|è)/.test(cur))) return [];
+  const out = [];
+  const swap = (e) => ans.slice(0, m.index + m[1].length) + m[2] + e + ans.slice(m.index + m[0].length);
+  for (const e of ["es", "ent", "e", "ons", "ez", "is", "it", "s", ""]) if (ends.includes(e) && e !== cur && out.length < 2) out.push(swap(e));
+  // элизия: j'aime → je aime, n'aime → ne aime
+  if (/(^|\s)(j|n|l|qu|d|m|t|s|c)['’]/i.test(ans)) out.push(ans.replace(/(^|\s)(j|n|l|qu|d|m|t|s|c)['’]/i, (x, a, b) => a + b + "e "));
+  // отрицание: pas перед глаголом
+  if (/\bpas\b/.test(ans)) { const w = ans.replace(/\s*\bpas\b/, "").replace(/(^|\s)(ne|n['’])\s*/i, "$1$2 pas "); if (w !== ans) out.push(w.replace(/\s+/g, " ").trim()); }
+  return [...new Set(out)].filter((w) => w.toLowerCase() !== ans.toLowerCase());
+}
+
 const escHtml = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 export function buildDrill(ex, i, qHtml, aHtml, meta) {
   const id = `${meta.topicId}:${ex.n}:${i}`;
   const task = htmlToText(ex.title).replace(/\s*\{[^}]*\}\s*$/, "");
   const key = parseKey(aHtml);
   const qText = htmlToText(qHtml);
+  // «Найди и исправь ошибку» без ❌/✅: ключ «Верно.» или «исправленное предложение - пояснение по-русски»
+  if (ERROR_RX.test(task) && !key.fix && !key.noError) {
+    const kt = String(key.text || "").trim();
+    if (/^(верно|правильно|ошибки нет|без ошибок|correct|ok)[.!]?$/i.test(kt)) { key.noError = true; key.note = ""; }
+    else {
+      const m = kt.match(/^(.*?[.!?])\s+[—–-]\s+(.*[а-яё].*)$/i) || (/^[A-ZÀ-Ý].*[.!?]$/.test(kt) && !/[а-яё]/i.test(kt) ? [null, kt, ""] : null);
+      if (m && !/[а-яё]/i.test(m[1])) {
+        const right = m[1].split(/\s+\/\s+(?=[A-ZÀ-Ý])/)[0].trim();
+        key.fix = { wrong: null, right }; key.full = right; key.main = right; key.alts = m[1].split(/\s+\/\s+(?=[A-ZÀ-Ý])/).slice(1).map((x) => x.trim());
+        if (m[2] && !key.note) key.note = m[2].trim();
+      }
+    }
+  }
   const base = { id, ex: ex.n, i, task, q: cleanHtml(qHtml), key: cleanHtml(aHtml), note: key.note || "" };
   const blanks = countBlanks(qHtml);
   if (OPEN_RX.test(task) && !/❌/.test(aHtml)) return { ...base, type: "recall", open: true };
@@ -511,8 +606,8 @@ export function buildDrill(ex, i, qHtml, aHtml, meta) {
       return (before + rw.join(" ") + after).replace(/\s+/g, " ").replace(/\s+([.,!?])/g, "$1").replace(/([,;])(\s*[,;])+/g, "$1").replace(/([.!?])\1+$/, "$1").trim();
     };
     // ключ — уже целое исправленное предложение (с перестановкой слов): берем его как есть
-    const wcount = (x) => x.split(/\s+/).filter((w) => /[A-Za-z]/.test(w)).length;
-    if (/^[A-Z]/.test(right) && /[.!?]$/.test(right) && wcount(right) >= wcount(orig) - 1 && wcount(right) >= 3) fixed = right;
+    const wcount = (x) => x.split(/\s+/).filter((w) => /[A-Za-zÀ-ÿ]/.test(w)).length;
+    if (/^[A-ZÀ-Ý]/.test(right) && /[.!?]$/.test(right) && wcount(right) >= wcount(orig) - 1 && wcount(right) >= 2) fixed = right;
     else if (wrong && orig.includes(wrong)) fixed = splice(orig.indexOf(wrong), wrong.length);
     else if (wrong && orig.toLowerCase().includes(wrong.toLowerCase())) fixed = splice(orig.toLowerCase().indexOf(wrong.toLowerCase()), wrong.length);
     // несколько ошибок в пункте: «is engineer / the Germany» → «is an engineer from Germany» заменяет весь отрезок
@@ -521,7 +616,7 @@ export function buildDrill(ex, i, qHtml, aHtml, meta) {
       const a = lo.indexOf(parts[0].toLowerCase()); const lastP = parts[parts.length - 1].toLowerCase(); const b = lo.indexOf(lastP, a);
       if (a >= 0 && b >= a) fixed = orig.slice(0, a) + right + orig.slice(b + lastP.length);
     }
-    if (fixed && norm(fixed) !== norm(orig) && !/[а-яё]/i.test(fixed + orig)) {
+    if (fixed && fixed.trim().toLowerCase() !== orig.trim().toLowerCase() && !/[а-яё]/i.test(fixed + orig)) {
       return { ...base, type: "choice", mode: "fix", options: [fixed, orig], correct: 0, src: "fix" };
     }
     // ключ — целое предложение: собрать его из слов
@@ -534,7 +629,7 @@ export function buildDrill(ex, i, qHtml, aHtml, meta) {
     }
     return { ...base, type: "recall", mode: "fix" };
   }
-  if (key.noError) return { ...base, type: "recall", mode: "fix" };
+  if (key.noError) return { ...base, type: "choice", mode: "fix", options: ["Верно, ошибки нет", "Есть ошибка"], correct: 0, src: "fix" };
   if (!key.main) return { ...base, type: "recall" };
   // ключ вида «1990 → nineteen ninety», «14 — fourteen»: левая часть повторяет задание, ответ — правая
   {
@@ -604,6 +699,29 @@ export function buildDrill(ex, i, qHtml, aHtml, meta) {
   if (blanks === 1 && meta.geo && /^(the|—|-|–|∅|no article|без артикля)$/i.test(key.main.trim())) {
     const isThe = /^the$/i.test(key.main.trim());
     return { ...base, type: "choice", options: ["the", "без артикля"], correct: isThe ? 0 : 1, src: "geo" };
+  }
+  // 2б) Ключ — целое предложение («J'aime lire.»), а в задании пропуски: ответ пропуска вырезаем из ключа по окружению
+  if (blanks >= 1 && !key.both && !key.fix) {
+    const whole = String(key.full || key.main || "").replace(/\s*\([^()]*\)\s*$/, "").split(/\s+\/\s+(?=[A-ZÀ-Ý])/)[0].trim();
+    const okWhole = whole && !/[а-яё]/i.test(whole) && !/\s\/\s|…|\.\.\./.test(whole) && whole.split(/\s+/).length >= 2 && whole.split(/\s+/).length <= 18;
+    const gaps = okWhole ? alignGaps(qText, whole) : null;
+    if (gaps && gaps.length >= 1 && gaps.length <= blanks) {
+      const hint = parseHint(qText);
+      if (gaps.length === 1 && blanks === 1) {
+        const ans = gaps[0];
+        const okSet = new Set([ans, ...key.alts].map(norm));
+        let wrongs = frVerbDistractors(ans, hint, qText);
+        if (wrongs.length < 2) wrongs = wrongs.concat(hintDistractors(ans, hint, { ok: [...okSet], arrow: false }));
+        wrongs = [...new Set(wrongs)].filter((w) => !okSet.has(norm(w)) && norm(w) !== norm(ans)).slice(0, 3);
+        if (wrongs.length >= 1) return { ...base, type: "choice", options: [ans, ...wrongs], correct: 0, src: "align", full: whole, hint: hint ? hint.raw : "" };
+      }
+      const gapText = gaps.join(" ").replace(/\s+/g, " ").trim();
+      const tiles = gapText.split(" ").filter(Boolean);
+      const low = tiles.map((x) => x.toLowerCase());
+      const fromChoices = parseChoices(qHtml).flat().filter((x) => /^[A-Za-zÀ-ÿ'’]+$/.test(x));
+      const traps = [...new Set([...tiles.flatMap((t) => frVerbDistractors(t, hint, qText)), ...fromChoices])].filter((w) => !/\s/.test(w) && !low.includes(w.toLowerCase())).slice(0, 3);
+      if (tiles.length >= 2 || traps.length >= 1) return { ...base, type: "build", mode: "fill", answer: gapText, accept: [gapText], full: whole, tiles, end: "", traps };
+    }
   }
   // 3) Пропуск с подсказкой → варианты-формы
   if (blanks === 1 && !key.both) {

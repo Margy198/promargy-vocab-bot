@@ -205,10 +205,12 @@ function flattenH2Toggles(lines) {
 // Упражнения на перевод (RU → EN) в приложение не берем — решение Маргариты (24.11.2026).
 // Признаки: в названии «перевод / переведи / translate», либо большинство пунктов написаны по-русски, а ключ — по-английски.
 const TRANSLATION_TITLE_RX = /перев[ео]д|переведи|translat/i;
+// Устные задания («прочитать вслух», «записать голосовое») в приложении кнопками не сделать — тоже не берем
+const ORAL_TITLE_RX = /вслух|голосов|аудио|произнес/i;
 function letters(s, rx) { return (String(s).match(rx) || []).length; }
 export function isTranslationExercise(ex) {
   const title = stripTags(ex.title || "");
-  if (TRANSLATION_TITLE_RX.test(title)) return true;
+  if (TRANSLATION_TITLE_RX.test(title) || ORAL_TITLE_RX.test(title)) return true;
   if (!ex.answers) return false;
   // творческие задания (ответ — пример, пункты-подсказки по-русски) переводом не считаем
   if (/творческ|о себе|расскажи|письмо|истори|воспоминан|напиши|составь|ответь|опиши|реплик/i.test(title)) return false;
