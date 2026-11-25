@@ -634,7 +634,9 @@ export function buildDrill(ex, i, qHtml, aHtml, meta) {
   // перевод слова в пункте «robe (платье) — …»: показываем под словом, в разбор не пускаем
   let tr = "";
   { const m = String(qHtml || "").match(/^(\s*(?:<[^>]+>\s*)*[A-Za-zÀ-ÿ'’-]{1,30}(?:\s[A-Za-zÀ-ÿ'’-]{1,30}){0,2})\s*\(([а-яё][^()]{0,60})\)/i);
-    if (m) { tr = m[2].trim(); qHtml = qHtml.replace(/\s*\([а-яё][^()]{0,60}\)/i, ""); } }
+    if (m) { tr = m[2].trim(); qHtml = qHtml.replace(/\s*\([а-яё][^()]{0,60}\)/i, ""); }
+    // перевод предложения в конце пункта: «Je ... (aimer) lire. (Я люблю читать.)» — только кириллица, два слова и больше
+    else { const t = String(qHtml || "").match(/\s*\(([А-Яа-яЁё][^()]*[а-яё.!?])\)\s*(?:<\/[^>]+>\s*)*$/); if (t && !/[A-Za-z]/.test(t[1]) && (t[1].trim().split(/\s+/).length >= 2 || /[.!?]$/.test(t[1].trim()))) { tr = t[1].trim(); qHtml = qHtml.replace(t[0], (x) => x.replace(/\s*\([^()]*\)/, "")); } } }
   const qText = htmlToText(qHtml);
   // ключ «Moi, je préfère les livres. - пояснение по-русски»: ответ — часть без пояснения, пояснение — в подсказку после ошибки
   if (key.main && key.full && /[а-яё]/i.test(key.main) && !/[а-яё]/i.test(key.full) && key.main.toLowerCase().startsWith(key.full.toLowerCase())) {
@@ -688,7 +690,8 @@ export function buildDrill(ex, i, qHtml, aHtml, meta) {
       const opts = raw.map(strip);
       // ключ «кю - по-английски кью не читаем» → ответ «кю»
       const ans = strip(String(key.main || "").split(/\s*\/\s*/)[0].split(/\s[—–-]\s|;/)[0].replace(/[.!?]$/, "").trim());
-      const k = opts.findIndex((o) => norm(o) === norm(ans));
+      const bare = (x) => norm(String(x).replace(/\s*\([^()]*\)/g, ""));
+      const k = opts.findIndex((o) => norm(o) === norm(ans) || bare(o) === bare(ans));
       if (opts.length >= 2 && opts.length <= 5 && k >= 0) {
         const nm = String(key.text || "").match(/\s[—–-]\s+(.*)$/);
         return { ...base, type: "choice", options: opts, correct: k, src: "inline", q: cleanHtml(dm[1]) + " — …", note: base.note || (nm ? nm[1].trim() : "") };
