@@ -206,7 +206,7 @@ function flattenH2Toggles(lines) {
 // Признаки: в названии «перевод / переведи / translate», либо большинство пунктов написаны по-русски, а ключ — по-английски.
 const TRANSLATION_TITLE_RX = /перев[ео]д|переведи|translat/i;
 // Устные задания («прочитать вслух», «записать голосовое») в приложении кнопками не сделать — тоже не берем
-const ORAL_TITLE_RX = /вслух|голосов|аудио|произнес/i;
+const ORAL_TITLE_RX = /вслух|голосов|аудио|произнес|назови правило|объясни правило|сформулируй правило/i;
 function letters(s, rx) { return (String(s).match(rx) || []).length; }
 export function isTranslationExercise(ex) {
   const title = stripTags(ex.title || "");

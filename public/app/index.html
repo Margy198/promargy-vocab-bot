@@ -303,6 +303,10 @@
   .outline { font-size: 16px; color: var(--text-2); line-height: 1.4; padding: 22px 20px; }
   .opt { display: block; width: 100%; text-align: left; font: inherit; font-size: 16px; padding: 14px 16px; margin-top: 10px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--card); color: var(--text); cursor: pointer; box-shadow: var(--shadow); }
   .opt:active { transform: scale(.99); }
+  .tl.pk.on { background: var(--accent-soft, #e6f7f5); border-color: var(--accent, #2bb3a3); }
+  .tl.pk.ok { background: var(--ok-bg); border-color: var(--ok-line); color: var(--ok-fg); }
+  .tl.pk.bad { background: var(--bad-bg); border-color: var(--bad-line); color: var(--bad-fg); text-decoration: line-through; }
+  .tl.pk.miss { border-color: var(--ok-line); border-style: dashed; }
   .opt.ok { background: var(--ok-bg); border-color: var(--ok-line); color: var(--ok-fg); } .opt.bad { background: var(--bad-bg); border-color: var(--bad-line); color: var(--bad-fg); } .opt.dim { opacity: .5; }
   .gap { display: inline-block; min-width: 46px; border-bottom: 2px solid var(--accent); color: var(--accent); text-align: center; line-height: 1.1; padding: 0 4px; }
   .tl-ans { min-height: 58px; margin-top: 12px; padding: 10px; border-radius: 14px; border: 1.5px dashed var(--line); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: var(--card); }
@@ -1074,8 +1078,27 @@
   const isTeacherMode = () => !!(state.me && state.me.isAdmin) && roleGet() === "teacher";
   function roleBarHtml() { const r = roleGet(); return `<div class="seg track-seg" id="role-seg" style="justify-content:center"><button data-role="teacher" class="${r === "teacher" ? "on" : ""}">👩‍🏫 Учитель</button><button data-role="student" class="${r === "student" ? "on" : ""}">🎓 Ученик</button></div>`; }
   function bindRoleBar(root) { root.querySelectorAll("#role-seg button").forEach((b) => b.addEventListener("click", () => { haptic(); roleSet(b.dataset.role); tcache.students = null; go("home"); })); }
+  // Вернуть туда, где остановилась до выхода: тема + упражнение + задание (сервер помнит позицию)
+  async function resumeLast() {
+    const last = state.course && state.course.last; if (!last || state.resumed || isTeacherMode()) return false;
+    state.resumed = true;
+    if (Date.now() - Date.parse(last.at || 0) > 3 * 24 * 3600 * 1000) return false;
+    await openTopic(last.id);
+    const t = state.topic; if (!t || t.id !== last.id) return false;
+    const pos = (state.topicProgress && state.topicProgress.pos) || null; if (!pos) return false;
+    const lessons = lessonsOf(t); const i = lessons.findIndex((l) => l.kind === "exercises"); if (i < 0) return false;
+    go("exercises", { id: t.id, i, ex: pos.ex || 0, item: pos.item || 0, shown: false, score: pos.score || 0, resumed: true });
+    toast("Продолжаем с того места, где остановились");
+    return true;
+  }
+  function savePos(t, st, done) {
+    if (!t || !t.id || DEMO) return;
+    clearTimeout(savePos.tm);
+    savePos.tm = setTimeout(() => { api("posSet", { id: t.id, i: st.i || 0, ex: st.ex || 0, item: st.item || 0, score: st.score || 0, done: !!done }).catch(() => {}); if (state.course) state.course.last = done ? null : { id: t.id, at: new Date().toISOString() }; }, done ? 0 : 400);
+  }
   function renderStudyHome(root) {
     if (isTeacherMode()) return renderTeacher(root, true);
+    if (!state.resumed && state.course && state.course.last) { state.resumed = true; resumeLast(); }
     const c = state.course; const [qe, qr, qa] = quoteOfDay();
     const pct = c.total ? Math.round((c.done / c.total) * 100) : 0;
     const cont = lastStartedTopic();
@@ -1538,7 +1561,7 @@
   }
   function openLesson(i) {
     const t = state.topic; const lessons = lessonsOf(t); const l = lessons[i]; if (!l) return;
-    if (l.kind === "exercises") return go("exercises", { id: t.id, i, ex: 0, item: 0, shown: false, score: 0 });
+    if (l.kind === "exercises") { const pos = (state.topicProgress && state.topicProgress.pos) || null; return go("exercises", { id: t.id, i, ex: pos ? pos.ex || 0 : 0, item: pos ? pos.item || 0 : 0, shown: false, score: pos ? pos.score || 0 : 0 }); }
     if (l.kind === "selfcheck") return go("selfcheck", { id: t.id, i });
     go("lesson", { id: t.id, i });
   }
@@ -1803,9 +1826,9 @@
   function shuffled(arr, seed) { const a = arr.slice(); let x = seed || 1; for (let i = a.length - 1; i > 0; i--) { x = (Math.imul(x, 1103515245) + 12345) >>> 0; const j = x % (i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
   const normAns = (x) => String(x || "").toLowerCase().replace(/[’‘]/g, "'").replace(/[.!?,;:"«»—–]+/g, " ").replace(/\s+/g, " ").trim();
   const DRILL_TASK = { fix: "Исправь ошибку — собери верное предложение", translate: "Переведи — собери из слов", transform: "Собери ответ из слов", fill: "Вставь пропуск — собери предложение" };
-  function drillReset(st) { st.picked = null; st.built = []; st.checked = false; st.shown = false; st.result = null; st.typed = ""; }
+  function drillReset(st) { st.picked = null; st.built = []; st.sel = []; st.checked = false; st.shown = false; st.result = null; st.typed = ""; }
   function drillPool(d) { return shuffled(d.tiles.concat(d.traps || []).map((w, k) => ({ w, k })), seedOf(d.id)); }
-  function drillCorrectText(d) { return d.type === "choice" ? d.options[d.correct] : d.type === "build" ? (d.full || d.answer) : d.type === "type" ? (d.full || d.accept.join(" / ")) : ""; }
+  function drillCorrectText(d) { return d.type === "choice" ? d.options[d.correct] : d.type === "pick" ? d.correct.map((k) => d.options[k]).join(" / ") : d.type === "build" ? (d.full || d.answer) : d.type === "type" ? (d.full || d.accept.join(" / ")) : ""; }
   function drillHtml(d, st, e, counter) {
     if (DEMO) window.__curDrill = d;
     // «Вспоминать самой» действует только на слова в боте: задания из Notion и курса всегда с кнопками
@@ -1813,7 +1836,7 @@
     // название упражнения Марго — это и есть задание («Вставь should или shouldn't»), его не подменяем
     const taskLine = d.task || (d.type === "build" ? (DRILL_TASK[d.mode] || "Собери из слов") : "");
     const lead = ((state.topic && state.topic.drillLeads) || {})[d.ex];
-    const head = `<div class="card ex"><div class="muted" style="margin-bottom:6px">${esc(counter)} · ${esc(taskLine)}</div>${lead ? `<div class="content" style="font-size:14px;color:var(--text-2);margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--line)">${lead}</div>` : ""}<div class="content" style="font-size:18px">${d.q}</div></div>`;
+    const head = `<div class="card ex"><div class="muted" style="margin-bottom:6px">${esc(counter)}${/^Задание /.test(counter) ? "" : ` · ${esc(taskLine)}`}</div>${lead ? `<div class="content" style="font-size:14px;color:var(--text-2);margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--line)">${lead}</div>` : ""}<div class="content" style="font-size:18px">${d.q}</div>${d.tr ? `<div class="muted" style="margin-top:4px;font-size:14px">${esc(d.tr)}</div>` : ""}</div>`;
     const explain = () => { try { return explainHtml(e, { q: d.q, a: d.key }, lead); } catch (err) { return ""; } };
     const note = d.note ? `<div class="muted" style="margin-top:6px;font-size:14px">💡 ${esc(d.note)}</div>` : "";
     // режим «вспоминаю сама» и задания без вариантов
@@ -1836,6 +1859,12 @@
       const order = shuffled(d.options.map((_, k) => k), seedOf(d.id));
       const answered = st.picked !== null;
       body = order.map((k) => `<button class="opt ${answered ? (k === d.correct ? "ok" : k === st.picked ? "bad" : "dim") : ""}" data-k="${k}" ${answered ? "disabled" : ""}>${esc(d.options[k])}</button>`).join("");
+    } else if (d.type === "pick") {
+      // выбери несколько: слова-кнопки, отмечаешь все подходящие, потом «Проверить»
+      const sel = new Set(st.sel || []); const okSet = new Set(d.correct);
+      const cls = (k) => st.checked ? (okSet.has(k) ? (sel.has(k) ? "ok" : "miss") : sel.has(k) ? "bad" : "") : sel.has(k) ? "on" : "";
+      body = `<div class="tl-pool" style="margin-top:12px">${d.options.map((w, k) => `<button class="tl pk ${cls(k)}" data-pk="${k}" ${st.checked ? "disabled" : ""}>${esc(w)}</button>`).join("")}</div>
+        ${!st.checked ? `<div class="navbtns"><button class="btn" id="dr-clear" ${sel.size ? "" : "disabled"}>Сбросить</button><button class="btn primary" id="dr-pcheck" ${sel.size ? "" : "disabled"}>Проверить</button></div>` : ""}`;
     } else if (d.type === "build") {
       const pool = drillPool(d); const used = new Set(st.built);
       const ans = st.built.map((k) => { const tile = pool.find((x) => x.k === k); return `<button class="tl on" data-on="${k}" ${st.checked ? "disabled" : ""}>${esc(tile.w)}</button>`; }).join("");
@@ -1864,7 +1893,12 @@
     root.querySelectorAll(".opt[data-k]").forEach((b) => b.addEventListener("click", () => { if (st.picked !== null) return; st.picked = Number(b.dataset.k); finish(st.picked === d.correct); renderStudy(); }));
     root.querySelectorAll(".tl[data-k]").forEach((b) => b.addEventListener("click", () => { haptic(); st.built.push(Number(b.dataset.k)); renderStudy(); }));
     root.querySelectorAll(".tl[data-on]").forEach((b) => b.addEventListener("click", () => { haptic(); const k = Number(b.dataset.on); st.built = st.built.filter((x) => x !== k); renderStudy(); }));
-    const cl = root.querySelector("#dr-clear"); if (cl) cl.addEventListener("click", () => { st.built = []; renderStudy(); });
+    const cl = root.querySelector("#dr-clear"); if (cl) cl.addEventListener("click", () => { st.built = []; st.sel = []; renderStudy(); });
+    root.querySelectorAll(".tl[data-pk]").forEach((b) => b.addEventListener("click", () => { haptic(); const k = Number(b.dataset.pk); st.sel = st.sel || []; st.sel = st.sel.includes(k) ? st.sel.filter((x) => x !== k) : [...st.sel, k]; renderStudy(); }));
+    const pc = root.querySelector("#dr-pcheck"); if (pc) pc.addEventListener("click", () => {
+      const a = [...new Set(st.sel || [])].sort((x, y) => x - y); const c = [...d.correct].sort((x, y) => x - y);
+      st.checked = true; finish(a.length === c.length && a.every((x, i) => x === c[i])); renderStudy();
+    });
     const ch = root.querySelector("#dr-check"); if (ch) ch.addEventListener("click", () => {
       const pool = drillPool(d); const said = st.built.map((k) => pool.find((x) => x.k === k).w).join(" ");
       const okSet = new Set([d.answer, ...(d.accept || [])].map(normAns));
@@ -1876,7 +1910,7 @@
     const tc = root.querySelector("#dr-tcheck"); if (tc) tc.addEventListener("click", tcheck);
     const gu = root.querySelector("#dr-giveup"); if (gu) gu.addEventListener("click", () => { st.typed = ""; st.checked = true; finish(false); renderStudy(); });
     const own = root.querySelector("#dr-own"); if (own) own.addEventListener("click", () => { haptic("medium"); onDone(true); });
-    const nx = root.querySelector("#dr-next"); if (nx) nx.addEventListener("click", () => { haptic(); onDone(!!st.result); });
+    const nx = root.querySelector("#dr-next"); if (nx) { nx.addEventListener("click", () => { haptic(); onDone(!!st.result); }); setTimeout(() => { try { nx.scrollIntoView({ block: "end", behavior: "smooth" }); } catch (err) {} }, 60); }
   }
   // ---------- Активность: сколько минут и заданий — преподаватель видит это в кабинете ----------
   // Время идет, пока экран открыт и ученик что-то нажимал за последние 2 минуты; раз в минуту и при сворачивании отправляем на сервер.
@@ -1921,6 +1955,7 @@
   function drillGiven(d, st) {
     try {
       if (d.type === "choice") return st.picked === null || st.picked === undefined ? "" : String(d.options[st.picked] || "");
+      if (d.type === "pick") return (st.sel || []).map((k) => d.options[k]).join(" / ");
       if (d.type === "build") { const pool = drillPool(d); return (st.built || []).map((k) => (pool.find((x) => x.k === k) || {}).w || "").join(" "); }
       if (d.type === "type") return String(st.typed || "");
     } catch (e) {}
@@ -2049,8 +2084,10 @@
   function renderExercises(root) {
     const t = state.topic; if (!t || t.id !== state.study.id) return openTopic(state.study.id);
     const lessons = lessonsOf(t); const i = state.study.i; const l = lessons[i]; markRead(t.id, l);
-    const st = state.study; if (st.ex === undefined) { st.ex = 0; st.item = 0; st.shown = false; st.score = 0; }
+    const st = state.study;
+    if (st.ex === undefined) { const pos = (state.topicProgress && state.topicProgress.pos) || null; st.ex = pos ? pos.ex || 0 : 0; st.item = pos ? pos.item || 0 : 0; st.shown = false; st.score = pos ? pos.score || 0 : 0; }
     const total = t.exercises.length; const e = t.exercises[st.ex];
+    if (st.ex >= total) savePos(t, st, true); else savePos(t, st);
     const hdr = lessonHeader(t, l, i, lessons.length, "lavender");
     if (!e) { // всё пройдено
       const res = t.exercises.map((x) => lsGet(exKey(t.id, x.n), null)).filter(Boolean);
@@ -2062,7 +2099,7 @@
       return;
     }
     const p = exItems(e);
-    const title = `Упражнение ${e.n}${e.title ? `. ${e.title}` : ""}`;
+    const title = e.title ? e.title : `Упражнение ${e.n}`;
     const exBar = `<div class="row between" style="margin:4px 0 8px"><div class="muted">${st.ex + 1} из ${total}</div><button class="back" id="ex-list">все упражнения</button></div>`;
     const dl = drillsOfEx(t, e.n);
     if (dl.length) {

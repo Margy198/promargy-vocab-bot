@@ -88,7 +88,8 @@ function exHeader(st) {
 }
 
 export function normalizeHomework(body, pageTitle = "") {
-  const src = String(body || "").split("\n");
+  // мягкие переносы и невидимые символы из Notion ломают сравнение слов («é\u00adté» ≠ «été»)
+  const src = String(body || "").replace(/[\u00ad\u200b\u200c\u200d\ufeff]/g, "").split("\n");
   // страница уже в шаблоне курса — не трогаем
   if (src.some((l) => /^## (?:\S+\s+)?Упражнения\s*$/.test(l.trim())) && src.some((l) => /^### .*Упражнение\s+\d+/.test(l.trim()))) return { md: body, exercises: -1, withKey: -1, log: [] };
 
@@ -195,11 +196,14 @@ export function normalizeHomework(body, pageTitle = "") {
           const lj = e.lines.findIndex((l) => strip(l) && !/^<b>/.test(l.trim()) && slashParts(l).length > parts.length);
           const words = lj >= 0 ? slashParts(e.lines[lj]) : [];
           const low = (x) => x.toLowerCase();
-          if (words.length >= 3 && parts.every((p) => words.some((w) => low(w) === low(p)))) {
+          // в ключе может быть «mille — миль»: слово — до тире
+          const heads = parts.map((p) => p.split(/\s+[—–-]\s+/)[0].trim());
+          if (words.length >= 3 && heads.every((p) => words.some((w) => low(w) === low(p)))) {
+            parts.splice(0, parts.length, ...heads);
+            // один пункт-«выбери несколько»: все слова кнопками, верные — из ключа
             const note = (ansReal[0].match(/\(([^()]*)\)\s*$/) || [])[1];
-            e.lines.splice(lj, 1, ...words.map((w, i) => `${i + 1}. ${w} — да / нет`));
-            e.answers = words.map((w, i) => `${i + 1}. ${parts.some((p) => low(p) === low(w)) ? "да" : "нет"}`);
-            if (note) e.answers.push(`_${note}_`);
+            e.lines.splice(lj, 1, `1. [выбери] ${words.join(" / ")}`);
+            e.answers = [`1. ${parts.map((p) => words.find((w) => low(w) === low(p))).join(" / ")}${note ? ` (${note})` : ""}`];
           }
         }
       }
@@ -215,7 +219,9 @@ export function normalizeHomework(body, pageTitle = "") {
     const words = slashParts(e.lines[li]);
     const low = (x) => x.toLowerCase().replace(/[.!?]+$/, "");
     const groups = [];
-    for (const l of e.answers) {
+    // ключ может быть одной строкой: «К/Г: cabane, gare — С/Ж: merci, page»
+    const segs = e.answers.flatMap((l) => strip(l).split(/\s+[—–]\s+(?=[^:]{1,40}:\s)/));
+    for (const l of segs) {
       const m = strip(l).match(/^(.{1,40}?):\s*(.+)$/);
       if (!m) continue;
       const members = m[2].split(/\s*[,;]\s*|\s+\/\s+/).map((x) => x.replace(/\s*\([^()]*\)\s*/g, " ").trim()).filter(Boolean);
@@ -224,10 +230,10 @@ export function normalizeHomework(body, pageTitle = "") {
     if (groups.length < 2 || groups.length > 6) continue;
     const covered = words.filter((w) => groups.some((g) => g.members.includes(low(w))));
     if (covered.length < words.length * 0.8) continue;
-    const labels = groups.map((g) => g.label);
     const tail = e.answers.filter((l) => strip(l) && !/^(.{1,40}?):\s*(.+)$/.test(strip(l)) && !/^\s*\d+[.)]\s/.test(l));
-    e.lines.splice(li, 1, ...covered.map((w, i) => `${i + 1}. ${w} — ${labels.join(" / ")}`));
-    e.answers = covered.map((w, i) => `${i + 1}. ${groups.find((g) => g.members.includes(low(w))).label}`).concat(tail.map((t) => `_${strip(t)}_`));
+    // по пункту на группу: «Выбери слова группы «(о) au, eau»» — все слова кнопками, верные — члены группы
+    e.lines.splice(li, 1, ...groups.map((g, i) => `${i + 1}. [выбери] ${g.label}: ${covered.join(" / ")}`));
+    e.answers = groups.map((g, i) => `${i + 1}. ${covered.filter((w) => g.members.includes(low(w))).join(" / ")}`).concat(tail.map((t) => `_${strip(t)}_`));
   }
 
   const out = [];

@@ -12365,7 +12365,7 @@ async function appCoursePayload(chatId) {
   const homework = await appHomeworkPayload(chatId);
   // в бизнес-версии нет A0 — свой уровень хранится отдельно (bizLevel)
   const lvl = track === "business" ? (progress.bizLevel || (progress.level && progress.level !== "A0" ? progress.level : null)) : progress.level;
-  return { ok: true, track, businessAvailable: !!biz, plan: progress.plan || {}, levels, categories, level: levels.some((l) => l.code === lvl) ? lvl : null, total: all.length, done: all.filter((t) => t.status === "done").length, builtAt: index.builtAt || null, homework, mine: mine ? { total: mine.total, done: mine.done, builtAt: mine.builtAt } : null, mistakes14: (await myMistakesPayload(chatId)).total };
+  return { ok: true, track, businessAvailable: !!biz, plan: progress.plan || {}, levels, categories, level: levels.some((l) => l.code === lvl) ? lvl : null, total: all.length, done: all.filter((t) => t.status === "done").length, builtAt: index.builtAt || null, homework, mine: mine ? { total: mine.total, done: mine.done, builtAt: mine.builtAt } : null, mistakes14: (await myMistakesPayload(chatId)).total, last: progress.last || null };
 }
 async function setCourseTopicStatus(chatId, topicId, status) {
   const index = await readCourseIndex();
@@ -12859,6 +12859,22 @@ async function handleAppApi(body) {
         const progress = await readCourseProgress(chatId);
         const notes = (await readCourseNotes(chatId)).filter((n) => n.topicId === topic.id);
         return appJson({ ok: true, topic, progress: progress.topics[topic.id] || null, notes });
+      }
+      // где остановилась: упражнение и задание в теме — чтобы после выхода из приложения вернуть на то же место
+      case "posSet": {
+        const id = String(body.id || ""); if (!/^[0-9a-f]{32}$|^[A-Za-z0-9:_-]{1,80}$/.test(id)) return appJson({ ok: false, error: "bad_id" }, 400);
+        const pos = { i: Math.max(0, Number(body.i) || 0), ex: Math.max(0, Number(body.ex) || 0), item: Math.max(0, Number(body.item) || 0), score: Math.max(0, Number(body.score) || 0), at: new Date().toISOString() };
+        const done = !!body.done;
+        await withOptimisticUpdate(courseStore(), `progress:${chatId}`, emptyCourseProgress, (current) => {
+          const next = { ...emptyCourseProgress(), ...current, topics: { ...(current.topics || {}) } };
+          const t = { ...(next.topics[id] || {}) };
+          if (done) delete t.pos; else t.pos = pos;
+          next.topics[id] = t;
+          next.last = done ? null : { id, at: pos.at };
+          next.updatedAt = pos.at;
+          return next;
+        });
+        return appJson({ ok: true });
       }
       case "courseSet": {
         const status = String(body.status || "");

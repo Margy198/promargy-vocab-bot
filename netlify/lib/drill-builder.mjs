@@ -49,6 +49,7 @@ export function splitItems(html) {
     const items = [];
     for (const ol of ols) for (const m of ol.matchAll(/<li>([\s\S]*?)<\/li>/g)) items.push(m[1]);
     if (items.length >= 2) return items;
+    if (items.length === 1 && /^\[выбери\]/i.test(htmlToText(items[0]))) return items; // один пункт «выбери несколько»
     // «1. can<br>2. can't<br>…» одним абзацем превращается в список из одного пункта
     if (items.length === 1 && /<br\s*\/?>\s*(<b>)?2[.)]\s/i.test(items[0])) {
       const lines = ("1. " + items[0]).split(/<br\s*\/?>/i).map((l) => l.trim()).filter(Boolean);
@@ -602,10 +603,27 @@ export function readingChoice(word, keyText) {
     const w = l === "h" || /в начале/.test(expl) && word.toLowerCase().startsWith(l) ? ru + reading : reading + ru;
     if (w !== reading && !wrongs.includes(w)) wrongs.push(w);
   }
-  if (!silent.length && reading.length >= 3) { const w = reading.slice(0, -1); if (!wrongs.includes(w)) wrongs.push(w); }
+  if (!silent.length) for (const w of readingWrongs(word, reading)) if (!wrongs.includes(w)) wrongs.push(w);
   for (const [a, b] of RU_SWAP) { if (wrongs.length >= 3) break; if (reading.includes(a)) { const w = reading.replace(a, b); if (w !== reading && !wrongs.includes(w)) wrongs.push(w); } }
   if (!wrongs.length) return null;
   return { options: [reading, ...wrongs.slice(0, 3)], note: expl };
+}
+
+// Неверные чтения ТОГО ЖЕ слова (не чужих слов): немая буква «прочитана» (pris → прис), конечная e (porte → портэ),
+// h (harpe → харп), буквосочетания прочитаны по-английски/по буквам (chat → чат, oiseau → оисо, qui → кви)
+export function readingWrongs(word, reading) {
+  const w = String(word || "").toLowerCase().replace(/[^a-zà-ÿ'’-]/g, "");
+  const r = String(reading || "").trim();
+  if (!w || !/^[а-яё~' -]+$/i.test(r)) return [];
+  const out = []; const add = (x) => { if (x && x !== r && !out.includes(x)) out.push(x); };
+  const last = w.slice(-1);
+  if (/[tdsxzpgrnmlcbfk]/.test(last) && LAT_RU[last] && !r.endsWith(LAT_RU[last])) add(r.replace(/~$/, "") + LAT_RU[last]);
+  if (/[^é]e$/.test(w)) add(r + "э");
+  if (/^h/.test(w) && !/^х/.test(r)) add("х" + r);
+  const SUB = [[/ch/, "ш", "ч"], [/qu/, "к", "кв"], [/gn/, "нь", "гн"], [/ill|il\b/, "й", "ль"], [/oi/, "уа", "ои"], [/ou/, "у", "оу"], [/eau|au/, "о", "ау"], [/eu|oeu/, "ё", "эу"], [/ai|ei/, "э", "аи"], [/ui/, "уи", "ю"], [/ph/, "ф", "пх"], [/u/, "ю", "у"], [/~/, "~", "н"]];
+  for (const [rx, ok, bad] of SUB) { if (out.length >= 3) break; if (rx.test(w) && r.includes(ok)) add(r.replace(ok, bad)); }
+  for (const [a, b] of RU_SWAP) { if (out.length >= 3) break; if (r.includes(a)) add(r.replace(a, b)); }
+  return out.slice(0, 3);
 }
 
 const escHtml = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -613,6 +631,10 @@ export function buildDrill(ex, i, qHtml, aHtml, meta) {
   const id = `${meta.topicId}:${ex.n}:${i}`;
   const task = htmlToText(ex.title).replace(/\s*\{[^}]*\}\s*$/, "");
   const key = parseKey(aHtml);
+  // перевод слова в пункте «robe (платье) — …»: показываем под словом, в разбор не пускаем
+  let tr = "";
+  { const m = String(qHtml || "").match(/^(\s*(?:<[^>]+>\s*)*[A-Za-zÀ-ÿ'’-]{1,30}(?:\s[A-Za-zÀ-ÿ'’-]{1,30}){0,2})\s*\(([а-яё][^()]{0,60})\)/i);
+    if (m) { tr = m[2].trim(); qHtml = qHtml.replace(/\s*\([а-яё][^()]{0,60}\)/i, ""); } }
   const qText = htmlToText(qHtml);
   // ключ «Moi, je préfère les livres. - пояснение по-русски»: ответ — часть без пояснения, пояснение — в подсказку после ошибки
   if (key.main && key.full && /[а-яё]/i.test(key.main) && !/[а-яё]/i.test(key.full) && key.main.toLowerCase().startsWith(key.full.toLowerCase())) {
@@ -633,9 +655,28 @@ export function buildDrill(ex, i, qHtml, aHtml, meta) {
       }
     }
   }
-  const base = { id, ex: ex.n, i, task, q: cleanHtml(qHtml), key: cleanHtml(aHtml), note: key.note || "" };
+  const base = { id, ex: ex.n, i, task, q: cleanHtml(qHtml), key: cleanHtml(aHtml), note: key.note || "", ...(tr ? { tr } : {}) };
   const blanks = countBlanks(qHtml);
   if (OPEN_RX.test(task) && !/❌/.test(aHtml)) return { ...base, type: "recall", open: true };
+  // «Впиши сама / по памяти / без подсказок»: Маргарита хочет, чтобы ученик печатал ответ, а не выбирал
+  if (/впиши сам|напиши сам|по памяти|без подсказ|без вариантов/i.test(task)) {
+    const ans = String(key.main || "").split(/\s*\/\s*/)[0].replace(/\s*\([^()]*\)\s*$/, "").replace(/[.!?]$/, "").trim();
+    if (ans && ans.split(/\s+/).length <= 4 && !/[…]|\.{3}/.test(ans)) return { ...base, type: "type", answer: ans, accept: [...new Set([ans, ...key.alts])], src: "typed" };
+  }
+  // «[выбери] (о) au, eau: auto / beau / …» — выбери несколько: все слова кнопками, верные — из ключа
+  {
+    const pm = qText.match(/^\[выбери\]\s*(?:(.{1,60}?):\s*)?(.+)$/i);
+    if (pm) {
+      const words = pm[2].split(/\s+\/\s+/).map((x) => x.trim()).filter(Boolean);
+      const kt = String(key.text || "").replace(/\s*\([^()]*\)\s*$/, "");
+      const right = kt.split(/\s*\/\s*|\s*,\s*/).map((x) => x.trim().toLowerCase()).filter(Boolean);
+      const correct = words.map((w, i) => (right.includes(w.toLowerCase()) ? i : -1)).filter((i) => i >= 0);
+      if (words.length >= 3 && correct.length >= 1 && correct.length < words.length) {
+        const nm = String(key.text || "").match(/\(([^()]*)\)\s*$/);
+        return { ...base, type: "pick", options: words, correct, src: "pick", q: pm[1] ? `Выбери: <b>${escHtml(pm[1].trim())}</b>` : "Выбери все подходящие слова", note: base.note || (nm ? nm[1].trim() : "") };
+      }
+    }
+  }
   // «robe — роб / робэ», «harpe — харп / арп»: варианты прямо в пункте, ключ — один из них → кнопки
   {
     const dm = qText.match(/^(.{1,60}?)\s[—–-]\s(.+)$/);
@@ -981,7 +1022,8 @@ export function buildTopicDrills(topic) {
   const stats = { items: 0, choice: 0, build: 0, type: 0, recall: 0, whole: 0, mismatch: 0 };
   for (const ex of topic.exercises || []) {
     let qs = splitItems(ex.html);
-    const as = splitItems(ex.answers);
+    let as = splitItems(ex.answers);
+    if (qs.length === 1 && !as.length && /^\[выбери\]/i.test(htmlToText(qs[0]))) { const m = String(ex.answers || "").match(/<li>([\s\S]*?)<\/li>/); if (m) as = [m[1]]; }
     if ((!qs.length || qs.length !== as.length) && as.length >= 2) {
       const nb = splitNumberedBlanks(ex.html, as);
       if (nb) qs = nb;
@@ -1011,14 +1053,20 @@ export function buildTopicDrills(topic) {
     {
       const own = drills.slice(start);
       const ansOf = (d) => String(parseKey(d.key).main || "").split(/\s*\/\s*/)[0].replace(/\s*\([^()]*\)\s*$/, "").replace(/[.!?]$/, "").trim();
-      const short = (x) => x && x.split(/\s+/).length <= 3 && x.length <= 30 && /^[A-Za-zА-Яа-яЁё][A-Za-zА-Яа-яЁё'’ -]*$/.test(x);
+      const short = (x) => x && x.split(/\s+/).length <= 6 && x.length <= 40 && /^[A-Za-zА-Яа-яЁё][A-Za-zА-Яа-яЁё'’~= -]*$/.test(x);
       const script = (x) => (/[А-Яа-яЁё]/.test(x) ? "cyr" : "lat");
       const poolAll = [...new Set(own.map(ansOf).filter(short).map((x) => x.replace(/^\(?[а-яa-z]\)\s*/i, "").toLowerCase()))];
       if (poolAll.length >= 3) own.forEach((d, idx) => {
-        if (!((d.type === "type") || (d.type === "recall" && !d.open))) return;
+        if (d.src === "typed" || !((d.type === "type") || (d.type === "recall" && !d.open))) return;
         const ans = ansOf(d); if (!short(ans)) return;
         const pool = poolAll.filter((x) => script(x) === script(ans)); if (pool.length < 3) return;
         const okSet = new Set([ans, ...(parseKey(d.key).alts || [])].map((x) => x.toLowerCase()));
+        // чтение русскими буквами: неверные варианты — от того же слова, а не чужие чтения
+        const qw = (htmlToText(d.q).match(/^([A-Za-zÀ-ÿ'’-]{2,30})(?:\s*[—–-]\s*(…|\.{3}|_{2,}))?\s*$/) || [])[1];
+        if (script(ans) === "cyr" && qw) {
+          const rw = readingWrongs(qw, ans).filter((x) => !okSet.has(x.toLowerCase()));
+          if (rw.length >= 1) { stats[d.type]--; Object.assign(d, { type: "choice", options: [ans, ...rw], correct: 0, src: "read", accept: [...okSet] }); delete d.answer; stats.choice++; return; }
+        }
         const others = pool.filter((x) => !okSet.has(x));
         if (others.length < 2) return;
         // берем соседей по кругу — детерминированно, без повторов
