@@ -631,6 +631,10 @@ export function buildDrill(ex, i, qHtml, aHtml, meta) {
   const id = `${meta.topicId}:${ex.n}:${i}`;
   const task = htmlToText(ex.title).replace(/\s*\{[^}]*\}\s*$/, "");
   const key = parseKey(aHtml);
+  // чтение русскими буквами в квадратных скобках «[жё нэм па лир]» — показываем под заданием (кроме заданий на произношение, где чтение — ответ)
+  let rd = "";
+  { const m = String(qHtml || "").match(/\s*\\?\[([а-яё][^\]]{0,120})\\?\]\s*(?:<\/[^>]+>\s*)*$/i);
+    if (m) { rd = m[1].trim(); qHtml = qHtml.replace(m[0], (x) => x.replace(/\s*\\?\[[^\]]*\\?\]/, "")); } }
   // перевод слова в пункте «robe (платье) — …»: показываем под словом, в разбор не пускаем
   let tr = "";
   { const m = String(qHtml || "").match(/^(\s*(?:<[^>]+>\s*)*[A-Za-zÀ-ÿ'’-]{1,30}(?:\s[A-Za-zÀ-ÿ'’-]{1,30}){0,2})\s*\(([а-яё][^()]{0,60})\)/i);
@@ -657,7 +661,7 @@ export function buildDrill(ex, i, qHtml, aHtml, meta) {
       }
     }
   }
-  const base = { id, ex: ex.n, i, task, q: cleanHtml(qHtml), key: cleanHtml(aHtml), note: key.note || "", ...(tr ? { tr } : {}) };
+  const base = { id, ex: ex.n, i, task, q: cleanHtml(qHtml), key: cleanHtml(aHtml), note: key.note || "", ...(tr ? { tr } : {}), ...(rd ? { rd } : {}) };
   const blanks = countBlanks(qHtml);
   if (OPEN_RX.test(task) && !/❌/.test(aHtml)) return { ...base, type: "recall", open: true };
   // «Впиши сама / по памяти / без подсказок»: Маргарита хочет, чтобы ученик печатал ответ, а не выбирал

@@ -1836,8 +1836,8 @@
     // название упражнения Марго — это и есть задание («Вставь should или shouldn't»), его не подменяем
     const taskLine = d.task || (d.type === "build" ? (DRILL_TASK[d.mode] || "Собери из слов") : "");
     const lead = ((state.topic && state.topic.drillLeads) || {})[d.ex];
-    const head = `<div class="card ex"><div class="muted" style="margin-bottom:6px">${esc(counter)}${/^Задание /.test(counter) ? "" : ` · ${esc(taskLine)}`}</div>${lead ? `<div class="content" style="font-size:14px;color:var(--text-2);margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--line)">${lead}</div>` : ""}<div class="content" style="font-size:18px">${d.q}</div>${d.tr ? `<div class="muted" style="margin-top:4px;font-size:14px">${esc(d.tr)}</div>` : ""}</div>`;
-    const explain = () => { try { return explainHtml(e, { q: d.q, a: d.key }, lead); } catch (err) { return ""; } };
+    const head = `<div class="card ex"><div class="muted" style="margin-bottom:6px">${esc(counter)}${/^Задание /.test(counter) ? "" : ` · ${esc(taskLine)}`}</div>${lead ? `<div class="content" style="font-size:14px;color:var(--text-2);margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--line)">${lead}</div>` : ""}<div class="content" style="font-size:18px">${d.q}</div>${d.tr ? `<div class="muted" style="margin-top:4px;font-size:14px">${esc(d.tr)}</div>` : ""}${d.rd ? `<div class="muted" style="margin-top:2px;font-size:14px">🔊 ${esc(d.rd)}</div>` : ""}</div>`;
+    const explain = () => { if (d.note) return ""; try { return explainHtml(e, { q: d.q, a: d.key }, lead); } catch (err) { return ""; } };
     const note = d.note ? `<div class="muted" style="margin-top:6px;font-size:14px">💡 ${esc(d.note)}</div>` : "";
     // режим «вспоминаю сама» и задания без вариантов
     if (recall && st.result === null) {
@@ -1880,7 +1880,7 @@
       fb = `<div class="card" style="margin-top:14px;background:${ok ? "var(--ok-bg)" : "var(--bad-bg)"}"><div style="font-size:15px;font-weight:500;color:${ok ? "var(--ok-fg)" : "var(--bad-fg)"}">${ok ? "Верно!" : own ? "Сверь с ключом" : "Не совсем"}</div>
         ${!ok || d.type === "build" || (d.type === "type" && d.full) ? `<div style="margin-top:6px;font-size:16px">Правильно: <b>${esc(drillCorrectText(d))}</b></div>` : ""}
         ${d.type === "type" && d.full && !ok ? `<div class="muted" style="margin-top:4px;font-size:14px">В пропуск: ${esc(d.accept.join(" / "))}</div>` : ""}${note}</div>${ok ? "" : explain()}
-        <div class="navbtns">${own ? `<button class="btn" id="dr-own">У меня то же самое ✓</button>` : ""}<button class="btn primary" id="dr-next">Дальше</button></div>`;
+        <div class="navbtns">${own ? `<button class="btn" id="dr-own">У меня то же самое ✓</button>` : ""}${!ok ? `<button class="btn" id="dr-note">📝 В заметки</button>` : ""}<button class="btn primary" id="dr-next">Дальше</button></div>`;
     }
     return head + body + fb;
   }
@@ -1910,6 +1910,11 @@
     const tc = root.querySelector("#dr-tcheck"); if (tc) tc.addEventListener("click", tcheck);
     const gu = root.querySelector("#dr-giveup"); if (gu) gu.addEventListener("click", () => { st.typed = ""; st.checked = true; finish(false); renderStudy(); });
     const own = root.querySelector("#dr-own"); if (own) own.addEventListener("click", () => { haptic("medium"); onDone(true); });
+    root.querySelectorAll(".ex-theory").forEach((a) => a.addEventListener("click", (ev) => { ev.preventDefault(); st.returnTo = { ...st }; openLesson(Number(a.dataset.i)); }));
+    const sn = root.querySelector("#dr-note"); if (sn) sn.addEventListener("click", async () => {
+      haptic(); const t = state.topic; const text = `${strip(d.q)}\n✅ ${strip(drillCorrectText(d))}${d.note ? `\n💡 ${d.note}` : ""}`;
+      const r = await api("noteAdd", { topicId: t && t.id !== "mistakes" ? t.id : undefined, text }); if (r && r.ok) { state.notes = null; toast("Сохранено в заметки"); sn.disabled = true; } else toast("Не удалось сохранить");
+    });
     const nx = root.querySelector("#dr-next"); if (nx) { nx.addEventListener("click", () => { haptic(); onDone(!!st.result); }); setTimeout(() => { try { nx.scrollIntoView({ block: "end", behavior: "smooth" }); } catch (err) {} }, 60); }
   }
   // ---------- Активность: сколько минут и заданий — преподаватель видит это в кабинете ----------
