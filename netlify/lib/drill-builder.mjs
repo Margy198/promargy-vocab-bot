@@ -76,7 +76,7 @@ export function parseKey(aHtml) {
   const text = htmlToText(raw);
   const bolds = [...raw.matchAll(/<b>([\s\S]*?)<\/b>/g)].map((m) => htmlToText(m[1])).filter(Boolean);
   const out = { raw, text, bolds, main: null, fix: null, noError: false, both: false, note: "", alts: [] };
-  out.both = /\b(оба|both)\b|тоже верно|также верно|тоже можно|оба варианта/i.test(text);
+  out.both = /(^|[(\s—–-])оба(?=\s*($|[).,;:—–-]))|оба варианта|оба верн|\bboth\b|тоже верно|также верно|тоже можно|оба варианта/i.test(text);
   // ❌ неверно → ✅ верно
   if (/❌/.test(raw) && /✅/.test(raw)) {
     const wrong = htmlToText(raw.split("❌")[1].split(/→|->/)[0]).replace(/^[\s:—-]+|[\s:—-]+$/g, "");
@@ -220,7 +220,7 @@ const BOTH_GER_INF = new Set(["like", "love", "hate", "prefer", "start", "begin"
 // ---------- варианты для короткого ответа из подсказки: «(I + OWN)» → my own / I own / own / me own ----------
 // Маргарита (24.11): пропуск с подсказкой в скобках должен стать выбором из вариантов, а не полем ввода.
 const PRON = [["i", "me", "my", "mine", "myself"], ["you", "you", "your", "yours", "yourself"], ["he", "him", "his", "his", "himself"], ["she", "her", "her", "hers", "herself"], ["it", "it", "its", "its", "itself"], ["we", "us", "our", "ours", "ourselves"], ["they", "them", "their", "theirs", "themselves"]];
-const SWAP_SETS = [["in", "on", "at"], ["for", "since", "during"], ["some", "any", "no"], ["few", "little", "a few", "a little"], ["much", "many", "a lot of"], ["who", "which", "that", "whose"], ["a", "an", "the"], ["to", "for", "of"], ["by", "with"], ["if", "whether", "unless"], ["so", "such"], ["too", "enough", "very"], ["other", "another", "others", "the other"], ["still", "yet", "already"], ["as", "like"], ["because", "because of", "due to"], ["despite", "although", "in spite of"], ["can", "could", "be able to"], ["must", "have to", "should"], ["used to", "would", "get used to"]];
+const SWAP_SETS = [["something", "anything", "nothing", "everything"], ["somebody", "anybody", "nobody", "everybody"], ["someone", "anyone", "no one", "everyone"], ["somewhere", "anywhere", "nowhere", "everywhere"], ["in", "on", "at"], ["for", "since", "during"], ["some", "any", "no"], ["few", "little", "a few", "a little"], ["much", "many", "a lot of"], ["who", "which", "that", "whose"], ["a", "an", "the"], ["to", "for", "of"], ["by", "with"], ["if", "whether", "unless"], ["so", "such"], ["too", "enough", "very"], ["other", "another", "others", "the other"], ["still", "yet", "already"], ["as", "like"], ["because", "because of", "due to"], ["despite", "although", "in spite of"], ["can", "could", "be able to"], ["must", "have to", "should"], ["used to", "would", "get used to"]];
 export function hintDistractors(ans, hint, ctx) {
   const c = ans.toLowerCase().replace(/\s+/g, " ").trim();
   const words = c.split(" ");
@@ -315,7 +315,9 @@ export function verbDistractors(correct, ctx) {
     } else if (c === past(base) && c !== base) {
       add(...badPast(base));
       if (finite && !NO_REG.has(base) && c !== "did") add(`did ${c}`); // did went / did moved — заведомо неграмматично
-      if (finite && SUBJ_BE[subjWord] && !ADJ_VERB.has(base) && !NO_REG.has(base)) add(`${/^(i|he|she|it)$/.test(subjWord) ? "was" : "were"} ${base}`);
+      if (finite && !ADJ_VERB.has(base) && !NO_REG.has(base)) add(`${SUBJ_BE[subjWord] ? (/^(i|he|she|it)$/.test(subjWord) ? "was" : "were") : /[^s]s$/.test(subjWord) ? "were" : "was"} ${base}`);
+      // «I stolen», «he done», «we eaten»: третья форма вместо второй — частая ошибка
+      if (finite && pp(base) !== c && pp(base) !== base) add(pp(base));
     } else if (c === ing(base) && finite) { add(...badIng(base)); const gov = (before.match(/([a-z]+)\s*$/) || [])[1] || ""; if (!BOTH_GER_INF.has(gov)) add(`to ${base}`); }
     else if (c === pp(base) && c !== past(base)) add(...badPP(base));
   } else if ((m = c.match(/^to ([a-z]+)$/)) && base === m[1]) {
@@ -626,9 +628,10 @@ export function readingWrongs(word, reading) {
   return out.slice(0, 3);
 }
 
-function gapSteps(base, qText, gaps, whole) {
-  const parts = String(qText).split(/(…|\.{3})/);
-  const gi = []; parts.forEach((p, i) => { if (p === "…" || p === "...") gi.push(i); });
+function gapSteps(base, qText, gaps, whole, okAlt) {
+  const isGap = (p) => /^(…|\.{3}|_{2,})$/.test(p);
+  const parts = String(qText).split(/(…|\.{3}|_{2,})/);
+  const gi = []; parts.forEach((p, i) => { if (isGap(p)) gi.push(i); });
   const hintAfter = (i) => { const m = String(parts[i + 1] || "").match(/^\s*\(([^()]*)\)/); return m ? m[1] : ""; };
   // alignGaps склеивает пропуски, между которыми только подсказка («... (avoir) ... (de / d')») — разбиваем обратно
   // по вариантам в скобках у следующих пропусков: «n'ai pas de» → «n'ai pas» + «de»
@@ -663,8 +666,31 @@ function gapSteps(base, qText, gaps, whole) {
     else {
       const hint = parseHint(`x … (${h})`);
       let wrongs = frVerbDistractors(ans, hint, qText);
-      if (wrongs.length < 2) wrongs = wrongs.concat(hintDistractors(ans, hint, { ok: [ans], arrow: false }));
-      wrongs = [...new Set(wrongs)].filter((w) => norm(w) !== norm(ans)).slice(0, 3);
+      if (wrongs.length < 2 && /^[A-Za-z' ]+$/.test(ans) && hint && hint.verb) {
+        const before = parts.slice(0, gi[k]).filter((p) => !isGap(p)).join(" ").replace(/\([^()]*\)/g, " ");
+        wrongs = wrongs.concat(verbDistractors(ans, { hint, before }));
+      }
+      if (wrongs.length < 2) wrongs = wrongs.concat(hintDistractors(ans, hint && hint.raw ? hint : null, { ok: [ans], arrow: false }));
+      // «He ... (can) make»: у модального нет -s и нет связки — «cans», «is can»
+      if (/^[A-Z]/.test(ans)) wrongs = wrongs.map((w) => w.charAt(0).toUpperCase() + w.slice(1));
+      // must go → have to go тоже верно: замену модального на близкий по смыслу неверной не считаем
+      const modEq = (w) => [["must", "have to", "should", "need to"], ["can", "could", "be able to"]].some((g) => g.some((x) => new RegExp("(^|\\s)" + x + "(\\s|$)", "i").test(ans) && g.some((y) => y !== x && norm(ans.replace(new RegExp("(^|\\s)" + x + "(?=\\s|$)", "i"), "$1" + y)) === norm(w))));
+      wrongs = [...new Set(wrongs)].filter((w) => norm(w) !== norm(ans) && !(okAlt || []).includes(norm(w)) && !modEq(w)).slice(0, 3);
+      // «She … (read) while he … (watch)»: голая форма (read / watched) без вспомогательного перед пропуском может оказаться
+      // тоже верной (другое время) — такие неверными не даем
+      if (hint && hint.verb && /^[a-z]+$/.test(hint.verb)) {
+        const v = hint.verb.toLowerCase();
+        const prevText = parts.slice(0, gi[k]).filter((p) => !isGap(p)).join(" ").replace(/\([^()]*\)/g, " ").trim().toLowerCase();
+        const auxBefore = /(\b(am|is|are|was|were|be|been|have|has|had|will|would|can|could|must|should|may|might|do|does|did|to)|'(ve|s|re|m|d|ll))$/.test(prevText) || /n't$/.test(prevText);
+        if (!auxBefore && /\s/.test(ans)) { const risky = (w) => [past(v), third(v), v].includes(w.toLowerCase()); wrongs = wrongs.filter((w) => !risky(w));
+          if (!wrongs.length) wrongs = [`been ${ing(v)}`, ing(v), pp(v) !== past(v) ? pp(v) : null].filter((w) => w && norm(w) !== norm(ans) && !risky(w) && !gaps.some((g) => norm(g) === norm(w))).slice(0, 2); }
+      }
+      // «I've … (paint) the door (готово)»: других неверных форм нет — формы того же глагола (контраст результат / процесс)
+      if (!wrongs.length && hint && hint.verb && /^[a-z]+$/.test(hint.verb) && /^[A-Za-z' ]+$/.test(ans)) {
+        const v = hint.verb.toLowerCase();
+        wrongs = [pp(v), `been ${ing(v)}`, ing(v), past(v), v].filter((w, i, arr) => arr.indexOf(w) === i && norm(w) !== norm(ans) && !(okAlt || []).includes(norm(w)) && !gaps.some((g) => norm(g) === norm(w))).slice(0, 3);
+      }
+      if (!wrongs.length && /^(can|must|should|may|might|could|will|would)$/i.test(ans) && hint && hint.verb && hint.verb.toLowerCase() === ans.toLowerCase()) wrongs.push(ans + "s", "is " + ans);
       if (!wrongs.length) return null;
       options = [ans, ...wrongs];
     }
@@ -690,6 +716,63 @@ function gapSteps(base, qText, gaps, whole) {
   return out;
 }
 
+// Ключ — исправленный кусок без указания, что заменить («She grumbles», «and I will leave the car at the airport»):
+// ищем в исходном предложении отрезок, больше всего похожий на ключ, и заменяем его
+const lwFirst = (t) => String(t).trim().split(/\s+/)[0].toLowerCase().replace(/[^a-z']/g, "");
+function windowSplice(orig, right) {
+  const lw = (w) => w.toLowerCase().replace(/^[^a-z0-9'’]+|[^a-z0-9'’]+$/g, "");
+  // grumble ~ grumbles, fly ~ flying: одно слово в другой форме
+  const sim = (x, y) => x === y || (x.length >= 4 && y.length >= 4 && x.slice(0, 4) === y.slice(0, 4) && Math.abs(x.length - y.length) <= 3);
+  const ow = orig.split(/\s+/).filter(Boolean); const rw = right.replace(/[.!?]+$/, "").split(/\s+/).filter(Boolean);
+  if (rw.length < 1 || !ow.length) return null;
+  const rset = rw.map(lw);
+  const cands = [];
+  for (let n = Math.max(1, rw.length - 2); n <= Math.min(ow.length, rw.length + 2); n++) for (let a = 0; a + n <= ow.length; a++) {
+    // совпадение считаем по порядку слов (наибольшая общая подпоследовательность), а не мешком слов
+    const win = ow.slice(a, a + n).map(lw);
+    const L = Array.from({ length: win.length + 1 }, () => new Array(rset.length + 1).fill(0));
+    for (let x = 1; x <= win.length; x++) for (let y = 1; y <= rset.length; y++) L[x][y] = sim(win[x - 1], rset[y - 1]) ? L[x - 1][y - 1] + 1 : Math.max(L[x - 1][y], L[x][y - 1]);
+    const common = L[win.length][rset.length];
+    const edge = (sim(win[0], rset[0]) ? 0.5 : 0) + (sim(win[win.length - 1], rset[rset.length - 1]) ? 0.5 : 0);
+    // замена слова на слово («good» → «well») почти бесплатна; лишние или недостающие слова — штраф;
+    // отрезок, который кончается на запятой или в конце предложения, — естественная граница
+    const extra = n - common, miss = rw.length - common;
+    // лишнее слово на краю отрезка, когда этот край ключа совпал («…Barcelona, so» при «…Barcelona tomorrow»), — штраф
+    const inR = (w) => rset.some((x) => sim(x, w));
+    const inW = (w) => win.some((x) => sim(x, w));
+    const edgePen = (!inR(win[win.length - 1]) && inW(rset[rset.length - 1]) ? 0.5 : 0) + (!inR(win[0]) && inW(rset[0]) ? 0.5 : 0);
+    cands.push({ a, n, common, score: common + edge - edgePen - Math.abs(extra - miss) * 0.4 - Math.min(extra, miss) * 0.1 });
+  }
+  cands.sort((x, y) => y.score - x.score);
+  const best = cands[0];
+  if (!best || best.common < Math.max(1, Math.ceil(rw.length * 0.6))) return null;
+  // слово ключа стоит в исходном предложении вне отрезка («Don't put off it» → «put it off»): это перестановка,
+  // а не замена куска — не угадываем, пусть ученик соберет ключ из слов
+  const STOP = new Set(["a", "an", "the", "to", "of", "and", "but", "so", "in", "on", "at", "for", "i", "you", "he", "she", "it", "we", "they", "me", "him", "her", "us", "them", "my", "his", "our", "their", "your", "is", "are", "was", "were", "be", "have", "has", "had", "do", "does", "did", "will", "not"]);
+  const outW = [...ow.slice(0, best.a), ...ow.slice(best.a + best.n)].map(lw);
+  if (rset.some((r) => !STOP.has(r) && outW.some((w) => sim(w, r)))) return null;
+  // неоднозначно: начало ключа («it was …») встречается и вне выбранного отрезка — не угадываем
+  const outside = outW.join(" ");
+  if (rset.length >= 2 && (" " + outside + " ").includes(" " + rset.slice(0, 2).join(" ") + " ")) return null;
+  const last = ow[best.a + best.n - 1]; const punct = (last.match(/[,.;:!?]+$/) || [""])[0];
+  let mid = rw.join(" "); if (best.a === 0 || /[.!?]$/.test(ow[best.a - 1])) mid = mid.charAt(0).toUpperCase() + mid.slice(1); else if (/^[A-Z][a-z]/.test(mid) && !/^I\b/.test(mid)) mid = mid.charAt(0).toLowerCase() + mid.slice(1);
+  if (punct && !/[,.;:!?]$/.test(mid)) mid += punct;
+  const out = [...ow.slice(0, best.a), mid, ...ow.slice(best.a + best.n)].join(" ");
+  return /[.!?]$/.test(out) ? out : out + ".";
+}
+// «No, I haven't.» → чужие вспомогательные того же знака: «No, I don't.», «No, I didn't.», «No, I'm not.»
+const SA_SWAP = { have: ["do", "am", "did"], has: ["does", "is", "did"], did: ["do", "have", "was"], do: ["am", "have", "did"], does: ["is", "has", "did"], am: ["do", "have", "was"], is: ["does", "has", "was"], are: ["do", "have", "were"], was: ["did", "am", "were"], were: ["did", "are", "was"], will: ["do", "am", "would"], must: ["do", "have", "should"], can: ["do", "am", "could"], could: ["did", "can", "was"], would: ["will", "do", "did"], should: ["do", "must", "will"] };
+const SA_NEG = { do: "don't", does: "doesn't", did: "didn't", is: "isn't", are: "aren't", was: "wasn't", were: "weren't", have: "haven't", has: "hasn't", will: "won't", can: "can't", must: "mustn't", could: "couldn't", would: "wouldn't", should: "shouldn't" };
+function shortAnswerChoice(yn, pr, aux) {
+  let a = aux.toLowerCase(); let neg = false;
+  if (/ not$/.test(a)) { neg = true; a = a.replace(/ not$/, ""); }
+  else if (/n't$/.test(a)) { neg = true; a = Object.keys(SA_NEG).find((k) => SA_NEG[k] === a) || (a === "aren't" ? "are" : null); }
+  if (!a || !SA_SWAP[a]) return null;
+  const say = (x) => (!neg ? `${yn}, ${pr} ${x}.` : x === "am" ? `${yn}, I'm not.` : `${yn}, ${pr} ${SA_NEG[x]}.`);
+  const right = `${yn}, ${pr} ${aux}.`;
+  const opts = [right, ...SA_SWAP[a].filter((x) => x !== "am" || pr === "I").map(say)].filter((x, i, arr) => arr.indexOf(x) === i);
+  return opts.length >= 3 ? opts.slice(0, 4) : null;
+}
 const escHtml = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 export function buildDrill(ex, i, qHtml, aHtml, meta) {
   const id = `${meta.topicId}:${ex.n}:${i}`;
@@ -714,12 +797,22 @@ export function buildDrill(ex, i, qHtml, aHtml, meta) {
   }
   // «Найди и исправь ошибку» без ❌/✅: ключ «Верно.» или «исправленное предложение - пояснение по-русски»
   if (ERROR_RX.test(task) && !key.fix && !key.noError) {
-    const kt = String(key.text || "").trim();
-    if (/^(верно|правильно|ошибки нет|без ошибок|correct|ok)[.!]?$/i.test(kt)) { key.noError = true; key.note = ""; }
+    let kt = String(key.text || "").trim();
+    const okM = kt.match(/^(верно|правильно|ошибки нет|без ошибок|correct|ok)(?:[.!]?$|[.!]?\s*[—–-]\s+|[.!]\s+)(.*)$/i);
+    if (okM) { key.noError = true; key.note = okM[2] ? okM[2].replace(/^[—–-]\s*/, "").trim() : ""; }
     else {
-      const m = kt.match(/^(.*?[.!?])\s+[—–-]\s+(.*[а-яё].*)$/i) || (/^[A-ZÀ-Ý].*[.!?]$/.test(kt) && !/[а-яё]/i.test(kt) ? [null, kt, ""] : null);
+      // «I rest every evening (также: I do rest every evening) - пояснение»: допустимый вариант — в alts
+      for (const am of kt.matchAll(/\((?:также|или|тоже)[:\s]+([^()а-яё]+)\)/gi)) key.alts.push(am[1].trim());
+      kt = kt.replace(/\s*\((?:также|или|тоже)[:\s]+[^()а-яё]+\)/gi, "");
+      // «❌ → He climbed Kilimanjaro», «… (state verb)», «(V3)»: метки и короткие латинские пометки — не часть ответа
+      kt = kt.replace(/^\s*❌?\s*(→|->)\s*/, "");
+      { const lm = kt.match(/^(.*[A-Za-z].*?[.!?]?)\s*\(([A-Za-z0-9 -]{1,20})\)\s*\.?$/); if (lm && !/[а-яё]/i.test(lm[1])) { kt = lm[1].trim(); if (!key.note) key.note = lm[2].trim(); } }
+      // «The results were … Nevertheless, we were pleased.»: пропущенное начало — берем кусок после «…»
+      { const em = kt.match(/^[^а-яё]+?\s(?:…|\.{3})\s+([A-Z][^а-яё]*)$/); if (em) kt = em[1].trim(); }
+      { const pm = kt.match(/^([^а-яё]*[A-Za-z][^а-яё()]*?)\s*\(([^()]*[а-яё][^()]*)\)\s*\.?$/i); if (pm) kt = `${pm[1].trim()} - ${pm[2].trim()}`; }
+      const m = kt.match(/^(.*?[.!?])\s+[—–-]\s+(.*[а-яё].*)$/i) || kt.match(/^([^а-яё]*?[A-Za-z][^а-яё]*?)\s+[—–-]\s+(.*[а-яё].*)$/i) || (/^[A-ZÀ-Ý].*[.!?]$/.test(kt) && !/[а-яё]/i.test(kt) ? [null, kt, ""] : null);
       if (m && !/[а-яё]/i.test(m[1])) {
-        const right = m[1].split(/\s+\/\s+(?=[A-ZÀ-Ý])/)[0].trim();
+        const right = m[1].split(/\s+\/\s+(?=[A-ZÀ-Ý])/)[0].replace(/^\s*(?:\.{3}|…)\s*|\s*(?:\.{3}|…)\s*$/g, "").trim();
         key.fix = { wrong: null, right }; key.full = right; key.main = right; key.alts = m[1].split(/\s+\/\s+(?=[A-ZÀ-Ý])/).slice(1).map((x) => x.trim());
         if (m[2] && !key.note) key.note = m[2].trim();
       }
@@ -727,6 +820,14 @@ export function buildDrill(ex, i, qHtml, aHtml, meta) {
   }
   const base = { id, ex: ex.n, i, task, q: cleanHtml(qHtml), key: cleanHtml(aHtml), note: key.note || "", ...(tr ? { tr } : {}), ...(rd ? { rd } : {}) };
   const blanks = countBlanks(qHtml);
+  // «Ответь на вопрос» с ключом «No, I haven't. …»: главное — короткий ответ тем же вспомогательным, что в вопросе
+  {
+    const sm = String(key.full || key.text || "").match(/^(Yes|No),\s+(I|you|he|she|it|we|they)\s+([a-z]+(?:n't)?(?: not)?)\.\s*(.*)$/);
+    if (sm && /\?\s*(\([^()]*\))?\s*$/.test(qText.trim())) {
+      const sa = shortAnswerChoice(sm[1], sm[2], sm[3]);
+      if (sa) return { ...base, q: escHtml(qText.replace(/\s*\([^()]*[а-яё][^()]*\)\s*$/i, "").trim()), type: "choice", options: sa, correct: 0, src: "short", full: String(key.full || "").trim() };
+    }
+  }
   if (OPEN_RX.test(task) && !/❌/.test(aHtml)) return { ...base, type: "recall", open: true };
   // «Впиши сама / по памяти / без подсказок»: Маргарита хочет, чтобы ученик печатал ответ, а не выбирал
   if (/впиши сам|напиши сам|по памяти|без подсказ|без вариантов/i.test(task)) {
@@ -780,7 +881,12 @@ export function buildDrill(ex, i, qHtml, aHtml, meta) {
 
   // 1) Исправь ошибку
   if (key.fix && key.fix.right) {
-    const right = key.fix.right; const wrong = key.fix.wrong;
+    let right = key.fix.right; let wrong = key.fix.wrong;
+    // «… (state verb).», «(V3)»: короткая латинская пометка в скобках — в пояснение, не в ответ
+    { const lm = right.match(/^(.*?)\s*\(([A-Za-z0-9 -]{1,20})\)\s*\.?$/); if (lm && /[A-Za-z]/.test(lm[1])) { right = lm[1].trim(); if (!/[.!?]$/.test(right) && /[.!?]$/.test(qText.trim()) && right.split(/\s+/).length >= qText.trim().split(/\s+/).length - 1) right += "."; if (!base.note) base.note = lm[2].trim(); } }
+    // «The results were … Nevertheless, we were pleased.»: в ключе пропущена часть — исправленным считаем кусок после «…»
+    let partial = false;
+    { const em = right.match(/^(.*?)\s*(?:…|\.{3})\s*(.*)$/); if (em && /[A-Za-z]/.test(em[2])) { right = em[2].replace(/^[,\s]+/, "").trim(); partial = true; wrong = null; } else if (em && !em[2]) { right = em[1].trim(); partial = true; } }
     const orig = qText.replace(/\s*\([^()]*[а-яё][^()]*\)\s*$/i, "").trim();
     // исправленное предложение = исходное, где неверный кусок заменен на верный
     let fixed = null;
@@ -797,7 +903,7 @@ export function buildDrill(ex, i, qHtml, aHtml, meta) {
     };
     // ключ — уже целое исправленное предложение (с перестановкой слов): берем его как есть
     const wcount = (x) => x.split(/\s+/).filter((w) => /[A-Za-zÀ-ÿ]/.test(w)).length;
-    if (/^[A-ZÀ-Ý]/.test(right) && /[.!?]$/.test(right) && wcount(right) >= wcount(orig) - 1 && wcount(right) >= 2) fixed = right;
+    if (!partial && /^[A-ZÀ-Ý]/.test(right) && /[.!?]$/.test(right) && wcount(right) >= wcount(orig) - 1 && wcount(right) >= 2) fixed = right;
     else if (wrong && orig.includes(wrong)) fixed = splice(orig.indexOf(wrong), wrong.length);
     else if (wrong && orig.toLowerCase().includes(wrong.toLowerCase())) fixed = splice(orig.toLowerCase().indexOf(wrong.toLowerCase()), wrong.length);
     // несколько ошибок в пункте: «is engineer / the Germany» → «is an engineer from Germany» заменяет весь отрезок
@@ -806,6 +912,9 @@ export function buildDrill(ex, i, qHtml, aHtml, meta) {
       const a = lo.indexOf(parts[0].toLowerCase()); const lastP = parts[parts.length - 1].toLowerCase(); const b = lo.indexOf(lastP, a);
       if (a >= 0 && b >= a) fixed = orig.slice(0, a) + right + orig.slice(b + lastP.length);
     }
+    // ключ — самостоятельное предложение с другим началом («The problem is evidently considerable.»): не вклеиваем
+    const standalone = /^[A-Z]/.test(right) && !/^I\b/.test(right) && ((/[.!?]$/.test(right) && lwFirst(right) !== lwFirst(orig)) || wcount(right) >= 0.7 * wcount(orig));
+    if (!fixed && !wrong && !standalone) fixed = windowSplice(orig, right);
     if (fixed && fixed.trim().toLowerCase() !== orig.trim().toLowerCase() && !/[а-яё]/i.test(fixed + orig)) {
       return { ...base, type: "choice", mode: "fix", options: [fixed, orig], correct: 0, src: "fix" };
     }
@@ -816,6 +925,11 @@ export function buildDrill(ex, i, qHtml, aHtml, meta) {
     }
     if (wrong && right && norm(wrong) !== norm(right) && !/[а-яё]/i.test(right + wrong)) {
       return { ...base, type: "choice", mode: "fix", options: [right, wrong], correct: 0, src: "fix" };
+    }
+    // исправленный кусок без места замены («Tonight I'm going to the ballet»): собрать его из слов
+    if (right.split(/\s+/).length >= 2 && !/[а-яё]/i.test(right)) {
+      const { tokens, end } = tokenize(right.replace(/^[a-z]/, (c) => c));
+      return { ...base, type: "build", mode: "fix", answer: right, accept: [right, ...(key.alts || [])], tiles: tokens, end, traps: trapsFor(tokens) };
     }
     return { ...base, type: "recall", mode: "fix" };
   }
@@ -879,8 +993,14 @@ export function buildDrill(ex, i, qHtml, aHtml, meta) {
       }
     }
   }
+  const wantBoth = /оба|both/i.test(task);
   for (const g of groups) {
-    let idx = g.findIndex((x) => norm(x) === norm(key.main) || norm(x) === norm(key.bolds[0] || ""));
+    const head = String(key.main || "").split(/\s[—–-]\s/)[0].trim();
+    let idx = g.findIndex((x) => norm(x) === norm(key.main) || norm(x) === norm(key.bolds[0] || "") || norm(x) === norm(head));
+    if (wantBoth && g.length <= 4 && (idx >= 0 || /^\s*(оба|both)(?![а-яёa-z])/i.test(String(key.text || "")))) {
+      const both = /^\s*(оба|both)(?![а-яёa-z])/i.test(String(key.text || ""));
+      return { ...base, type: "choice", options: [...g, "оба"], correct: both ? g.length : idx, src: "alt", q: cleanHtml(qHtml) };
+    }
     if (idx >= 0 && !key.both) return { ...base, type: "choice", options: g.map((x) => (/^[—–-]$/.test(x.trim()) ? "без артикля" : x)), correct: idx, src: "alt", q: cleanHtml(qHtml) };
   }
 
@@ -923,8 +1043,10 @@ export function buildDrill(ex, i, qHtml, aHtml, meta) {
     }
   }
   // 3) Пропуск с подсказкой → варианты-формы
-  if (blanks === 1 && !key.both) {
-    const ans = key.main.split(/\s*\/\s*/)[0].replace(/[.!?]$/, "").trim();
+  const bothOne = key.both && blanks === 1 && !wantBoth && /^[A-Za-z]+(?=\s|$|\()/.test(String(key.main || "")) && !/\//.test(String(key.main || ""));
+  if (bothOne) key.alts = [...(key.alts || []), ...(String(key.text).match(/[A-Za-z][A-Za-z']*/g) || [])];
+  if (blanks === 1 && (!key.both || bothOne)) {
+    const ans = bothOne ? String(key.main).match(/^[A-Za-z]+/)[0] : key.main.split(/\s*\/\s*/)[0].replace(/[.!?]$/, "").trim();
     const hint = parseHint(qText);
     const before = qText.split(/…|\.{3}|_{2,}/)[0] || "";
     let wrongs = []; let skipGen = false;
@@ -1009,6 +1131,15 @@ export function buildDrill(ex, i, qHtml, aHtml, meta) {
       return { ...base, type: "build", mode: TRANSLATE_RX.test(task) ? "translate" : "transform", answer: key.full, accept: [key.full], tiles: tokens, end, traps: trapsFor(tokens) };
     }
     if (wholeTarget) { const ty = typeDrill(base, key, blanks); return ty || { ...base, type: "recall" }; }
+    let parts2 = parts;
+    // «happens / is not - Sometimes it happens; …»: пояснение после « - » по-английски — отрезаем
+    { const head = String(key.main).split(/\s+[—–-]\s+/)[0]; const hs = head.split(/\s*\/\s*/); if (head !== key.main && hs.length === blanks) parts2 = hs; }
+    if (parts2.length !== blanks && blanks >= 2) { const cs = key.main.split(/\s*,\s*/); if (cs.length === blanks && cs.every((x) => /^[A-Za-z'’ ]{1,30}$/.test(x.trim()))) parts2 = cs; }
+    if (parts2.length === blanks && blanks >= 2 && parts2.every((x) => /^[A-Za-z'’ ]{1,40}$/.test(x.trim()))) {
+      const gp = parts2.map((p) => p.trim());
+      const steps = gapSteps(base, qText, gp, fillBlanks(target, gp) || "", (key.alts || []).map(norm));
+      if (steps) return steps;
+    }
     if (parts.length === blanks) {
       const gp = parts.map((p) => p.replace(/[.!?]$/, ""));
       const full = fillBlanks(target, gp);
@@ -1139,7 +1270,7 @@ export function buildTopicDrills(topic) {
       const script = (x) => (/[А-Яа-яЁё]/.test(x) ? "cyr" : "lat");
       const poolAll = [...new Set(own.map(ansOf).filter(short).map((x) => x.replace(/^\(?[а-яa-z]\)\s*/i, "").toLowerCase()))];
       if (poolAll.length >= 3) own.forEach((d, idx) => {
-        if (d.src === "typed" || !((d.type === "type") || (d.type === "recall" && !d.open))) return;
+        if (d.src === "typed" || d.mode === "fix" || (countBlanks(d.q) >= 2 && /\//.test(String(parseKey(d.key).main || ""))) || !((d.type === "type") || (d.type === "recall" && !d.open))) return;
         const ans = ansOf(d); if (!short(ans)) return;
         const pool = poolAll.filter((x) => script(x) === script(ans)); if (pool.length < 3) return;
         const okSet = new Set([ans, ...(parseKey(d.key).alts || [])].map((x) => x.toLowerCase()));
