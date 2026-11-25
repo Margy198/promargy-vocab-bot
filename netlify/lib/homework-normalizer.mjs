@@ -195,7 +195,7 @@ export function normalizeHomework(body, pageTitle = "") {
           // «Выпиши только те слова, где …»: список слов, а в ключе — подмножество → по слову «да / нет»
           const lj = e.lines.findIndex((l) => strip(l) && !/^<b>/.test(l.trim()) && slashParts(l).length > parts.length);
           const words = lj >= 0 ? slashParts(e.lines[lj]) : [];
-          const low = (x) => x.toLowerCase();
+          const low = (x) => x.toLowerCase().replace(/\s*\([^()]*\)/g, "").trim();
           // в ключе может быть «mille — миль»: слово — до тире
           const heads = parts.map((p) => p.split(/\s+[—–-]\s+/)[0].trim());
           if (words.length >= 3 && heads.every((p) => words.some((w) => low(w) === low(p)))) {
@@ -217,7 +217,7 @@ export function normalizeHomework(body, pageTitle = "") {
     const li = e.lines.findIndex((l) => strip(l) && !/^<b>/.test(l.trim()) && slashParts(l).length >= 4);
     if (li < 0) continue;
     const words = slashParts(e.lines[li]);
-    const low = (x) => x.toLowerCase().replace(/[.!?]+$/, "");
+    const low = (x) => x.toLowerCase().replace(/\s*\([^()]*\)/g, "").replace(/[.!?]+$/, "").trim();
     const groups = [];
     // ключ может быть одной строкой: «К/Г: cabane, gare — С/Ж: merci, page»
     const segs = e.answers.flatMap((l) => strip(l).split(/\s+[—–]\s+(?=[^:]{1,40}:\s)/));

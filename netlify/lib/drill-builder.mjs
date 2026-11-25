@@ -671,8 +671,9 @@ export function buildDrill(ex, i, qHtml, aHtml, meta) {
     if (pm) {
       const words = pm[2].split(/\s+\/\s+/).map((x) => x.trim()).filter(Boolean);
       const kt = String(key.text || "").replace(/\s*\([^()]*\)\s*$/, "");
-      const right = kt.split(/\s*\/\s*|\s*,\s*/).map((x) => x.trim().toLowerCase()).filter(Boolean);
-      const correct = words.map((w, i) => (right.includes(w.toLowerCase()) ? i : -1)).filter((i) => i >= 0);
+      const bare = (x) => x.replace(/\s*\([^()]*\)/g, "").trim().toLowerCase();
+      const right = kt.split(/\s*\/\s*|\s*,\s*/).map((x) => bare(x)).filter(Boolean);
+      const correct = words.map((w, i) => (right.includes(bare(w)) ? i : -1)).filter((i) => i >= 0);
       if (words.length >= 3 && correct.length >= 1 && correct.length < words.length) {
         const nm = String(key.text || "").match(/\(([^()]*)\)\s*$/);
         return { ...base, type: "pick", options: words, correct, src: "pick", q: pm[1] ? `Выбери: <b>${escHtml(pm[1].trim())}</b>` : "Выбери все подходящие слова", note: base.note || (nm ? nm[1].trim() : "") };
