@@ -836,6 +836,9 @@ export function buildDrill(ex, i, qHtml, aHtml, meta) {
       if (gaps.length === 1 && blanks === 1) {
         const ans = gaps[0];
         const okSet = new Set([ans, ...key.alts].map(norm));
+        // варианты прямо в скобках «(le / la / без артикля)» — кнопки из них
+        const grp = parseChoices(qHtml).find((g) => g.some((o) => norm(o) === norm(ans)));
+        if (grp && grp.length >= 2 && grp.length <= 5) return { ...base, type: "choice", options: grp, correct: grp.findIndex((o) => norm(o) === norm(ans)), src: "inline", full: whole, hint: hint ? hint.raw : "" };
         let wrongs = frVerbDistractors(ans, hint, qText);
         if (wrongs.length < 2) wrongs = wrongs.concat(hintDistractors(ans, hint, { ok: [...okSet], arrow: false }));
         wrongs = [...new Set(wrongs)].filter((w) => !okSet.has(norm(w)) && norm(w) !== norm(ans)).slice(0, 3);
